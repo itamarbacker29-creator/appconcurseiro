@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/Button';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { useToast } from '@/components/ui/Toast';
@@ -30,20 +29,26 @@ export default function OnboardingPage() {
 
   async function finalizar() {
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { router.push('/login'); return; }
+    try {
+      const res = await fetch('/api/onboarding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          escolaridade,
+          areas_interesse: areas,
+          estados_interesse: estados,
+          data_prova: dataProva || null,
+        }),
+      });
 
-    const { error } = await supabase.from('profiles').update({
-      escolaridade,
-      areas_interesse: areas,
-      estados_interesse: estados,
-      data_prova: dataProva || null,
-      onboarding_completo: true,
-    }).eq('id', user.id);
-
-    setLoading(false);
-    if (error) { toast('Erro ao salvar perfil', 'error'); return; }
-    router.push('/dashboard');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Erro ao salvar');
+      window.location.href = '/dashboard';
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erro ao salvar perfil';
+      toast(msg, 'error');
+      setLoading(false);
+    }
   }
 
   const total = 4;

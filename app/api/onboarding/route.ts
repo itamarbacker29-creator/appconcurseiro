@@ -1,0 +1,29 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@/lib/supabase-server';
+
+export async function POST(req: NextRequest) {
+  const supabase = await createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+
+  const body = await req.json();
+  const { escolaridade, areas_interesse, estados_interesse, data_prova } = body;
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      escolaridade,
+      areas_interesse,
+      estados_interesse,
+      data_prova: data_prova || null,
+      onboarding_completo: true,
+    })
+    .eq('id', user.id);
+
+  if (error) {
+    console.error('[onboarding] erro:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true });
+}
