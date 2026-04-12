@@ -2,73 +2,59 @@ import httpx
 from bs4 import BeautifulSoup
 from typing import List
 
+RSS_SOURCES = [
+    "https://www.estrategiaconcursos.com.br/feed/",
+    "https://www.gran.com.br/blog/feed/",
+    "https://novosconcursos.com/feed/",
+]
 
 async def scrape_do() -> List[str]:
-    """Scrapa editais do Diário Oficial (in.gov.br) via API JSON."""
-    print("[DO] Iniciando scraping...")
+    """Scrapa editais via RSS de portais de concursos."""
+    print("[DO] Iniciando scraping via RSS...")
     textos = []
     headers = {
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",
-        "Accept": "application/json, text/html",
+        "User-Agent": "Mozilla/5.0 (compatible; ConcurseiroBot/1.0)",
+        "Accept": "application/rss+xml, application/xml, text/xml, */*",
     }
 
-    # API JSON do DOU — mais confiável que scraping de HTML
-    api_url = (
-        "https://www.in.gov.br/consulta/-/buscar/dou"
-        "?q=concurso+p%C3%BAblico+edital"
-        "&s=do1"
-        "&exactDate=personalizado"
-        "&delta=20"
-        "&sortType=0"
-    )
+    async with httpx.AsyncClient(timeout=20, follow_redirects=True, headers=headers) as client:
+        for feed_url in RSS_SOURCES:
+            try:
+                resp = await client.get(feed_url)
+                if resp.status_code != 200:
+                    print(f"[DO] HTTP {resp.status_code} — {feed_url}")
+                    continue
 
-    async with httpx.AsyncClient(timeout=30, follow_redirects=True, headers=headers) as client:
-        try:
-            resp = await client.get(api_url)
-            soup = BeautifulSoup(resp.text, "lxml")
+                soup = BeautifulSoup(resp.text, "xml")
+                items = soup.find_all("item") or soup.find_all("entry")
+                print(f"[DO] {feed_url} → {len(items)} itens")
 
-            # Seletores reais do DOU
-            resultados = (
-                soup.select(".resultado-item") or
-                soup.select(".materia") or
-                soup.select("article") or
-                soup.select(".resultado") or
-                soup.select("div[class*='resultado']")
-            )
+                for item in items[:15]:
+                    titulo = item.find("title")
+                    desc = item.find("description") or item.find("summary") or item.find("content")
+                    link = item.find("link")
 
-            for r in resultados[:15]:
-                texto = r.get_text(separator="\n", strip=True)
-                if len(texto) > 80:
-                    textos.append(texto)
+                    # Filtra apenas conteúdo sobre concursos/editais
+                    titulo_text = titulo.get_text(strip=True) if titulo else ""
+                    if not any(kw in titulo_text.lower() for kw in
+                               ["concurso", "edital", "seleção", "vagas", "inscri", "gabarito"]):
+                        continue
 
-            if not textos:
-                # Fallback: qualquer bloco com palavras-chave
-                for tag in soup.find_all(["p", "div", "section"], limit=200):
-                    texto = tag.get_text(strip=True)
-                    if len(texto) > 100 and any(
-                        kw in texto.lower()
-                        for kw in ["edital", "concurso público", "inscrições", "vagas"]
-                    ):
-                        if texto not in textos:
-                            textos.append(texto)
-                            if len(textos) >= 15:
-                                break
+                    partes = [f"Título: {titulo_text}"]
+                    if desc:
+                        desc_text = BeautifulSoup(desc.get_text(), "lxml").get_text("\n", strip=True)
+                        partes.append(desc_text[:2000])
+                    if link:
+                        url = link.get_text(strip=True) or link.get("href", "")
+                        if url:
+                            partes.append(f"link_inscricao: {url}")
 
-        except Exception as e:
-            print(f"[DO] Erro: {e}")
+                    texto = "\n".join(partes)
+                    if len(texto) > 50:
+                        textos.append(texto)
 
-    # Fonte adicional: Concursos no Brasil
-    try:
-        async with httpx.AsyncClient(timeout=20, follow_redirects=True, headers=headers) as client:
-            resp = await client.get("https://www.concursosnobrasil.com.br/concursos/")
-            soup = BeautifulSoup(resp.text, "lxml")
-            cards = soup.select(".concurso-card") or soup.select("article") or soup.select(".entry-title")
-            for card in cards[:10]:
-                texto = card.get_text(separator="\n", strip=True)
-                if len(texto) > 50:
-                    textos.append(texto)
-    except Exception as e:
-        print(f"[CNB] Erro: {e}")
+            except Exception as e:
+                print(f"[DO] Erro em {feed_url}: {e}")
 
-    print(f"[DO] {len(textos)} blocos encontrados")
+    print(f"[DO] {len(textos)} editais encontrados no total")
     return textos[:20]

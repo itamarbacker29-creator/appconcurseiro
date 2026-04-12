@@ -2,64 +2,55 @@ import httpx
 from bs4 import BeautifulSoup
 from typing import List
 
+RSS_FEEDS = [
+    "https://www.concursosnobrasil.com.br/feed/",
+    "https://www.pciconcursos.com.br/rss/noticias.xml",
+    "https://www.qconcursos.com/feed/noticias",
+]
 
 async def scrape_pci() -> List[str]:
-    """Scrapa editais do PCI Concursos via httpx."""
-    print("[PCI] Iniciando scraping...")
-    urls = [
-        "https://www.pciconcursos.com.br/concursos/nacionais/",
-        "https://www.pciconcursos.com.br/concursos/",
-    ]
-
+    """Scrapa editais via RSS feeds de concursos."""
+    print("[PCI] Iniciando scraping via RSS...")
     textos = []
     headers = {
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept-Language": "pt-BR,pt;q=0.9",
+        "User-Agent": "Mozilla/5.0 (compatible; ConcurseiroBot/1.0)",
+        "Accept": "application/rss+xml, application/xml, text/xml, */*",
     }
 
-    async with httpx.AsyncClient(timeout=30, follow_redirects=True, headers=headers) as client:
-        for url in urls:
+    async with httpx.AsyncClient(timeout=20, follow_redirects=True, headers=headers) as client:
+        for feed_url in RSS_FEEDS:
             try:
-                resp = await client.get(url)
+                resp = await client.get(feed_url)
                 if resp.status_code != 200:
-                    print(f"[PCI] HTTP {resp.status_code} em {url}")
+                    print(f"[PCI] HTTP {resp.status_code} — {feed_url}")
                     continue
 
-                soup = BeautifulSoup(resp.text, "lxml")
+                soup = BeautifulSoup(resp.text, "xml")
+                items = soup.find_all("item") or soup.find_all("entry")
+                print(f"[PCI] {feed_url} → {len(items)} itens")
 
-                # Tenta vários seletores conhecidos do PCI
-                cards = (
-                    soup.select(".ca") or
-                    soup.select(".concurso") or
-                    soup.select("article.concurso") or
-                    soup.select(".listagem-concursos li") or
-                    soup.select("table.concursos tr") or
-                    soup.select(".noticias-lista article") or
-                    soup.select("div[class*='concurso']")
-                )
+                for item in items[:20]:
+                    titulo = item.find("title")
+                    desc = item.find("description") or item.find("summary") or item.find("content")
+                    link = item.find("link")
 
-                if not cards:
-                    # Fallback: extrai todos os links com texto relevante
-                    links = soup.find_all("a", href=True)
-                    for link in links:
-                        texto = link.get_text(strip=True)
-                        if len(texto) > 30 and any(
-                            kw in texto.lower()
-                            for kw in ["concurso", "edital", "seleção", "vagas", "inscri"]
-                        ):
-                            parent = link.find_parent(["li", "div", "article", "tr"])
-                            if parent:
-                                bloco = parent.get_text(separator="\n", strip=True)
-                                if len(bloco) > 50 and bloco not in textos:
-                                    textos.append(bloco)
+                    partes = []
+                    if titulo:
+                        partes.append(f"Título: {titulo.get_text(strip=True)}")
+                    if desc:
+                        desc_text = BeautifulSoup(desc.get_text(), "lxml").get_text("\n", strip=True)
+                        partes.append(desc_text)
+                    if link:
+                        url = link.get_text(strip=True) or link.get("href", "")
+                        if url:
+                            partes.append(f"link_inscricao: {url}")
 
-                for card in cards[:25]:
-                    texto = card.get_text(separator="\n", strip=True)
+                    texto = "\n".join(partes)
                     if len(texto) > 50:
                         textos.append(texto)
 
             except Exception as e:
-                print(f"[PCI] Erro em {url}: {e}")
+                print(f"[PCI] Erro em {feed_url}: {e}")
 
-    print(f"[PCI] {len(textos)} blocos encontrados")
+    print(f"[PCI] {len(textos)} editais encontrados no total")
     return textos[:30]
