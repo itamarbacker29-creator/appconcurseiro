@@ -187,18 +187,38 @@ ALTER TABLE materiais ENABLE ROW LEVEL SECURITY;
 ALTER TABLE acessos_avulso ENABLE ROW LEVEL SECURITY;
 
 -- Policies: usuário vê apenas seus próprios dados
+DROP POLICY IF EXISTS "user_own_profile" ON profiles;
 CREATE POLICY "user_own_profile" ON profiles FOR ALL USING (auth.uid() = id);
+
+DROP POLICY IF EXISTS "user_own_respostas" ON respostas;
 CREATE POLICY "user_own_respostas" ON respostas FOR ALL USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "user_own_habilidade" ON habilidade_usuario;
 CREATE POLICY "user_own_habilidade" ON habilidade_usuario FOR ALL USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "user_own_planos" ON planos_estudo;
 CREATE POLICY "user_own_planos" ON planos_estudo FOR ALL USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "user_own_salvos" ON editais_salvos;
 CREATE POLICY "user_own_salvos" ON editais_salvos FOR ALL USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "user_own_flashcards" ON flashcards;
 CREATE POLICY "user_own_flashcards" ON flashcards FOR ALL USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "user_own_tutor" ON tutor_mensagens;
 CREATE POLICY "user_own_tutor" ON tutor_mensagens FOR ALL USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "user_own_materiais" ON materiais;
 CREATE POLICY "user_own_materiais" ON materiais FOR ALL USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "user_own_avulso" ON acessos_avulso;
 CREATE POLICY "user_own_avulso" ON acessos_avulso FOR ALL USING (auth.uid() = user_id);
 
 -- Editais e questões são públicas para leitura
+DROP POLICY IF EXISTS "editais_public_read" ON editais;
 CREATE POLICY "editais_public_read" ON editais FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "questoes_public_read" ON questoes;
 CREATE POLICY "questoes_public_read" ON questoes FOR SELECT USING (ativo = true);
 
 -- =============================================
@@ -209,6 +229,7 @@ RETURNS TRIGGER AS $$
 BEGIN NEW.updated_at = NOW(); RETURN NEW; END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS profiles_updated_at ON profiles;
 CREATE TRIGGER profiles_updated_at
   BEFORE UPDATE ON profiles
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
@@ -225,6 +246,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
