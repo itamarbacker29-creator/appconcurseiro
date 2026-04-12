@@ -1,52 +1,137 @@
 """
-Crawler standalone — GitHub Actions v3.
-RSS feeds inline, sem Playwright, sem imports de scrapers externos.
+Crawler standalone — GitHub Actions v4.
+RSS feeds + parser por regex. Zero dependência de IA.
 """
-import asyncio, os, json
+import asyncio, os, re
 import httpx
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from supabase import create_client
-import google.generativeai as genai
 
 load_dotenv()
 
 supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_SERVICE_KEY"))
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-model = genai.GenerativeModel("gemini-2.0-flash")
 
 RSS_FEEDS = [
     "https://www.concursosnobrasil.com.br/feed/",
-    "https://novosconcursos.com/feed/",
     "https://www.estrategiaconcursos.com.br/feed/",
     "https://www.gran.com.br/blog/feed/",
     "https://www.pciconcursos.com.br/rss/noticias.xml",
 ]
 
-PROMPT = """Extraia dados deste texto sobre concurso público brasileiro em JSON:
-{
-  "orgao": "nome do órgão",
-  "cargo": "nome do cargo",
-  "escolaridade": "fundamental|medio|superior",
-  "salario": 0.0,
-  "vagas": 0,
-  "estado": "XX ou Nacional",
-  "area": "tributario|seguranca|saude|educacao|administrativo|judiciario|outros",
-  "data_inscricao_inicio": "YYYY-MM-DD ou null",
-  "data_inscricao_fim": "YYYY-MM-DD ou null",
-  "link_inscricao": "url ou null",
-  "banca": "nome ou null",
-  "materias": [],
-  "status": "ativo"
-}
-Retorne APENAS o JSON. Se não for sobre concurso público real com órgão e cargo definidos, retorne null.
-TEXTO: {texto}"""
+ESTADOS = ["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT","PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"]
+KEYWORDS_CONCURSO = ["concurso", "edital", "seleção pública", "processo seletivo", "vagas"]
+KEYWORDS_IGNORAR  = ["gabarito", "resultado", "apostila", "simulado", "curso", "dica", "como passar"]
 
 
-async def buscar_rss() -> list[str]:
-    textos = []
+def inferir_area(texto: str) -> str:
+    t = texto.lower()
+    if any(w in t for w in ["fiscal", "receita", "tributar", "fazenda", "sefaz"]): return "tributario"
+    if any(w in t for w in ["policia", "policial", "segurança", "penitenci", "bombeiro"]): return "seguranca"
+    if any(w in t for w in ["saúde", "enfermeiro", "médico", "hospital", "sus"]): return "saude"
+    if any(w in t for w in ["professor", "educação", "escola", "pedagog"]): return "educacao"
+    if any(w in t for w in ["juiz", "promotor", "tribunal", "judiciário", "trf", "tjm", "mpf"]): return "judiciario"
+    return "administrativo"
+
+
+def inferir_escolaridade(texto: str) -> str:
+    t = texto.lower()
+    if any(w in t for w in ["superior", "graduação", "analista", "auditor", "engenheiro", "advogado", "médico"]): return "superior"
+    if any(w in t for w in ["médio", "técnico", "agente", "assistente"]): return "medio"
+    return "medio"
+
+
+def extrair_vagas(texto: str) -> int | None:
+    m = re.search(r'(\d[\d\.,]*)\s*vaga', texto, re.IGNORECASE)
+    if m:
+        try: return int(re.sub(r'[.,]', '', m.group(1)))
+        except: pass
+    return None
+
+
+def extrair_salario(texto: str) -> float | None:
+    m = re.search(r'R\$\s*([\d\.,]+)', texto)
+    if m:
+        try: return float(re.sub(r'\.(?=\d{3})', '', m.group(1)).replace(',', '.'))
+        except: pass
+    return None
+
+
+def extrair_estado(texto: str) -> str:
+    for uf in ESTADOS:
+        if re.search(rf'\b{uf}\b', texto): return uf
+    for nome, uf in [("Federal","Nacional"),("Nacional","Nacional"),("São Paulo","SP"),("Rio de Janeiro","RJ"),("Minas Gerais","MG")]:
+        if nome.lower() in texto.lower(): return uf
+    return "Nacional"
+
+
+def extrair_data(texto: str) -> str | None:
+    # DD/MM/YYYY
+    m = re.search(r'(\d{2})/(\d{2})/(\d{4})', texto)
+    if m: return f"{m.group(3)}-{m.group(2)}-{m.group(1)}"
+    return None
+
+
+def parsear_item(titulo: str, desc: str, link: str) -> dict | None:
+    texto = f"{titulo} {desc}"
+
+    # Filtra itens que não são sobre concursos
+    if not any(k in texto.lower() for k in KEYWORDS_CONCURSO):
+        return None
+    if any(k in titulo.lower() for k in KEYWORDS_IGNORAR):
+        return None
+
+    # Tenta extrair orgao e cargo do título
+    # Padrão comum: "Concurso ORGAO 2024: CARGO - X vagas"
+    orgao, cargo = None, None
+
+    # Padrão 1: "Concurso <orgao>: <cargo>"
+    m = re.search(r'[Cc]oncurso\s+([^:]+?):\s*(.+?)(?:\s*[-–]\s*\d|\s*,|\s*$)', titulo)
+    if m:
+        orgao = m.group(1).strip()[:100]
+        cargo = m.group(2).strip()[:150]
+
+    # Padrão 2: "Edital <orgao> - <cargo>"
+    if not orgao:
+        m = re.search(r'[Ee]dital\s+([^-–]+?)\s*[-–]\s*(.+?)(?:\s*:\s*|\s*$)', titulo)
+        if m:
+            orgao = m.group(1).strip()[:100]
+            cargo = m.group(2).strip()[:150]
+
+    # Fallback: usa título inteiro como cargo e extrai orgao por sigla conhecida
+    if not orgao:
+        orgaos_conhecidos = ["IBGE","INSS","Receita Federal","Banco Central","BACEN","BB","CEF","Correios","STF","STJ","TST","TRF","MPF","PF","PRF","ANAC","ANVISA","SUSEP","CVM"]
+        for o in orgaos_conhecidos:
+            if o.lower() in texto.lower():
+                orgao = o
+                break
+
+    if not orgao:
+        orgao = titulo[:80]
+    if not cargo:
+        cargo = titulo[:150]
+
+    return {
+        "orgao": orgao,
+        "cargo": cargo,
+        "escolaridade": inferir_escolaridade(texto),
+        "salario": extrair_salario(texto),
+        "vagas": extrair_vagas(texto),
+        "estado": extrair_estado(texto),
+        "area": inferir_area(texto),
+        "data_inscricao_inicio": extrair_data(desc[:500]) if desc else None,
+        "data_inscricao_fim": None,
+        "link_inscricao": link or "https://concursosnobrasil.com.br",
+        "banca": None,
+        "materias": [],
+        "status": "ativo",
+    }
+
+
+async def buscar_e_salvar():
+    print("[CRAWLER] v4 — RSS + regex, sem IA")
     headers = {"User-Agent": "ConcurseiroBot/1.0"}
-    print(f"[RSS] Buscando em {len(RSS_FEEDS)} feeds...")
+    salvos = total = 0
 
     async with httpx.AsyncClient(timeout=15, follow_redirects=True, headers=headers) as client:
         for url in RSS_FEEDS:
@@ -60,58 +145,32 @@ async def buscar_rss() -> list[str]:
                 items = soup.find_all("item") or soup.find_all("entry")
                 print(f"[RSS] {url} → {len(items)} itens")
 
-                for item in items[:15]:
+                for item in items[:20]:
                     titulo_tag = item.find("title")
                     titulo = titulo_tag.get_text(strip=True) if titulo_tag else ""
                     desc_tag = item.find("description") or item.find("summary")
-                    desc = BeautifulSoup(desc_tag.get_text(), "lxml").get_text("\n", strip=True) if desc_tag else ""
+                    desc = BeautifulSoup(desc_tag.get_text(), "lxml").get_text(" ", strip=True) if desc_tag else ""
                     link_tag = item.find("link")
-                    link = link_tag.get_text(strip=True) if link_tag and link_tag.get_text(strip=True) else (link_tag.get("href", "") if link_tag else "")
+                    link = (link_tag.get_text(strip=True) if link_tag and link_tag.get_text(strip=True) else link_tag.get("href","") if link_tag else "")
 
-                    if len(titulo) > 10:
-                        textos.append(f"Título: {titulo}\n{desc[:1500]}\nURL: {link}")
+                    total += 1
+                    dados = parsear_item(titulo, desc, link)
+                    if not dados:
+                        continue
+
+                    try:
+                        r = supabase.table("editais").upsert(dados, on_conflict="orgao,cargo,data_inscricao_fim").execute()
+                        if r.data:
+                            salvos += 1
+                            print(f"  ✓ {dados['orgao']} — {dados['cargo']}")
+                    except Exception as e:
+                        print(f"  ✗ {e}")
 
             except Exception as e:
                 print(f"[RSS] Erro em {url}: {e}")
 
-    print(f"[RSS] {len(textos)} textos coletados")
-    return textos
-
-
-async def parsear(texto: str) -> dict | None:
-    try:
-        resp = model.generate_content(PROMPT.replace("{texto}", texto[:2500]))
-        raw = resp.text.strip().replace("```json", "").replace("```", "").strip()
-        if not raw or raw == "null" or not raw.startswith("{"):
-            return None
-        return json.loads(raw)
-    except Exception as e:
-        print(f"  [PARSER] {e}")
-        return None
-
-
-async def main():
-    print("[CRAWLER] v3 iniciando — RSS feeds direto, sem Playwright")
-    textos = await buscar_rss()
-
-    salvos = 0
-    for i, texto in enumerate(textos):
-        print(f"[PARSER] Processando {i+1}/{len(textos)}...")
-        dados = await parsear(texto)
-        if not dados or not dados.get("orgao") or not dados.get("cargo"):
-            continue
-        if not dados.get("link_inscricao"):
-            dados["link_inscricao"] = "https://concursosnobrasil.com.br"
-        try:
-            r = supabase.table("editais").upsert(dados, on_conflict="orgao,cargo,data_inscricao_fim").execute()
-            if r.data:
-                salvos += 1
-                print(f"  ✓ {dados['orgao']} — {dados['cargo']}")
-        except Exception as e:
-            print(f"  ✗ {e}")
-
-    print(f"\n[CRAWLER] Concluído: {salvos} editais salvos de {len(textos)} processados.")
+    print(f"\n[CRAWLER] Concluído: {salvos} editais salvos de {total} processados.")
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(buscar_e_salvar())
