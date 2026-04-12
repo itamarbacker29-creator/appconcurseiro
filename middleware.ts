@@ -58,6 +58,19 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL('/login', req.url));
   }
 
+  // Onboarding guard — redireciona para /onboarding se não completou
+  if (session && protegida && pathname !== '/onboarding') {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('onboarding_completo')
+      .eq('id', session.user.id)
+      .single();
+
+    if (profile && !profile.onboarding_completo) {
+      return NextResponse.redirect(new URL('/onboarding', req.url));
+    }
+  }
+
   // Security headers
   res.headers.set('X-Frame-Options', 'SAMEORIGIN');
   res.headers.set('X-Content-Type-Options', 'nosniff');

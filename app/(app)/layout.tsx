@@ -16,11 +16,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .eq('id', user.id)
     .single();
 
-  // Redireciona para onboarding se ainda não completou
-  if (profile && !profile.onboarding_completo) {
-    redirect('/onboarding');
-  }
-
   const userData = {
     nome: profile?.nome ?? user.email?.split('@')[0] ?? 'Usuário',
     email: user.email ?? '',
