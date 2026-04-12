@@ -6,7 +6,7 @@ import Link from 'next/link';
 
 export default async function EditalPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const supabase = createServerClient();
+  const supabase = await createServerClient();
   const { data: edital } = await supabase.from('editais').select('*').eq('id', id).single();
 
   if (!edital) notFound();

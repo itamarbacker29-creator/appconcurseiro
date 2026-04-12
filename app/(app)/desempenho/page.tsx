@@ -5,7 +5,7 @@ import { ProgressBar } from '@/components/ui/ProgressBar';
 import { thetaParaPercentual } from '@/lib/irt';
 
 export default async function DesempenhoPage() {
-  const supabase = createServerClient();
+  const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   const [{ data: habilidades }, { data: respostas }] = await Promise.all([
