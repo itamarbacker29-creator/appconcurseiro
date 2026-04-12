@@ -1,0 +1,37 @@
+name: Crawler de Editais
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'   # a cada 6 horas
+  workflow_dispatch:          # permite rodar manualmente
+
+jobs:
+  rodar-crawler:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/crawler
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: apps/crawler/requirements.txt
+
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+
+      - name: Instalar Playwright + Chromium
+        run: playwright install chromium --with-deps
+
+      - name: Rodar crawler
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python run_crawler.py
