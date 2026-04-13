@@ -135,7 +135,7 @@ def classificar_com_gemini(itens: list[dict]) -> list[dict]:
     prompt = f"{PROMPT_SISTEMA}\n\nITENS:\n{texto_itens}"
 
     try:
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel("gemini-2.0-flash")
         response = model.generate_content(prompt)
         texto = response.text.strip()
 
