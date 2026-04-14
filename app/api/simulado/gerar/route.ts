@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase-server';
+import { createServerClient, createAdminClient } from '@/lib/supabase-server';
 import { geminiFlash } from '@/lib/gemini';
 import { verificarLimite, limitadores } from '@/lib/ratelimit';
 import { thetaParaNivel } from '@/lib/irt';
@@ -9,7 +9,7 @@ Gere UMA questão de múltipla escolha sobre o tópico "{topico}" da matéria "{
 Nível de dificuldade: {nivel}/5 (1=muito fácil, 5=muito difícil).
 Siga rigorosamente o padrão de redação da banca {banca}.
 
-Responda APENAS em JSON válido, sem markdown:
+Responda APENAS em JSON válido, sem markdown, sem texto antes ou depois:
 {
   "enunciado": "texto completo da questão",
   "opcoes": [
@@ -20,9 +20,17 @@ Responda APENAS em JSON válido, sem markdown:
     {"letra": "E", "texto": "texto da alternativa"}
   ],
   "gabarito": "B",
-  "explicacao": "explicação detalhada de por que a alternativa correta está correta e por que as demais são incorretas",
-  "referencia": "Art. XX da Lei XXXX/XX (se aplicável, caso contrário null)"
+  "explicacao": "explicação detalhada de por que a alternativa correta está correta e por que as demais são incorretas"
 }`;
+
+function extrairJSON(texto: string): string {
+  // Remove blocos markdown
+  texto = texto.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '').trim();
+  // Extrai primeiro objeto JSON encontrado
+  const match = texto.match(/\{[\s\S]*\}/);
+  if (match) return match[0];
+  return texto;
+}
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerClient();
@@ -62,14 +70,20 @@ export async function POST(req: NextRequest) {
 
   const idsRespondidos = (respondidas ?? []).map(r => r.questao_id).filter(Boolean);
 
-  const { data: questoesCache } = await supabase
+  const adminClient = createAdminClient();
+
+  let questoesQuery = adminClient
     .from('questoes')
     .select('*')
     .eq('materia', materia)
     .eq('nivel', nivel)
-    .eq('ativo', true)
-    .not('id', 'in', idsRespondidos.length > 0 ? `(${idsRespondidos.join(',')})` : '(null)')
-    .limit(20);
+    .eq('ativo', true);
+
+  if (idsRespondidos.length > 0) {
+    questoesQuery = questoesQuery.not('id', 'in', `(${idsRespondidos.join(',')})`);
+  }
+
+  const { data: questoesCache } = await questoesQuery.limit(20);
 
   if (questoesCache && questoesCache.length > 3) {
     const questao = questoesCache[Math.floor(Math.random() * questoesCache.length)];
@@ -80,11 +94,10 @@ export async function POST(req: NextRequest) {
 
   // Buscar dados do edital
   const { data: edital } = editalId
-    ? await supabase.from('editais').select('banca, materias').eq('id', editalId).single()
+    ? await adminClient.from('editais').select('banca, materias').eq('id', editalId).single()
     : { data: null };
 
   if (!process.env.GEMINI_API_KEY) {
-    console.error('[simulado/gerar] GEMINI_API_KEY não configurada');
     return NextResponse.json({ error: 'Serviço de IA não configurado. Contate o suporte.' }, { status: 503 });
   }
 
@@ -96,14 +109,11 @@ export async function POST(req: NextRequest) {
       .replace(/{nivel}/g, String(nivel));
 
     const resultado = await geminiFlash.generateContent(prompt);
-    let textoResposta = resultado.response.text().trim();
-    if (textoResposta.startsWith('```')) {
-      textoResposta = textoResposta.replace(/^```json?\n?/, '').replace(/\n?```$/, '').trim();
-    }
-
+    const textoResposta = extrairJSON(resultado.response.text().trim());
     const novaQuestao = JSON.parse(textoResposta);
 
-    const { data: salva } = await supabase.from('questoes').insert({
+    // Usa admin client para inserir (sem restrições de RLS)
+    const { data: salva, error: errInsert } = await adminClient.from('questoes').insert({
       edital_id: editalId ?? null,
       materia,
       nivel,
@@ -111,17 +121,21 @@ export async function POST(req: NextRequest) {
       enunciado: novaQuestao.enunciado,
       opcoes: novaQuestao.opcoes,
       gabarito: novaQuestao.gabarito,
-      explicacao: novaQuestao.explicacao,
+      explicacao: novaQuestao.explicacao ?? null,
       origem: 'ia',
     }).select().single();
 
-    if (!salva) throw new Error('Erro ao salvar questão');
+    if (errInsert || !salva) {
+      console.error('[simulado/gerar] Erro ao salvar questão:', errInsert);
+      throw new Error(errInsert?.message ?? 'Erro ao salvar questão');
+    }
 
     const { explicacao, gabarito, ...questaoSemGabarito } = salva;
     void explicacao; void gabarito;
     return NextResponse.json({ questao: questaoSemGabarito, restante });
   } catch (err) {
-    console.error('Erro ao gerar questão:', err);
-    return NextResponse.json({ error: 'Falha ao gerar questão' }, { status: 500 });
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[simulado/gerar] Erro:', msg);
+    return NextResponse.json({ error: `Falha ao gerar questão: ${msg}` }, { status: 500 });
   }
 }
