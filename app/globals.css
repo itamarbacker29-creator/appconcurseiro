@@ -39,6 +39,39 @@
   /* Alias background/foreground */
   --background: var(--surface);
   --foreground: var(--ink);
+
+  /* ============================================
+     MATERIAL DESIGN 3 — TOKENS (Stitch)
+     ============================================ */
+  --md-sys-color-primary:              #2B3DE8;
+  --md-sys-color-on-primary:           #FFFFFF;
+  --md-sys-color-primary-container:    #EEF0FF;
+  --md-sys-color-on-primary-container: #1E30D4;
+
+  --md-sys-color-secondary:              #0EA574;
+  --md-sys-color-on-secondary:           #FFFFFF;
+  --md-sys-color-secondary-container:    #E4F7F0;
+  --md-sys-color-on-secondary-container: #0A7A57;
+
+  --md-sys-color-error:              #E24B4A;
+  --md-sys-color-on-error:           #FFFFFF;
+  --md-sys-color-error-container:    #FDECEA;
+  --md-sys-color-on-error-container: #B3110F;
+
+  --md-sys-color-surface:            #FFFFFF;
+  --md-sys-color-on-surface:         #0D1117;
+  --md-sys-color-surface-variant:    #F7F8FC;
+  --md-sys-color-on-surface-variant: #3A3D4A;
+  --md-sys-color-outline:            rgba(0,0,0,0.14);
+  --md-sys-color-outline-variant:    rgba(0,0,0,0.08);
+
+  --md-sys-shape-corner-none:         0px;
+  --md-sys-shape-corner-extra-small:  4px;
+  --md-sys-shape-corner-small:        8px;
+  --md-sys-shape-corner-medium:       12px;
+  --md-sys-shape-corner-large:        16px;
+  --md-sys-shape-corner-extra-large:  28px;
+  --md-sys-shape-corner-full:         9999px;
 }
 
 /* Dark mode */
@@ -63,6 +96,21 @@
     --border-strong: rgba(255, 255, 255, 0.12);
     --background: var(--surface);
     --foreground: var(--ink);
+
+    --md-sys-color-primary:              #5B6BFF;
+    --md-sys-color-on-primary:           #FFFFFF;
+    --md-sys-color-primary-container:    #1C1F3A;
+    --md-sys-color-on-primary-container: #8B97FF;
+    --md-sys-color-secondary:              #10C285;
+    --md-sys-color-on-secondary:           #FFFFFF;
+    --md-sys-color-secondary-container:    #0D2A22;
+    --md-sys-color-on-secondary-container: #14E89A;
+    --md-sys-color-surface:            #13141C;
+    --md-sys-color-on-surface:         #F0F1F8;
+    --md-sys-color-surface-variant:    #1A1B26;
+    --md-sys-color-on-surface-variant: #B8BAC8;
+    --md-sys-color-outline:            rgba(255,255,255,0.12);
+    --md-sys-color-outline-variant:    rgba(255,255,255,0.07);
   }
 }
 
@@ -76,13 +124,14 @@
 body {
   background: var(--surface);
   color: var(--ink);
-  font-family: -apple-system, "Segoe UI", "Inter", sans-serif;
+  font-family: var(--font-inter, "Inter", -apple-system, "Segoe UI", sans-serif);
   font-size: 15px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
 
 h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-manrope, "Manrope", var(--font-inter, "Inter"), sans-serif);
   font-weight: 700;
   letter-spacing: -0.5px;
   line-height: 1.2;
@@ -138,3 +187,42 @@ a {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--ink-3); }
+
+/* ============================================
+   MATERIAL SYMBOLS
+   ============================================ */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  user-select: none;
+}
+
+.material-symbols-outlined.filled {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* ============================================
+   UTILITIES
+   ============================================ */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+.font-display {
+  font-family: var(--font-manrope, "Manrope", sans-serif);
+}
+
+/* MD3 elevation shadows */
+.elevation-1 { box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 1px 3px 1px rgba(0,0,0,.06); }
+.elevation-2 { box-shadow: 0 1px 2px rgba(0,0,0,.10), 0 2px 6px 2px rgba(0,0,0,.08); }
+.elevation-3 { box-shadow: 0 1px 3px rgba(0,0,0,.12), 0 4px 8px 3px rgba(0,0,0,.08); }

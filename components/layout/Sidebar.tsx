@@ -14,14 +14,14 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { href: '/dashboard',   label: 'Dashboard',      icon: '◻' },
-  { href: '/editais',     label: 'Editais',         icon: '◈' },
-  { href: '/simulado',    label: 'Simulados',       icon: '◉' },
-  { href: '/desempenho',  label: 'Desempenho',      icon: '◎' },
-  { href: '/plano',       label: 'Plano de Estudo', icon: '◆' },
-  { href: '/flashcards',  label: 'Flashcards',      icon: '◇' },
-  { href: '/tutor',       label: 'Tutor IA',        icon: '◍' },
-  { href: '/conta',       label: 'Conta',           icon: '◯' },
+  { href: '/dashboard',   label: 'Dashboard',      icon: 'home' },
+  { href: '/editais',     label: 'Editais',         icon: 'description' },
+  { href: '/simulado',    label: 'Simulados',       icon: 'quiz' },
+  { href: '/desempenho',  label: 'Desempenho',      icon: 'bar_chart' },
+  { href: '/plano',       label: 'Plano de Estudo', icon: 'calendar_month' },
+  { href: '/flashcards',  label: 'Flashcards',      icon: 'style' },
+  { href: '/tutor',       label: 'Tutor IA',        icon: 'auto_awesome' },
+  { href: '/conta',       label: 'Conta',           icon: 'manage_accounts' },
 ];
 
 interface SidebarProps {
@@ -44,12 +44,14 @@ export function Sidebar({ user }: SidebarProps) {
         {/* Logo */}
         <div className="px-4 py-4 border-b border-(--border)">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-(--accent) flex items-center justify-center">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M7 1L13 4.5V9.5L7 13L1 9.5V4.5L7 1Z" fill="white" />
-              </svg>
+            <div className="w-8 h-8 rounded-xl bg-(--accent) flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined filled text-white" style={{ fontSize: '18px' }}>
+                auto_awesome
+              </span>
             </div>
-            <span className="font-bold text-[14px] tracking-tight text-(--ink)">{IDENTIDADE.nomeCurto}</span>
+            <span className="font-bold text-[15px] tracking-tight text-(--ink)" style={{ fontFamily: 'var(--font-manrope, Manrope, sans-serif)' }}>
+              {IDENTIDADE.nomeCurto}
+            </span>
           </Link>
         </div>
 
@@ -68,7 +70,9 @@ export function Sidebar({ user }: SidebarProps) {
                     : 'text-(--ink-2) hover:bg-(--surface-2) hover:text-(--ink)',
                 ].join(' ')}
               >
-                <span className="text-[16px] w-5 text-center">{item.icon}</span>
+                <span className={`material-symbols-outlined text-[20px] w-5 text-center ${active ? 'filled' : ''}`} style={{ fontSize: '20px' }}>
+                  {item.icon}
+                </span>
                 {item.label}
                 {item.href === '/conta' && user?.plano === 'premium' && (
                   <Badge variant="accent" className="ml-auto text-[9px]">PRO</Badge>
@@ -115,7 +119,12 @@ export function Sidebar({ user }: SidebarProps) {
                 active ? 'text-(--accent)' : 'text-(--ink-3)',
               ].join(' ')}
             >
-              <span className="text-[18px]">{item.icon}</span>
+              <span
+                className={`material-symbols-outlined ${active ? 'filled' : ''}`}
+                style={{ fontSize: '22px' }}
+              >
+                {item.icon}
+              </span>
               {item.label}
             </Link>
           );
