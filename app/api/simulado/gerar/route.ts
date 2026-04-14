@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient, createAdminClient } from '@/lib/supabase-server';
-import { geminiFlash } from '@/lib/gemini';
+import { gerarTextoGemini } from '@/lib/gemini';
 import { verificarLimite, limitadores } from '@/lib/ratelimit';
 import { thetaParaNivel } from '@/lib/irt';
 
@@ -108,8 +108,7 @@ export async function POST(req: NextRequest) {
       .replace('{topico}', materia)
       .replace(/{nivel}/g, String(nivel));
 
-    const resultado = await geminiFlash.generateContent(prompt);
-    const textoResposta = extrairJSON(resultado.response.text().trim());
+    const textoResposta = extrairJSON(await gerarTextoGemini(prompt));
     const novaQuestao = JSON.parse(textoResposta);
 
     // Usa admin client para inserir (sem restrições de RLS)

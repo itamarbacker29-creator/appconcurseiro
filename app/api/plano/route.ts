@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
-import { geminiFlash } from '@/lib/gemini';
+import { gerarTextoGemini } from '@/lib/gemini';
 import { verificarLimite, limitadores } from '@/lib/ratelimit';
 import { thetaParaPercentual } from '@/lib/irt';
 
@@ -81,14 +81,8 @@ export async function POST(req: NextRequest) {
       .replace('{questoesPorDia}', String(questoesPorDia))
       .replace('{desempenho}', desempenhoTexto);
 
-    const resultado = await geminiFlash.generateContent(prompt);
-    let textoResposta = resultado.response.text().trim();
-
-    // Remove markdown caso o Gemini envolva em ```json
-    if (textoResposta.startsWith('```')) {
-      textoResposta = textoResposta.replace(/^```json?\n?/, '').replace(/\n?```$/, '').trim();
-    }
-
+    const raw = await gerarTextoGemini(prompt);
+    const textoResposta = raw.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '').trim();
     const planoGerado = JSON.parse(textoResposta);
 
     // Salvar plano no banco

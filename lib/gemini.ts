@@ -1,7 +1,12 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
-// Free tier: 15 req/min, 1.500 req/dia
-// Paid: $0,10/1M tokens input, $0,40/1M tokens output
-export const geminiFlash = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+// Gera conteúdo de texto — usa API v1 (modelos atuais disponíveis)
+export async function gerarTextoGemini(prompt: string): Promise<string> {
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.0-flash',
+    contents: prompt,
+  });
+  return response.text ?? '';
+}

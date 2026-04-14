@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.88.0",
+    "@google/genai": "^1.50.0",
     "@google/generative-ai": "^0.24.1",
     "@stripe/stripe-js": "^9.1.0",
     "@supabase/auth-helpers-nextjs": "^0.15.0",
