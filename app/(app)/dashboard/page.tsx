@@ -52,11 +52,18 @@ export default async function DashboardPage() {
       <div className="mb-6">
         <h1 className="text-[22px] font-bold text-(--ink)">
           {saudacao()}, {nome}.
-          {diasRestantes !== null && (
-            <span className="text-(--ink-2) font-normal"> Faltam <span className="font-bold text-(--accent)">{diasRestantes} dias</span> para a prova.</span>
-          )}
         </h1>
-        <p className="text-[13px] text-(--ink-3) mt-1">Aqui está o resumo do seu progresso.</p>
+        {diasRestantes !== null ? (
+          <p className="text-[14px] text-(--ink-2) mt-1">
+            Faltam <span className="font-bold text-(--accent)">{diasRestantes} dia{diasRestantes !== 1 ? 's' : ''}</span> para a sua prova.
+          </p>
+        ) : (
+          <p className="text-[13px] text-(--ink-3) mt-1">
+            <Link href="/conta" className="text-(--accent) hover:underline font-medium">Defina sua prova alvo →</Link>
+            {' '}para ver a contagem regressiva.
+          </p>
+        )}
+        <p className="text-[12px] text-(--ink-3) mt-0.5">Aqui está o resumo do seu progresso.</p>
       </div>
 
       {/* Métricas */}

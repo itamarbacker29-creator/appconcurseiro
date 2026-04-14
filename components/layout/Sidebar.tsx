@@ -102,9 +102,9 @@ export function Sidebar({ user }: SidebarProps) {
         </div>
       </aside>
 
-      {/* Mobile bottom tab bar */}
+      {/* Mobile bottom tab bar — Dashboard, Editais, Simulados, Desempenho, Conta */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-(--surface) border-t border-(--border) flex">
-        {NAV.slice(0, 4).map(item => {
+        {[NAV[0], NAV[1], NAV[2], NAV[3], NAV[7]].map(item => {
           const active = pathname.startsWith(item.href);
           return (
             <Link

@@ -41,6 +41,7 @@ export default function EditaisPage() {
   const [apenasAbertas, setApenasAbertas] = useState(false);
   const [ordem, setOrdem] = useState('recentes');
   const [salvos, setSalvos] = useState<string[]>([]);
+  const [plano, setPlano] = useState<string>('free');
 
   const carregar = useCallback(async () => {
     setLoading(true);
@@ -55,7 +56,8 @@ export default function EditaisPage() {
     else if (ordem === 'prazo') query = query.order('data_inscricao_fim', { ascending: true });
     else query = query.order('coletado_em', { ascending: false });
 
-    const { data } = await query.limit(50);
+    const limite = plano === 'free' ? 5 : 50;
+    const { data } = await query.limit(limite);
     setEditais(data ?? []);
     setLoading(false);
   }, [area, escolaridade, apenasAbertas, busca, ordem]);
@@ -65,8 +67,13 @@ export default function EditaisPage() {
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
-      supabase.from('editais_salvos').select('edital_id').eq('user_id', user.id)
-        .then(({ data }) => setSalvos((data ?? []).map(d => d.edital_id)));
+      Promise.all([
+        supabase.from('editais_salvos').select('edital_id').eq('user_id', user.id),
+        supabase.from('profiles').select('plano').eq('id', user.id).single(),
+      ]).then(([salvosRes, planoRes]) => {
+        setSalvos((salvosRes.data ?? []).map(d => d.edital_id));
+        setPlano(planoRes.data?.plano ?? 'free');
+      });
     });
   }, []);
 
@@ -95,6 +102,18 @@ export default function EditaisPage() {
         <h1 className="text-[22px] font-bold text-(--ink)">Editais</h1>
         <p className="text-[13px] text-(--ink-3) mt-1">Monitoramento automático de concursos públicos.</p>
       </div>
+
+      {/* Banner free */}
+      {plano === 'free' && (
+        <div className="mb-4 flex items-center justify-between gap-3 bg-(--accent-light) border border-(--accent)/30 rounded-(--radius) px-4 py-2.5">
+          <p className="text-[12px] text-(--accent-text)">
+            Plano Free: exibindo até <strong>5 editais</strong> por busca.
+          </p>
+          <a href="/conta#plano" className="text-[12px] font-semibold text-(--accent) hover:underline shrink-0">
+            Ver planos →
+          </a>
+        </div>
+      )}
 
       {/* Filtros */}
       <div className="flex flex-col gap-3 mb-6">

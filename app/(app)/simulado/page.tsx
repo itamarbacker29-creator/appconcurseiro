@@ -35,6 +35,9 @@ export default function SimuladoPage() {
 
   // Estado do simulado
   const [fase, setFase] = useState<'selecao' | 'questao' | 'resultado'>('selecao');
+  const [plano, setPlano] = useState<string>('free');
+  const [simuladosMes, setSimuladosMes] = useState(0);
+  const LIMITE_SIMULADOS_FREE = 5;
   const [materiaSelecionada, setMateriaSelecionada] = useState('');
   const [questaoAtual, setQuestaoAtual] = useState<Questao | null>(null);
   const [questoesFeitas, setQuestoesFeitas] = useState(0);
@@ -46,6 +49,28 @@ export default function SimuladoPage() {
   const [tempo, setTempo] = useState(0);
   const [modalSair, setModalSair] = useState(false);
   const [historico, setHistorico] = useState<Array<{ materia: string; correta: boolean }>>([]);
+
+  // Verificar plano e simulados do mês
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      const inicioMes = new Date();
+      inicioMes.setDate(1);
+      inicioMes.setHours(0, 0, 0, 0);
+
+      Promise.all([
+        supabase.from('profiles').select('plano').eq('id', user.id).single(),
+        supabase.from('respostas').select('id', { count: 'exact' })
+          .eq('user_id', user.id)
+          .gte('respondida_em', inicioMes.toISOString()),
+      ]).then(([planoRes, respostasRes]) => {
+        setPlano(planoRes.data?.plano ?? 'free');
+        // 10 questões por simulado
+        const total = respostasRes.count ?? 0;
+        setSimuladosMes(Math.floor(total / 10));
+      });
+    });
+  }, []);
 
   // Cronômetro
   useEffect(() => {
@@ -123,21 +148,45 @@ export default function SimuladoPage() {
 
   // Tela de seleção
   if (fase === 'selecao') {
+    const limiteAtingido = plano === 'free' && simuladosMes >= LIMITE_SIMULADOS_FREE;
     return (
       <div className="p-4 md:p-6 max-w-[600px] mx-auto">
-        <h1 className="text-[22px] font-bold text-(--ink) mb-2">Novo Simulado</h1>
-        <p className="text-[13px] text-(--ink-3) mb-6">Selecione a matéria para iniciar o simulado adaptativo.</p>
-        <div className="grid grid-cols-1 gap-2">
-          {MATERIAS_PADRAO.map(m => (
-            <button
-              key={m}
-              onClick={() => iniciarSimulado(m)}
-              className="text-left px-4 py-3 border border-(--border) rounded-(--radius-sm) hover:border-(--accent) hover:bg-(--accent-light) transition-all text-[14px] font-medium text-(--ink)"
-            >
-              {m}
-            </button>
-          ))}
+        <div className="flex items-start justify-between mb-2">
+          <h1 className="text-[22px] font-bold text-(--ink)">Novo Simulado</h1>
+          {plano === 'free' && (
+            <span className="text-[11px] text-(--ink-3) mt-1.5">
+              {simuladosMes}/{LIMITE_SIMULADOS_FREE} este mês
+            </span>
+          )}
         </div>
+        <p className="text-[13px] text-(--ink-3) mb-4">Selecione a matéria para iniciar o simulado adaptativo.</p>
+
+        {limiteAtingido ? (
+          <div className="flex flex-col items-center gap-4 py-8 text-center">
+            <div className="w-14 h-14 rounded-full bg-(--warning)/20 flex items-center justify-center text-2xl">◉</div>
+            <div>
+              <p className="text-[15px] font-bold text-(--ink)">Limite mensal atingido</p>
+              <p className="text-[13px] text-(--ink-3) mt-1 max-w-[300px]">
+                O plano Free permite <strong>5 simulados por mês</strong>. Faça upgrade para continuar treinando.
+              </p>
+            </div>
+            <a href="/conta#plano">
+              <Button>Ver planos</Button>
+            </a>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-2">
+            {MATERIAS_PADRAO.map(m => (
+              <button
+                key={m}
+                onClick={() => iniciarSimulado(m)}
+                className="text-left px-4 py-3 border border-(--border) rounded-(--radius-sm) hover:border-(--accent) hover:bg-(--accent-light) transition-all text-[14px] font-medium text-(--ink)"
+              >
+                {m}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
