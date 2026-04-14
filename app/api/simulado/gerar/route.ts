@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
 
   const { data: questoesCache } = await questoesQuery.limit(20);
 
-  if (questoesCache && questoesCache.length > 3) {
+  if (questoesCache && questoesCache.length >= 1) {
     const questao = questoesCache[Math.floor(Math.random() * questoesCache.length)];
     const { explicacao, gabarito, ...questaoSemGabarito } = questao;
     void explicacao; void gabarito;
@@ -135,6 +135,15 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[simulado/gerar] Erro:', msg);
-    return NextResponse.json({ error: `Falha ao gerar questão: ${msg}` }, { status: 500 });
+
+    // Quota / rate limit — mensagem amigável
+    if (msg.includes('429') || msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('indisponível')) {
+      return NextResponse.json(
+        { error: 'O serviço de IA está sobrecarregado agora. Aguarde alguns minutos e tente novamente.' },
+        { status: 503 }
+      );
+    }
+
+    return NextResponse.json({ error: 'Falha ao gerar questão. Tente novamente.' }, { status: 500 });
   }
 }

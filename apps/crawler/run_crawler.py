@@ -1,9 +1,10 @@
 """
-Crawler v6 — RSS + Gemini Flash em batch único.
+Crawler v7 — RSS + Gemini 1.5 Flash em batch único.
 Extrai dados completos do edital para o candidato.
 Filtra editais com inscrições encerradas antes de salvar.
+Usa gemini-1.5-flash (cota separada de gemini-2.0-flash).
 """
-import asyncio, json, os, re
+import asyncio, json, os, re, time
 from datetime import date
 import httpx
 from bs4 import BeautifulSoup
@@ -124,7 +125,7 @@ async def coletar_itens_rss() -> list[dict]:
 
 
 def classificar_com_gemini(itens: list[dict]) -> list[dict]:
-    """Envia todos os itens em UMA única chamada ao Gemini."""
+    """Envia todos os itens em UMA única chamada ao Gemini, com retry em caso de quota."""
     if not itens:
         return []
 
@@ -134,31 +135,48 @@ def classificar_com_gemini(itens: list[dict]) -> list[dict]:
 
     prompt = f"{PROMPT_SISTEMA}\n\nITENS:\n{texto_itens}"
 
-    try:
-        model = genai.GenerativeModel("gemini-2.0-flash")
-        response = model.generate_content(prompt)
-        texto = response.text.strip()
+    # Tenta gemini-1.5-flash primeiro; fallback para gemini-1.5-flash-latest
+    modelos = ["gemini-1.5-flash", "gemini-1.5-flash-latest"]
+    texto = ""
 
-        # Remove bloco markdown se presente
-        texto = re.sub(r'^```(?:json)?\s*', '', texto, flags=re.MULTILINE)
-        texto = re.sub(r'\s*```\s*$', '', texto, flags=re.MULTILINE)
-        texto = texto.strip()
+    for modelo in modelos:
+        for tentativa in range(3):
+            try:
+                print(f"[GEMINI] Tentativa {tentativa+1}/3 com {modelo}...")
+                model = genai.GenerativeModel(modelo)
+                response = model.generate_content(prompt)
+                texto = response.text.strip()
 
-        editais = json.loads(texto)
-        if not isinstance(editais, list):
-            print(f"[GEMINI] Resposta inesperada (não é lista)")
-            return []
+                # Remove bloco markdown se presente
+                texto = re.sub(r'^```(?:json)?\s*', '', texto, flags=re.MULTILINE)
+                texto = re.sub(r'\s*```\s*$', '', texto, flags=re.MULTILINE)
+                texto = texto.strip()
 
-        print(f"[GEMINI] {len(editais)} editais válidos identificados de {len(itens)} itens")
-        return editais
+                editais = json.loads(texto)
+                if not isinstance(editais, list):
+                    print(f"[GEMINI] Resposta inesperada (não é lista)")
+                    return []
 
-    except json.JSONDecodeError as e:
-        print(f"[GEMINI] Erro JSON: {e}")
-        print(f"[GEMINI] Trecho da resposta: {texto[:400]}")
-        return []
-    except Exception as e:
-        print(f"[GEMINI] Erro: {e}")
-        return []
+                print(f"[GEMINI] {len(editais)} editais válidos identificados de {len(itens)} itens (modelo: {modelo})")
+                return editais
+
+            except json.JSONDecodeError as e:
+                print(f"[GEMINI] Erro JSON: {e}")
+                if texto:
+                    print(f"[GEMINI] Trecho: {texto[:400]}")
+                return []
+            except Exception as e:
+                msg = str(e)
+                if "429" in msg or "quota" in msg.lower():
+                    espera = 30 * (tentativa + 1)
+                    print(f"[GEMINI] Quota excedida ({modelo}). Aguardando {espera}s...")
+                    time.sleep(espera)
+                    continue
+                print(f"[GEMINI] Erro com {modelo}: {e}")
+                break  # erro não-quota → tenta próximo modelo
+
+    print("[GEMINI] Todos os modelos falharam.")
+    return []
 
 
 def edital_encerrado(edital: dict) -> bool:
@@ -224,7 +242,7 @@ def normalizar(edital: dict) -> dict | None:
 
 
 async def buscar_e_salvar():
-    print(f"[CRAWLER] v6 — RSS + Gemini Flash (batch único) | hoje={HOJE}")
+    print(f"[CRAWLER] v7 — RSS + Gemini 1.5 Flash (batch único) | hoje={HOJE}")
 
     itens = await coletar_itens_rss()
     if not itens:
