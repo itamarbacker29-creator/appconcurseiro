@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import { STREAM_ERROR_PREFIX } from '@/lib/ai';
 
 interface Mensagem {
   role: 'user' | 'assistant';
@@ -143,6 +144,21 @@ function ChatTutor({ plano }: { plano: string }) {
         const { done, value } = await reader.read();
         if (done) break;
         resposta += decoder.decode(value, { stream: true });
+
+        // Detecta erro enviado pelo servidor dentro do stream
+        if (resposta.includes(STREAM_ERROR_PREFIX)) {
+          const errMsg = resposta.split(STREAM_ERROR_PREFIX)[1] ?? '';
+          const amigavel = errMsg.includes('API key')
+            ? 'Chave de IA não configurada. Contate o suporte.'
+            : errMsg.includes('overloaded') || errMsg.includes('529')
+            ? 'A IA está sobrecarregada. Tente novamente em instantes.'
+            : 'Erro ao processar sua dúvida. Tente novamente.';
+          // Remove a última mensagem vazia e exibe o erro
+          setMensagens(prev => prev.slice(0, -1));
+          setErro(amigavel);
+          break;
+        }
+
         setMensagens(prev => {
           const copia = [...prev];
           copia[copia.length - 1] = { role: 'assistant', content: resposta };
@@ -150,7 +166,7 @@ function ChatTutor({ plano }: { plano: string }) {
         });
       }
     } catch {
-      setErro('Falha de conexão. Tente novamente.');
+      setErro('Falha de conexão. Verifique sua internet e tente novamente.');
     } finally {
       setEnviando(false);
       inputRef.current?.focus();

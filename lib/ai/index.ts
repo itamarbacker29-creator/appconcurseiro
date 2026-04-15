@@ -23,7 +23,7 @@ function usaHaiku(plano: PlanoIA): boolean {
 
 /**
  * Gera texto com o modelo adequado ao plano.
- * Para Claude: suporta system prompt separado e prompt caching.
+ * Se Claude falhar (chave ausente, erro de API), faz fallback para Gemini.
  */
 export async function gerarTexto(
   prompt: string,
@@ -31,7 +31,12 @@ export async function gerarTexto(
   systemPrompt?: string,
 ): Promise<string> {
   if (usaHaiku(plano)) {
-    return gerarTextoHaiku(prompt, systemPrompt);
+    try {
+      return await gerarTextoHaiku(prompt, systemPrompt);
+    } catch (err) {
+      console.warn('[ai] Claude falhou, usando Gemini como fallback:', err);
+      return gerarTextoGemini(prompt);
+    }
   }
   return gerarTextoGemini(prompt);
 }
@@ -65,43 +70,52 @@ export async function gerarTextoHaiku(
   return '';
 }
 
+// Prefixo especial para erros enviados pelo stream — detectado pelo cliente
+export const STREAM_ERROR_PREFIX = '__ERRO__:';
+
 /**
  * Streaming com Claude Haiku — para o chat do Tutor.
  * Retorna um ReadableStream compatível com Response do Next.js.
+ * Se a API falhar, envia mensagem de erro legível pelo stream em vez de crashar.
  */
-export async function streamHaiku(
+export function streamHaiku(
   mensagens: Array<{ role: 'user' | 'assistant'; content: string }>,
   systemPrompt: string,
-): Promise<ReadableStream<Uint8Array>> {
+): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
-
-  const stream = await anthropic.messages.stream({
-    model: MODELO_HAIKU,
-    max_tokens: 1024,
-    system: [
-      {
-        type: 'text',
-        text: systemPrompt,
-        cache_control: { type: 'ephemeral' },
-      },
-    ],
-    messages: mensagens,
-  });
 
   return new ReadableStream({
     async start(controller) {
-      for await (const event of stream) {
-        if (
-          event.type === 'content_block_delta' &&
-          event.delta.type === 'text_delta'
-        ) {
-          controller.enqueue(encoder.encode(event.delta.text));
+      try {
+        const stream = anthropic.messages.stream({
+          model: MODELO_HAIKU,
+          max_tokens: 1024,
+          system: [
+            {
+              type: 'text',
+              text: systemPrompt,
+              cache_control: { type: 'ephemeral' },
+            },
+          ],
+          messages: mensagens,
+        });
+
+        for await (const event of stream) {
+          if (
+            event.type === 'content_block_delta' &&
+            event.delta.type === 'text_delta'
+          ) {
+            controller.enqueue(encoder.encode(event.delta.text));
+          }
         }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error('[streamHaiku] Erro:', msg);
+        // Envia erro como texto no stream para o cliente detectar
+        controller.enqueue(encoder.encode(`${STREAM_ERROR_PREFIX}${msg}`));
+      } finally {
+        controller.close();
       }
-      controller.close();
-    },
-    cancel() {
-      stream.abort();
     },
   });
 }

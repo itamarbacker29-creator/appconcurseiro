@@ -4,6 +4,8 @@ import { streamHaiku } from '@/lib/ai';
 import { verificarLimite, limitadores } from '@/lib/ratelimit';
 import { IDENTIDADE } from '@/config/identidade';
 
+export const dynamic = 'force-dynamic';
+
 const SYSTEM_TUTOR = `Você é o Tutor do ${IDENTIDADE.nomeApp} — especialista em concursos públicos brasileiros.
 Tom: técnico, preciso, didático. Direto ao ponto — o candidato tem tempo limitado.
 
@@ -54,18 +56,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Mensagens obrigatórias' }, { status: 400 });
   }
 
-  try {
-    const stream = await streamHaiku(mensagens, SYSTEM_TUTOR);
-    return new Response(stream, {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Transfer-Encoding': 'chunked',
-        'X-Accel-Buffering': 'no',
-      },
-    });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error('[tutor] Erro:', msg);
-    return NextResponse.json({ error: 'Falha ao processar sua dúvida. Tente novamente.' }, { status: 500 });
-  }
+  const stream = streamHaiku(mensagens, SYSTEM_TUTOR);
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'X-Accel-Buffering': 'no',
+      'Cache-Control': 'no-cache',
+    },
+  });
 }
