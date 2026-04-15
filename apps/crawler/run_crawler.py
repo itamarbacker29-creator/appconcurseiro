@@ -135,8 +135,8 @@ def classificar_com_gemini(itens: list[dict]) -> list[dict]:
 
     prompt = f"{PROMPT_SISTEMA}\n\nITENS:\n{texto_itens}"
 
-    # Tenta gemini-1.5-flash primeiro; fallback para gemini-1.5-flash-latest
-    modelos = ["gemini-1.5-flash", "gemini-1.5-flash-latest"]
+    # gemini-1.5-flash não existe na v1beta do SDK Python — usar gemini-2.0-flash
+    modelos = ["gemini-2.0-flash", "gemini-2.0-flash-lite"]
     texto = ""
 
     for modelo in modelos:
@@ -242,7 +242,7 @@ def normalizar(edital: dict) -> dict | None:
 
 
 async def buscar_e_salvar():
-    print(f"[CRAWLER] v7 — RSS + Gemini 1.5 Flash (batch único) | hoje={HOJE}")
+    print(f"[CRAWLER] v8 — RSS + Gemini 2.0 Flash (batch único) | hoje={HOJE}")
 
     itens = await coletar_itens_rss()
     if not itens:

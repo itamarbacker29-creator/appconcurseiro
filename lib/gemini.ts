@@ -2,14 +2,14 @@ import { GoogleGenAI } from '@google/genai';
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
-// Modelos em ordem de preferência — gemini-1.5-flash tem cota separada de gemini-2.0-flash
-const MODELOS = ['gemini-1.5-flash', 'gemini-2.0-flash'];
+// gemini-1.5-flash não existe na API v1 do @google/genai >= 1.x
+// gemini-2.0-flash é o modelo correto para esta versão do SDK
+const MODELOS = ['gemini-2.0-flash', 'gemini-2.0-flash-lite'];
 
 function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Gera conteúdo de texto com retry automático em caso de quota (429)
 export async function gerarTextoGemini(prompt: string): Promise<string> {
   for (const modelo of MODELOS) {
     for (let tentativa = 0; tentativa < 2; tentativa++) {
@@ -23,18 +23,13 @@ export async function gerarTextoGemini(prompt: string): Promise<string> {
         const msg = err instanceof Error ? err.message : String(err);
         const isQuota = msg.includes('429') || msg.toLowerCase().includes('quota');
         if (isQuota && tentativa === 0) {
-          // Aguarda 10s e tenta novamente com o mesmo modelo
           await sleep(10_000);
           continue;
         }
-        if (isQuota) {
-          // Esgotou retries neste modelo — tenta o próximo
-          break;
-        }
-        // Erro não-quota — propaga imediatamente
-        throw err;
+        if (isQuota) break; // tenta próximo modelo
+        throw err; // erro não-quota — propaga
       }
     }
   }
-  throw new Error('Serviço de IA temporariamente indisponível (cota excedida). Tente novamente em alguns minutos.');
+  throw new Error('Serviço de IA temporariamente indisponível. Tente novamente em alguns minutos.');
 }
