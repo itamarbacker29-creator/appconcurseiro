@@ -5,6 +5,7 @@ import { verificarLimite, limitadores } from '@/lib/ratelimit';
 import { IDENTIDADE } from '@/config/identidade';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 const SYSTEM_TUTOR = `Você é o Tutor do ${IDENTIDADE.nomeApp} — especialista em concursos públicos brasileiros.
 Tom: técnico, preciso, didático. Direto ao ponto — o candidato tem tempo limitado.

@@ -4,6 +4,8 @@ import { gerarTexto, type PlanoIA } from '@/lib/ai';
 import { verificarLimite, limitadores } from '@/lib/ratelimit';
 import { thetaParaPercentual } from '@/lib/irt';
 
+export const maxDuration = 60;
+
 const PROMPT_PLANO = `Você é um especialista em preparação para concursos públicos brasileiros.
 
 Dados do candidato:

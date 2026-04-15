@@ -50,17 +50,22 @@ export default function PlanoPage() {
 
   async function gerarPlano() {
     setGerando(true);
-    const resp = await fetch('/api/plano', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ questoesPorDia }),
-    });
-    const dados = await resp.json();
-    setGerando(false);
-    if (!resp.ok) { toast(dados.error ?? 'Erro ao gerar plano', 'error'); return; }
-    setPlano(dados.plano);
-    setSemanaAtiva(1);
-    toast('Plano de estudo gerado!', 'success');
+    try {
+      const resp = await fetch('/api/plano', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ questoesPorDia }),
+      });
+      const dados = await resp.json();
+      if (!resp.ok) { toast(dados.error ?? 'Erro ao gerar plano', 'error'); return; }
+      setPlano(dados.plano);
+      setSemanaAtiva(1);
+      toast('Plano de estudo gerado!', 'success');
+    } catch {
+      toast('Erro de conexão. Tente novamente.', 'error');
+    } finally {
+      setGerando(false);
+    }
   }
 
   if (loading) {

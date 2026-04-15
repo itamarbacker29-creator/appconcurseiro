@@ -4,6 +4,8 @@ import { gerarTexto, type PlanoIA } from '@/lib/ai';
 import { verificarLimite, limitadores } from '@/lib/ratelimit';
 import { thetaParaNivel } from '@/lib/irt';
 
+export const maxDuration = 60;
+
 const PROMPT_QUESTAO = `Você é um especialista em concursos públicos brasileiros, treinado nas provas da banca {banca}.
 Gere UMA questão de múltipla escolha sobre o tópico "{topico}" da matéria "{materia}".
 Nível de dificuldade: {nivel}/5 (1=muito fácil, 5=muito difícil).
