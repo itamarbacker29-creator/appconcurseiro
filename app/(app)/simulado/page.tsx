@@ -86,22 +86,28 @@ export default function SimuladoPage() {
     setGabaritoResposta(null);
     setTempo(0);
 
-    const resp = await fetch('/api/simulado/gerar', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ editalId, materia }),
-    });
+    try {
+      const resp = await fetch('/api/simulado/gerar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ editalId, materia }),
+      });
 
-    if (!resp.ok) {
-      const err = await resp.json();
-      toast(err.error ?? 'Erro ao gerar questão', 'error');
+      if (!resp.ok) {
+        const err = await resp.json();
+        toast(err.error ?? 'Erro ao gerar questão', 'error');
+        setFase('selecao');
+        return;
+      }
+
+      const { questao } = await resp.json();
+      setQuestaoAtual(questao);
+    } catch {
+      toast('Erro de conexão. Verifique sua internet.', 'error');
+      setFase('selecao');
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const { questao } = await resp.json();
-    setQuestaoAtual(questao);
-    setLoading(false);
   }, [editalId, toast]);
 
   function iniciarSimulado(materia: string) {
@@ -114,24 +120,34 @@ export default function SimuladoPage() {
     if (!respostaSelecionada || !questaoAtual) return;
     setLoading(true);
 
-    const resp = await fetch('/api/simulado/responder', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        questaoId: questaoAtual.id,
-        editalId,
-        respostaDada: respostaSelecionada,
-        tempoSegundos: tempo,
-      }),
-    });
+    try {
+      const resp = await fetch('/api/simulado/responder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          questaoId: questaoAtual.id,
+          editalId,
+          respostaDada: respostaSelecionada,
+          tempoSegundos: tempo,
+        }),
+      });
 
-    const dados = await resp.json();
-    setGabaritoResposta(dados);
-    setRespondido(true);
+      if (!resp.ok) {
+        toast('Erro ao registrar resposta. Tente novamente.', 'error');
+        return;
+      }
 
-    if (dados.correta) setAcertos(a => a + 1);
-    setHistorico(h => [...h, { materia: questaoAtual.materia, correta: dados.correta }]);
-    setLoading(false);
+      const dados = await resp.json();
+      setGabaritoResposta(dados);
+      setRespondido(true);
+
+      if (dados.correta) setAcertos(a => a + 1);
+      setHistorico(h => [...h, { materia: questaoAtual.materia, correta: dados.correta }]);
+    } catch {
+      toast('Erro de conexão. Verifique sua internet.', 'error');
+    } finally {
+      setLoading(false);
+    }
   }
 
   function proximaQuestao() {

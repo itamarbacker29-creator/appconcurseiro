@@ -45,22 +45,28 @@ export default function EditaisPage() {
 
   const carregar = useCallback(async () => {
     setLoading(true);
-    let query = supabase.from('editais').select('*').eq('status', 'ativo');
+    try {
+      let query = supabase.from('editais').select('*').eq('status', 'ativo');
 
-    if (area !== 'Todos') query = query.ilike('area', `%${area.toLowerCase()}%`);
-    if (escolaridade !== 'Todos') query = query.eq('escolaridade', escolaridade);
-    if (apenasAbertas) query = query.gte('data_inscricao_fim', new Date().toISOString().split('T')[0]);
-    if (busca) query = query.or(`orgao.ilike.%${busca}%,cargo.ilike.%${busca}%`);
+      if (area !== 'Todos') query = query.ilike('area', `%${area.toLowerCase()}%`);
+      if (escolaridade !== 'Todos') query = query.eq('escolaridade', escolaridade);
+      if (apenasAbertas) query = query.gte('data_inscricao_fim', new Date().toISOString().split('T')[0]);
+      if (busca) query = query.or(`orgao.ilike.%${busca}%,cargo.ilike.%${busca}%`);
 
-    if (ordem === 'salario') query = query.order('salario', { ascending: false });
-    else if (ordem === 'prazo') query = query.order('data_inscricao_fim', { ascending: true });
-    else query = query.order('coletado_em', { ascending: false });
+      if (ordem === 'salario') query = query.order('salario', { ascending: false });
+      else if (ordem === 'prazo') query = query.order('data_inscricao_fim', { ascending: true });
+      else query = query.order('coletado_em', { ascending: false });
 
-    const limite = plano === 'free' ? 5 : 50;
-    const { data } = await query.limit(limite);
-    setEditais(data ?? []);
-    setLoading(false);
-  }, [area, escolaridade, apenasAbertas, busca, ordem]);
+      const limite = plano === 'free' ? 5 : 50;
+      const { data, error } = await query.limit(limite);
+      if (error) throw error;
+      setEditais(data ?? []);
+    } catch {
+      setEditais([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [area, escolaridade, apenasAbertas, busca, ordem, plano]);
 
   useEffect(() => { carregar(); }, [carregar]);
 

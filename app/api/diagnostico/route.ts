@@ -44,7 +44,7 @@ export async function GET() {
     const { GoogleGenAI } = await import('@google/genai');
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const resp = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.0-flash',
       contents: 'Responda apenas: OK',
     });
     checks['gemini_api'] = `OK — resposta: "${resp.text?.substring(0, 30)}"`;

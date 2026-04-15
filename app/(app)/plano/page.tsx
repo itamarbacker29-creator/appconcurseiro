@@ -45,6 +45,7 @@ export default function PlanoPage() {
     fetch('/api/plano')
       .then(r => r.json())
       .then(({ plano }) => { if (plano?.cronograma) setPlano(plano.cronograma); })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
