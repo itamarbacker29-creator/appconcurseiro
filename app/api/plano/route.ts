@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
-import { gerarTextoGemini } from '@/lib/gemini';
+import { gerarTexto, type PlanoIA } from '@/lib/ai';
 import { verificarLimite, limitadores } from '@/lib/ratelimit';
 import { thetaParaPercentual } from '@/lib/irt';
 
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
       .replace('{questoesPorDia}', String(questoesPorDia))
       .replace('{desempenho}', desempenhoTexto);
 
-    const raw = await gerarTextoGemini(prompt);
+    const raw = await gerarTexto(prompt, (profile?.plano ?? 'free') as PlanoIA);
     const textoResposta = raw.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '').trim();
     const planoGerado = JSON.parse(textoResposta);
 

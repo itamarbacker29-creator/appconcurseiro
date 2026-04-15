@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient, createAdminClient } from '@/lib/supabase-server';
-import { gerarTextoGemini } from '@/lib/gemini';
+import { gerarTexto, type PlanoIA } from '@/lib/ai';
 import { verificarLimite, limitadores } from '@/lib/ratelimit';
 import { thetaParaNivel } from '@/lib/irt';
 
@@ -36,6 +36,10 @@ export async function POST(req: NextRequest) {
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+
+  // Buscar plano do usuário
+  const { data: profile } = await supabase.from('profiles').select('plano').eq('id', user.id).single();
+  const plano = (profile?.plano ?? 'free') as PlanoIA;
 
   const body = await req.json();
   const { editalId, materia } = body as { editalId: string; materia: string };
@@ -97,10 +101,6 @@ export async function POST(req: NextRequest) {
     ? await adminClient.from('editais').select('banca, materias').eq('id', editalId).single()
     : { data: null };
 
-  if (!process.env.GEMINI_API_KEY) {
-    return NextResponse.json({ error: 'Serviço de IA não configurado. Contate o suporte.' }, { status: 503 });
-  }
-
   try {
     const prompt = PROMPT_QUESTAO
       .replace(/{banca}/g, edital?.banca ?? 'CESPE/CEBRASPE')
@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
       .replace('{topico}', materia)
       .replace(/{nivel}/g, String(nivel));
 
-    const textoResposta = extrairJSON(await gerarTextoGemini(prompt));
+    const textoResposta = extrairJSON(await gerarTexto(prompt, plano));
     const novaQuestao = JSON.parse(textoResposta);
 
     // Usa admin client para inserir (sem restrições de RLS)
