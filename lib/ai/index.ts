@@ -1,7 +1,6 @@
 /**
- * lib/ai/index.ts
- * Ponto de entrada unificado para geração de texto com IA.
- * Seleciona automaticamente o modelo com base no plano do usuário:
+ * lib/ai/index.ts — servidor apenas (não importar em Client Components)
+ * Seleciona modelo por plano:
  *   free        → Gemini 1.5 Flash  (custo zero)
  *   premium     → Claude Haiku 4.5  (mais preciso)
  *   elite       → Claude Haiku 4.5  (ilimitado)
@@ -10,19 +9,27 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { gerarTextoGemini } from '@/lib/gemini';
+import { STREAM_ERROR_PREFIX } from './constants';
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+export { STREAM_ERROR_PREFIX } from './constants';
 
 export const MODELO_HAIKU = 'claude-haiku-4-5-20251001';
 
 export type PlanoIA = 'free' | 'premium' | 'elite' | 'avulso';
+
+/** Inicialização lazy — evita throw se ANTHROPIC_API_KEY não estiver configurada */
+function getClient(): Anthropic {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) throw new Error('ANTHROPIC_API_KEY não configurada no servidor.');
+  return new Anthropic({ apiKey: key });
+}
 
 function usaHaiku(plano: PlanoIA): boolean {
   return plano !== 'free';
 }
 
 /**
- * Gera texto com o modelo adequado ao plano.
+ * Gera texto com o modelo certo para o plano.
  * Se Claude falhar (chave ausente, erro de API), faz fallback para Gemini.
  */
 export async function gerarTexto(
@@ -48,14 +55,10 @@ export async function gerarTextoHaiku(
   prompt: string,
   systemPrompt?: string,
 ): Promise<string> {
+  const anthropic = getClient();
+
   const systemContent: Anthropic.Messages.TextBlockParam[] = systemPrompt
-    ? [
-        {
-          type: 'text',
-          text: systemPrompt,
-          cache_control: { type: 'ephemeral' },
-        },
-      ]
+    ? [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }]
     : [];
 
   const response = await anthropic.messages.create({
@@ -70,13 +73,9 @@ export async function gerarTextoHaiku(
   return '';
 }
 
-// Prefixo especial para erros enviados pelo stream — detectado pelo cliente
-export const STREAM_ERROR_PREFIX = '__ERRO__:';
-
 /**
  * Streaming com Claude Haiku — para o chat do Tutor.
- * Retorna um ReadableStream compatível com Response do Next.js.
- * Se a API falhar, envia mensagem de erro legível pelo stream em vez de crashar.
+ * Erros de API são enviados pelo stream (STREAM_ERROR_PREFIX) em vez de crashar.
  */
 export function streamHaiku(
   mensagens: Array<{ role: 'user' | 'assistant'; content: string }>,
@@ -87,16 +86,12 @@ export function streamHaiku(
   return new ReadableStream({
     async start(controller) {
       try {
+        const anthropic = getClient();
+
         const stream = anthropic.messages.stream({
           model: MODELO_HAIKU,
           max_tokens: 1024,
-          system: [
-            {
-              type: 'text',
-              text: systemPrompt,
-              cache_control: { type: 'ephemeral' },
-            },
-          ],
+          system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
           messages: mensagens,
         });
 
@@ -111,7 +106,6 @@ export function streamHaiku(
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.error('[streamHaiku] Erro:', msg);
-        // Envia erro como texto no stream para o cliente detectar
         controller.enqueue(encoder.encode(`${STREAM_ERROR_PREFIX}${msg}`));
       } finally {
         controller.close();

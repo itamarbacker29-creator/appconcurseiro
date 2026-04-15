@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
-import { STREAM_ERROR_PREFIX } from '@/lib/ai';
+import { STREAM_ERROR_PREFIX } from '@/lib/ai/constants';
 
 interface Mensagem {
   role: 'user' | 'assistant';
