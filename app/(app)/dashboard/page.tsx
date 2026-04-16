@@ -19,7 +19,7 @@ export default async function DashboardPage() {
     supabase.from('profiles').select('nome, plano, concurso_alvo_id, data_prova').eq('id', user!.id).single(),
     supabase.from('habilidade_usuario').select('materia, theta, total_respondidas, total_acertos').eq('user_id', user!.id),
     supabase.from('respostas').select('correta, respondida_em').eq('user_id', user!.id).order('respondida_em', { ascending: false }).limit(100),
-    supabase.from('editais_salvos').select('edital_id, editais(orgao, cargo, data_inscricao_fim)').eq('user_id', user!.id).limit(3),
+    supabase.from('editais_salvos').select('edital_id, editais(orgao, cargo, data_inscricao_fim, data_prova)').eq('user_id', user!.id).limit(3),
   ]);
 
   const nome = profile?.nome ?? user?.email?.split('@')[0] ?? 'Candidato';
@@ -42,8 +42,25 @@ export default async function DashboardPage() {
   // Matéria com pior desempenho
   const pioreMateria = habilidades?.sort((a, b) => a.theta - b.theta)[0];
 
-  const diasRestantes = profile?.data_prova
-    ? Math.max(0, Math.ceil((new Date(profile.data_prova).getTime() - Date.now()) / 86400000))
+  // Countdown: usa o edital favoritado com data_prova mais próxima (no futuro)
+  // Fallback: data_prova do profile
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const dataProvaEdital = (editaisSalvos as any[])
+    ?.map(es => es.editais?.data_prova as string | null)
+    .filter(Boolean)
+    .map(d => new Date(d!))
+    .filter(d => d.getTime() > Date.now())
+    .sort((a, b) => a.getTime() - b.getTime())[0] ?? null;
+
+  const dataProvaRef = dataProvaEdital ?? (profile?.data_prova ? new Date(profile.data_prova) : null);
+  const nomeProvaRef = dataProvaEdital
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ? (editaisSalvos as any[]).find(es => es.editais?.data_prova &&
+        new Date(es.editais.data_prova).getTime() === dataProvaEdital.getTime())?.editais?.orgao ?? null
+    : null;
+
+  const diasRestantes = dataProvaRef
+    ? Math.max(0, Math.ceil((dataProvaRef.getTime() - Date.now()) / 86400000))
     : null;
 
   return (
@@ -55,7 +72,7 @@ export default async function DashboardPage() {
         </h1>
         {diasRestantes !== null ? (
           <p className="text-[14px] text-(--ink-2) mt-1">
-            Faltam <span className="font-bold text-(--accent)">{diasRestantes} dia{diasRestantes !== 1 ? 's' : ''}</span> para a sua prova.
+            Faltam <span className="font-bold text-(--accent)">{diasRestantes} dia{diasRestantes !== 1 ? 's' : ''}</span> para a prova{nomeProvaRef ? ` — ${nomeProvaRef}` : ''}.
           </p>
         ) : (
           <p className="text-[13px] text-(--ink-3) mt-1">
@@ -95,7 +112,7 @@ export default async function DashboardPage() {
             <div className="flex flex-col gap-2">
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {(editaisSalvos as any[]).map((es) => {
-                const e = es.editais as { orgao: string; cargo: string; data_inscricao_fim: string } | null;
+                const e = es.editais as { orgao: string; cargo: string; data_inscricao_fim: string; data_prova: string | null } | null;
                 if (!e) return null;
                 const prazo = e.data_inscricao_fim ? new Date(e.data_inscricao_fim) : null;
                 const urgente = prazo && (prazo.getTime() - Date.now()) / 86400000 <= 5;
