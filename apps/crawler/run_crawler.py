@@ -1,7 +1,7 @@
 """
-Crawler v9 — RSS + Gemini 2.0 Flash (google-genai SDK) em batch único.
-Pré-filtra itens por palavras-chave antes de chamar a IA (reduz tokens ~70%).
-Filtra editais com inscrições encerradas antes de salvar.
+Crawler v10 — RSS + Claude Haiku (Anthropic) em batch único.
+Usa Claude separado do Gemini do app — quotas independentes.
+Pré-filtra itens por palavras-chave antes de chamar a IA.
 """
 import asyncio, json, os, re, time
 from datetime import date
@@ -9,12 +9,12 @@ import httpx
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from supabase import create_client
-from google import genai
+import anthropic
 
 load_dotenv()
 
 supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_SERVICE_KEY"))
-gemini = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+claude = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 RSS_FEEDS = [
     "https://www.concursosnobrasil.com.br/feed/",
@@ -24,37 +24,34 @@ RSS_FEEDS = [
     "https://www.estrategiaconcursos.com.br/blog/feed/",
 ]
 
-# Palavras-chave que indicam edital/concurso real (pré-filtro antes do Gemini)
 PALAVRAS_EDITAL = [
     "concurso", "edital", "vagas", "inscrições", "processo seletivo",
     "seleção pública", "certame", "prova", "gabarito provisório",
 ]
-# Palavras que descartam imediatamente o item
 PALAVRAS_LIXO = [
     "aposentadoria", "benefício", "bpc", "irpf", "imposto de renda",
     "calendário", "13º", "como passar", "apostila", "dica de estudo",
     "raça de", "planta", "curiosidade",
 ]
 
-HOJE = date.today().isoformat()  # YYYY-MM-DD
+HOJE = date.today().isoformat()
 
-PROMPT_SISTEMA = f"""Você é um especialista em concursos públicos brasileiros.
-Receberá títulos e descrições de notícias pré-filtradas de portais de concursos.
-
+SYSTEM_PROMPT = f"""Você é um especialista em concursos públicos brasileiros.
+Receberá títulos e descrições de notícias de portais de concursos.
 HOJE É: {HOJE}
 
-TAREFA: Para cada item que anuncia um concurso/edital com inscrições ABERTAS ou A ABRIR
-(data_inscricao_fim >= {HOJE} ou sem data definida), extraia os dados abaixo.
-Descarte itens que sejam apenas dicas de estudo, gabaritos finais, resultados ou apostilas.
+Para cada item que anuncia um concurso/edital com inscrições ABERTAS ou A ABRIR
+(data_inscricao_fim >= {HOJE} ou sem data), extraia os campos abaixo.
+Descarte dicas de estudo, gabaritos finais, resultados e apostilas.
 
-Retorne APENAS um array JSON. Cada edital válido deve ter:
+Retorne APENAS um array JSON válido, sem markdown. Cada edital:
 {{
-  "orgao": "nome do órgão (ex: INSS, Prefeitura de SP, TRF 4ª)",
-  "cargo": "cargo(s) — se múltiplos, separe por vírgula",
-  "escolaridade": "fundamental" | "medio" | "superior",
-  "nivel": "federal" | "estadual" | "municipal",
+  "orgao": "nome do órgão",
+  "cargo": "cargo(s)",
+  "escolaridade": "fundamental"|"medio"|"superior",
+  "nivel": "federal"|"estadual"|"municipal",
   "cidade": "cidade ou null",
-  "estado": "sigla UF ou 'Nacional'",
+  "estado": "sigla UF ou Nacional",
   "area": "tributario"|"seguranca"|"saude"|"educacao"|"judiciario"|"tecnologia"|"administrativo",
   "vagas": número inteiro ou null,
   "salario": número float ou null,
@@ -65,11 +62,10 @@ Retorne APENAS um array JSON. Cada edital válido deve ter:
   "link_edital_pdf": "URL do PDF ou null"
 }}
 
-Se nenhum item for válido, retorne []. Sem markdown, sem texto fora do JSON."""
+Se nenhum item for válido, retorne []."""
 
 
 def pre_filtrar(itens: list[dict]) -> list[dict]:
-    """Descarta itens claramente irrelevantes por palavras-chave no título."""
     resultado = []
     for item in itens:
         titulo_lower = item["titulo"].lower()
@@ -77,12 +73,11 @@ def pre_filtrar(itens: list[dict]) -> list[dict]:
             continue
         if any(p in titulo_lower for p in PALAVRAS_EDITAL):
             resultado.append(item)
-    print(f"[PRÉ-FILTRO] {len(resultado)}/{len(itens)} itens passaram pelo filtro de palavras-chave")
+    print(f"[PRÉ-FILTRO] {len(resultado)}/{len(itens)} itens relevantes")
     return resultado
 
 
 async def coletar_itens_rss() -> list[dict]:
-    """Coleta todos os itens dos feeds RSS."""
     headers = {"User-Agent": "ConcurseiroBot/1.0"}
     itens = []
 
@@ -110,16 +105,15 @@ async def coletar_itens_rss() -> list[dict]:
                         desc = BeautifulSoup(desc_tag.get_text(), "lxml").get_text(" ", strip=True)[:400]
 
                     link_tag = item.find("link")
-                    link = ""
-                    if link_tag:
-                        link = link_tag.get_text(strip=True) or link_tag.get("href", "")
+                    link = link_tag.get_text(strip=True) if link_tag else ""
+                    if not link and link_tag:
+                        link = link_tag.get("href", "")
 
                     itens.append({"titulo": titulo, "desc": desc, "link": link})
 
             except Exception as e:
                 print(f"[RSS] Erro em {url}: {e}")
 
-    # Remove duplicatas por título
     vistos = set()
     unicos = []
     for item in itens:
@@ -131,8 +125,7 @@ async def coletar_itens_rss() -> list[dict]:
     return unicos
 
 
-def classificar_com_gemini(itens: list[dict]) -> list[dict]:
-    """Envia itens pré-filtrados ao Gemini 2.0 Flash, com retry em quota."""
+def classificar_com_claude(itens: list[dict]) -> list[dict]:
     if not itens:
         return []
 
@@ -140,46 +133,43 @@ def classificar_com_gemini(itens: list[dict]) -> list[dict]:
     for i, item in enumerate(itens, 1):
         texto_itens += f"\n[{i}] {item['titulo']}\n{item['desc']}\nLink: {item['link']}\n"
 
-    prompt = f"{PROMPT_SISTEMA}\n\nITENS:\n{texto_itens}"
-
-    modelos = ["gemini-2.0-flash", "gemini-2.0-flash-lite"]
     texto = ""
+    for tentativa in range(3):
+        try:
+            print(f"[CLAUDE] Tentativa {tentativa+1}/3 ({len(itens)} itens)...")
+            response = claude.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=4096,
+                system=SYSTEM_PROMPT,
+                messages=[{"role": "user", "content": f"ITENS:\n{texto_itens}"}],
+            )
+            texto = response.content[0].text.strip()
+            texto = re.sub(r'^```(?:json)?\s*', '', texto, flags=re.MULTILINE)
+            texto = re.sub(r'\s*```\s*$', '', texto, flags=re.MULTILINE)
+            texto = texto.strip()
 
-    for modelo in modelos:
-        for tentativa in range(3):
-            try:
-                print(f"[GEMINI] Tentativa {tentativa+1}/3 com {modelo} ({len(itens)} itens)...")
-                response = gemini.models.generate_content(model=modelo, contents=prompt)
-                texto = response.text.strip()
-
-                texto = re.sub(r'^```(?:json)?\s*', '', texto, flags=re.MULTILINE)
-                texto = re.sub(r'\s*```\s*$', '', texto, flags=re.MULTILINE)
-                texto = texto.strip()
-
-                editais = json.loads(texto)
-                if not isinstance(editais, list):
-                    print("[GEMINI] Resposta inesperada (não é lista)")
-                    return []
-
-                print(f"[GEMINI] {len(editais)} editais válidos (modelo: {modelo})")
-                return editais
-
-            except json.JSONDecodeError as e:
-                print(f"[GEMINI] Erro JSON: {e}")
-                if texto:
-                    print(f"[GEMINI] Trecho: {texto[:400]}")
+            editais = json.loads(texto)
+            if not isinstance(editais, list):
+                print("[CLAUDE] Resposta inesperada (não é lista)")
                 return []
-            except Exception as e:
-                msg = str(e)
-                if "429" in msg or "quota" in msg.lower() or "RESOURCE_EXHAUSTED" in msg:
-                    espera = 30 * (tentativa + 1)
-                    print(f"[GEMINI] Quota excedida ({modelo}). Aguardando {espera}s...")
-                    time.sleep(espera)
-                    continue
-                print(f"[GEMINI] Erro com {modelo}: {e}")
-                break  # erro não-quota → tenta próximo modelo
 
-    print("[GEMINI] Todos os modelos falharam.")
+            print(f"[CLAUDE] {len(editais)} editais válidos identificados")
+            return editais
+
+        except json.JSONDecodeError as e:
+            print(f"[CLAUDE] Erro JSON: {e}")
+            if texto:
+                print(f"[CLAUDE] Trecho: {texto[:400]}")
+            return []
+        except anthropic.RateLimitError:
+            espera = 30 * (tentativa + 1)
+            print(f"[CLAUDE] Rate limit. Aguardando {espera}s...")
+            time.sleep(espera)
+        except Exception as e:
+            print(f"[CLAUDE] Erro: {e}")
+            return []
+
+    print("[CLAUDE] Todas as tentativas falharam.")
     return []
 
 
@@ -244,11 +234,11 @@ def normalizar(edital: dict) -> dict | None:
 
 
 async def buscar_e_salvar():
-    print(f"[CRAWLER] v9 — RSS + Gemini 2.0 Flash (google-genai SDK) | hoje={HOJE}")
+    print(f"[CRAWLER] v10 — RSS + Claude Haiku | hoje={HOJE}")
 
     itens = await coletar_itens_rss()
     if not itens:
-        print("[CRAWLER] Nenhum item coletado. Encerrando.")
+        print("[CRAWLER] Nenhum item coletado.")
         return
 
     itens_filtrados = pre_filtrar(itens)
@@ -256,9 +246,9 @@ async def buscar_e_salvar():
         print("[CRAWLER] Nenhum item passou pelo pré-filtro.")
         return
 
-    editais_brutos = classificar_com_gemini(itens_filtrados)
+    editais_brutos = classificar_com_claude(itens_filtrados)
     if not editais_brutos:
-        print("[CRAWLER] Gemini não identificou editais válidos.")
+        print("[CRAWLER] Claude não identificou editais válidos.")
         return
 
     salvos = ignorados = erros = 0
