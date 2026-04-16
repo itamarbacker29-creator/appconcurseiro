@@ -36,10 +36,11 @@ export async function gerarTexto(
   prompt: string,
   plano: PlanoIA,
   systemPrompt?: string,
+  maxTokens = 2048,
 ): Promise<string> {
   if (usaHaiku(plano)) {
     try {
-      return await gerarTextoHaiku(prompt, systemPrompt);
+      return await gerarTextoHaiku(prompt, systemPrompt, maxTokens);
     } catch (err) {
       console.warn('[ai] Claude falhou, usando Gemini como fallback:', err);
       return gerarTextoGemini(prompt);
@@ -54,6 +55,7 @@ export async function gerarTexto(
 export async function gerarTextoHaiku(
   prompt: string,
   systemPrompt?: string,
+  maxTokens = 2048,
 ): Promise<string> {
   const anthropic = getClient();
 
@@ -63,7 +65,7 @@ export async function gerarTextoHaiku(
 
   const response = await anthropic.messages.create({
     model: MODELO_HAIKU,
-    max_tokens: 2048,
+    max_tokens: maxTokens,
     ...(systemContent.length > 0 && { system: systemContent }),
     messages: [{ role: 'user', content: prompt }],
   });

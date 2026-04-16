@@ -83,8 +83,11 @@ export async function POST(req: NextRequest) {
       .replace('{questoesPorDia}', String(questoesPorDia))
       .replace('{desempenho}', desempenhoTexto);
 
-    const raw = await gerarTexto(prompt, (profile?.plano ?? 'free') as PlanoIA);
-    const textoResposta = raw.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '').trim();
+    const raw = await gerarTexto(prompt, (profile?.plano ?? 'free') as PlanoIA, undefined, 4096);
+    // Remove markdown fences e extrai o primeiro objeto JSON encontrado
+    let textoResposta = raw.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '').trim();
+    const match = textoResposta.match(/\{[\s\S]*\}/);
+    if (match) textoResposta = match[0];
     const planoGerado = JSON.parse(textoResposta);
 
     // Salvar plano no banco
@@ -100,8 +103,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ plano: planoGerado });
   } catch (err) {
-    console.error('Erro ao gerar plano:', err);
-    return NextResponse.json({ error: 'Falha ao gerar plano' }, { status: 500 });
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('Erro ao gerar plano:', msg);
+    return NextResponse.json({ error: msg || 'Falha ao gerar plano' }, { status: 500 });
   }
 }
 
