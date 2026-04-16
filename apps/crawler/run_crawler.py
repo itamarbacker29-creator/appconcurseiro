@@ -19,9 +19,10 @@ genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 RSS_FEEDS = [
     "https://www.concursosnobrasil.com.br/feed/",
-    "https://www.estrategiaconcursos.com.br/feed/",
-    "https://www.gran.com.br/blog/feed/",
-    "https://www.pciconcursos.com.br/rss/noticias.xml",
+    "https://blog.grancursosonline.com.br/feed/",
+    "https://www.tecconcursos.com.br/blog/feed/",
+    "https://www.qconcursos.com/noticias/feed/",
+    "https://www.estrategiaconcursos.com.br/blog/feed/",
 ]
 
 HOJE = date.today().isoformat()  # YYYY-MM-DD
@@ -135,8 +136,8 @@ def classificar_com_gemini(itens: list[dict]) -> list[dict]:
 
     prompt = f"{PROMPT_SISTEMA}\n\nITENS:\n{texto_itens}"
 
-    # gemini-1.5-flash não existe na v1beta do SDK Python — usar gemini-2.0-flash
-    modelos = ["gemini-2.0-flash", "gemini-2.0-flash-lite"]
+    # gemini-1.5-flash tem cota separada de gemini-2.0-flash — usar 1.5 no crawler
+    modelos = ["gemini-1.5-flash", "gemini-1.5-flash-latest"]
     texto = ""
 
     for modelo in modelos:
