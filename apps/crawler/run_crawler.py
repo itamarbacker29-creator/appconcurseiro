@@ -1,8 +1,7 @@
 """
-Crawler v7 — RSS + Gemini 1.5 Flash em batch único.
-Extrai dados completos do edital para o candidato.
+Crawler v9 — RSS + Gemini 2.0 Flash (google-genai SDK) em batch único.
+Pré-filtra itens por palavras-chave antes de chamar a IA (reduz tokens ~70%).
 Filtra editais com inscrições encerradas antes de salvar.
-Usa gemini-1.5-flash (cota separada de gemini-2.0-flash).
 """
 import asyncio, json, os, re, time
 from datetime import date
@@ -10,12 +9,12 @@ import httpx
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from supabase import create_client
-import google.generativeai as genai
+from google import genai
 
 load_dotenv()
 
 supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_SERVICE_KEY"))
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+gemini = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 RSS_FEEDS = [
     "https://www.concursosnobrasil.com.br/feed/",
@@ -25,54 +24,61 @@ RSS_FEEDS = [
     "https://www.estrategiaconcursos.com.br/blog/feed/",
 ]
 
+# Palavras-chave que indicam edital/concurso real (pré-filtro antes do Gemini)
+PALAVRAS_EDITAL = [
+    "concurso", "edital", "vagas", "inscrições", "processo seletivo",
+    "seleção pública", "certame", "prova", "gabarito provisório",
+]
+# Palavras que descartam imediatamente o item
+PALAVRAS_LIXO = [
+    "aposentadoria", "benefício", "bpc", "irpf", "imposto de renda",
+    "calendário", "13º", "como passar", "apostila", "dica de estudo",
+    "raça de", "planta", "curiosidade",
+]
+
 HOJE = date.today().isoformat()  # YYYY-MM-DD
 
-PROMPT_SISTEMA = f"""
-Você é um especialista em concursos públicos brasileiros.
-Receberá itens de RSS feeds de portais como concursosnobrasil.com.br, estrategiaconcursos.com.br, gran.com.br e pciconcursos.com.br.
+PROMPT_SISTEMA = f"""Você é um especialista em concursos públicos brasileiros.
+Receberá títulos e descrições de notícias pré-filtradas de portais de concursos.
 
 HOJE É: {HOJE}
 
-SUA TAREFA: Identificar APENAS itens que anunciam um concurso público, processo seletivo simplificado ou seleção pública com INSCRIÇÕES ABERTAS OU A ABRIR — ou seja, com data de encerramento das inscrições IGUAL OU POSTERIOR A HOJE.
+TAREFA: Para cada item que anuncia um concurso/edital com inscrições ABERTAS ou A ABRIR
+(data_inscricao_fim >= {HOJE} ou sem data definida), extraia os dados abaixo.
+Descarte itens que sejam apenas dicas de estudo, gabaritos finais, resultados ou apostilas.
 
-INCLUIR obrigatoriamente (exemplos de conteúdo válido):
-- Concurso INSS 2025: vagas para Técnico e Analista (INSS FAZ concursos — inclua!)
-- Concurso Prefeitura de São Paulo — vagas para professor
-- Edital Polícia Civil SP — inscrições abertas
-- Processo seletivo Correios 2025
-- Concurso Banco do Brasil — analista
-- Edital TRF, TRT, TJ, MPF, PF, PRF, ANAC, ANVISA etc.
-
-IGNORAR obrigatoriamente (conteúdo inválido):
-- Notícias sobre BENEFÍCIOS do INSS (BPC, aposentadoria, 13º salário, calendário de pagamentos)
-- Notícias sobre IRPF, declaração de imposto de renda
-- Gabaritos ou resultados de provas já realizadas
-- Apostilas, cursos preparatórios, dicas de estudo, como passar
-- Artigos de entretenimento (raças de animais, plantas, curiosidades, sobrenomes)
-- Editais com inscrições JÁ ENCERRADAS (data_inscricao_fim anterior a {HOJE})
-- Concursos sem data definida e sem informação de inscrições abertas
-
-Para cada edital válido, retorne um objeto JSON com TODOS os campos abaixo (use null quando não disponível):
-
+Retorne APENAS um array JSON. Cada edital válido deve ter:
 {{
-  "orgao": "nome completo do órgão/entidade contratante (ex: INSS, Prefeitura de Curitiba, TRF 4ª Região)",
-  "cargo": "cargo(s) ofertado(s) — se múltiplos, liste separados por vírgula",
+  "orgao": "nome do órgão (ex: INSS, Prefeitura de SP, TRF 4ª)",
+  "cargo": "cargo(s) — se múltiplos, separe por vírgula",
   "escolaridade": "fundamental" | "medio" | "superior",
   "nivel": "federal" | "estadual" | "municipal",
-  "cidade": "nome da cidade ou null se for estadual/federal/nacional",
-  "estado": "sigla UF de 2 letras (ex: SP, RJ, MG) ou 'Nacional' para concursos federais sem sede fixa",
-  "area": "tributario" | "seguranca" | "saude" | "educacao" | "judiciario" | "tecnologia" | "administrativo",
-  "vagas": número inteiro total de vagas ou null,
-  "salario": valor numérico do salário base em reais (float) ou null,
-  "banca": "nome da banca organizadora (ex: CESPE, FGV, VUNESP, FCC, IBFC) ou null",
+  "cidade": "cidade ou null",
+  "estado": "sigla UF ou 'Nacional'",
+  "area": "tributario"|"seguranca"|"saude"|"educacao"|"judiciario"|"tecnologia"|"administrativo",
+  "vagas": número inteiro ou null,
+  "salario": número float ou null,
+  "banca": "nome da banca ou null",
   "data_inscricao_inicio": "YYYY-MM-DD" ou null,
   "data_inscricao_fim": "YYYY-MM-DD" ou null,
-  "link_inscricao": "URL completa para inscrição ou edital",
-  "link_edital_pdf": "URL direta para o PDF do edital ou null"
+  "link_inscricao": "URL completa",
+  "link_edital_pdf": "URL do PDF ou null"
 }}
 
-Retorne SOMENTE um array JSON válido com os editais encontrados. Sem markdown, sem explicações. Se nenhum item for válido, retorne [].
-"""
+Se nenhum item for válido, retorne []. Sem markdown, sem texto fora do JSON."""
+
+
+def pre_filtrar(itens: list[dict]) -> list[dict]:
+    """Descarta itens claramente irrelevantes por palavras-chave no título."""
+    resultado = []
+    for item in itens:
+        titulo_lower = item["titulo"].lower()
+        if any(p in titulo_lower for p in PALAVRAS_LIXO):
+            continue
+        if any(p in titulo_lower for p in PALAVRAS_EDITAL):
+            resultado.append(item)
+    print(f"[PRÉ-FILTRO] {len(resultado)}/{len(itens)} itens passaram pelo filtro de palavras-chave")
+    return resultado
 
 
 async def coletar_itens_rss() -> list[dict]:
@@ -101,7 +107,7 @@ async def coletar_itens_rss() -> list[dict]:
                     desc_tag = item.find("description") or item.find("summary") or item.find("content")
                     desc = ""
                     if desc_tag:
-                        desc = BeautifulSoup(desc_tag.get_text(), "lxml").get_text(" ", strip=True)[:600]
+                        desc = BeautifulSoup(desc_tag.get_text(), "lxml").get_text(" ", strip=True)[:400]
 
                     link_tag = item.find("link")
                     link = ""
@@ -126,39 +132,36 @@ async def coletar_itens_rss() -> list[dict]:
 
 
 def classificar_com_gemini(itens: list[dict]) -> list[dict]:
-    """Envia todos os itens em UMA única chamada ao Gemini, com retry em caso de quota."""
+    """Envia itens pré-filtrados ao Gemini 2.0 Flash, com retry em quota."""
     if not itens:
         return []
 
     texto_itens = ""
     for i, item in enumerate(itens, 1):
-        texto_itens += f"\n[{i}]\nTítulo: {item['titulo']}\nDescrição: {item['desc']}\nLink: {item['link']}\n"
+        texto_itens += f"\n[{i}] {item['titulo']}\n{item['desc']}\nLink: {item['link']}\n"
 
     prompt = f"{PROMPT_SISTEMA}\n\nITENS:\n{texto_itens}"
 
-    # gemini-1.5-flash tem cota separada de gemini-2.0-flash — usar 1.5 no crawler
-    modelos = ["gemini-1.5-flash", "gemini-1.5-flash-latest"]
+    modelos = ["gemini-2.0-flash", "gemini-2.0-flash-lite"]
     texto = ""
 
     for modelo in modelos:
         for tentativa in range(3):
             try:
-                print(f"[GEMINI] Tentativa {tentativa+1}/3 com {modelo}...")
-                model = genai.GenerativeModel(modelo)
-                response = model.generate_content(prompt)
+                print(f"[GEMINI] Tentativa {tentativa+1}/3 com {modelo} ({len(itens)} itens)...")
+                response = gemini.models.generate_content(model=modelo, contents=prompt)
                 texto = response.text.strip()
 
-                # Remove bloco markdown se presente
                 texto = re.sub(r'^```(?:json)?\s*', '', texto, flags=re.MULTILINE)
                 texto = re.sub(r'\s*```\s*$', '', texto, flags=re.MULTILINE)
                 texto = texto.strip()
 
                 editais = json.loads(texto)
                 if not isinstance(editais, list):
-                    print(f"[GEMINI] Resposta inesperada (não é lista)")
+                    print("[GEMINI] Resposta inesperada (não é lista)")
                     return []
 
-                print(f"[GEMINI] {len(editais)} editais válidos identificados de {len(itens)} itens (modelo: {modelo})")
+                print(f"[GEMINI] {len(editais)} editais válidos (modelo: {modelo})")
                 return editais
 
             except json.JSONDecodeError as e:
@@ -168,7 +171,7 @@ def classificar_com_gemini(itens: list[dict]) -> list[dict]:
                 return []
             except Exception as e:
                 msg = str(e)
-                if "429" in msg or "quota" in msg.lower():
+                if "429" in msg or "quota" in msg.lower() or "RESOURCE_EXHAUSTED" in msg:
                     espera = 30 * (tentativa + 1)
                     print(f"[GEMINI] Quota excedida ({modelo}). Aguardando {espera}s...")
                     time.sleep(espera)
@@ -181,10 +184,9 @@ def classificar_com_gemini(itens: list[dict]) -> list[dict]:
 
 
 def edital_encerrado(edital: dict) -> bool:
-    """Retorna True se o prazo de inscrição já passou."""
     fim = edital.get("data_inscricao_fim")
     if not fim:
-        return False  # sem data = mantém (pode ser 'a abrir')
+        return False
     try:
         return fim < HOJE
     except Exception:
@@ -192,7 +194,6 @@ def edital_encerrado(edital: dict) -> bool:
 
 
 def normalizar(edital: dict) -> dict | None:
-    """Valida e normaliza os campos. Retorna None se dados mínimos faltarem."""
     orgao = str(edital.get("orgao") or "").strip()[:100]
     cargo = str(edital.get("cargo") or "").strip()[:200]
     link  = str(edital.get("link_inscricao") or "").strip()
@@ -243,14 +244,19 @@ def normalizar(edital: dict) -> dict | None:
 
 
 async def buscar_e_salvar():
-    print(f"[CRAWLER] v8 — RSS + Gemini 2.0 Flash (batch único) | hoje={HOJE}")
+    print(f"[CRAWLER] v9 — RSS + Gemini 2.0 Flash (google-genai SDK) | hoje={HOJE}")
 
     itens = await coletar_itens_rss()
     if not itens:
         print("[CRAWLER] Nenhum item coletado. Encerrando.")
         return
 
-    editais_brutos = classificar_com_gemini(itens)
+    itens_filtrados = pre_filtrar(itens)
+    if not itens_filtrados:
+        print("[CRAWLER] Nenhum item passou pelo pré-filtro.")
+        return
+
+    editais_brutos = classificar_com_gemini(itens_filtrados)
     if not editais_brutos:
         print("[CRAWLER] Gemini não identificou editais válidos.")
         return
