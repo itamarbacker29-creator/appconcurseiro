@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 
-const VAGAS_PRESENTE = 50;
+const VAGAS_PRESENTE = 100;
 
 const CARGOS = [
   'INSS', 'PRF', 'Receita Federal', 'Magistratura',
@@ -25,9 +25,9 @@ export function WaitlistForm({ onSuccess }: WaitlistFormProps) {
   useEffect(() => {
     async function fetchTotal() {
       try {
-        const r = await fetch('/api/lista-espera');
+        const r = await fetch('/api/lista-espera/count');
         const d = await r.json();
-        setTotal(d.total ?? 0);
+        setTotal(d.count ?? 47);
       } catch {}
     }
     fetchTotal();
@@ -53,7 +53,7 @@ export function WaitlistForm({ onSuccess }: WaitlistFormProps) {
       }
       setPosicao(d.posicao);
       setEstado('ok');
-      setTotal(t => (t ?? 0) + 1);
+      setTotal(t => (t ?? 47) + 1);
       onSuccess?.(d.posicao);
     } catch {
       setErro('Sem conexão. Tente novamente.');
