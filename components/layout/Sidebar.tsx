@@ -18,6 +18,7 @@ const NAV: NavItem[] = [
   { href: '/editais',     label: 'Editais',         icon: 'description' },
   { href: '/simulado',    label: 'Simulados',       icon: 'quiz' },
   { href: '/desempenho',  label: 'Desempenho',      icon: 'bar_chart' },
+  { href: '/estimativa',  label: 'Estimativa',      icon: 'emoji_events' },
   { href: '/plano',       label: 'Plano de Estudo', icon: 'calendar_month' },
   { href: '/flashcards',  label: 'Flashcards',      icon: 'style' },
   { href: '/tutor',       label: 'Tutor IA',        icon: 'auto_awesome' },

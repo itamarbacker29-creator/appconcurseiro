@@ -78,18 +78,30 @@ export async function POST(req: NextRequest) {
 
   const adminClient = createAdminClient();
 
-  let questoesQuery = adminClient
-    .from('questoes')
-    .select('*')
-    .eq('materia', materia)
-    .eq('nivel', nivel)
-    .eq('ativo', true);
+  const baseQuery = () => {
+    let q = adminClient
+      .from('questoes')
+      .select('*')
+      .eq('materia', materia)
+      .eq('nivel', nivel)
+      .eq('ativo', true);
+    if (idsRespondidos.length > 0) {
+      q = q.not('id', 'in', `(${idsRespondidos.join(',')})`);
+    }
+    return q;
+  };
 
-  if (idsRespondidos.length > 0) {
-    questoesQuery = questoesQuery.not('id', 'in', `(${idsRespondidos.join(',')})`);
+  // Prioritize real questions over AI-generated ones
+  const { data: questoesReais } = await baseQuery().eq('origem', 'real').limit(20);
+
+  if (questoesReais && questoesReais.length >= 1) {
+    const questao = questoesReais[Math.floor(Math.random() * questoesReais.length)];
+    const { explicacao, gabarito, ...questaoSemGabarito } = questao;
+    void explicacao; void gabarito;
+    return NextResponse.json({ questao: questaoSemGabarito, restante });
   }
 
-  const { data: questoesCache } = await questoesQuery.limit(20);
+  const { data: questoesCache } = await baseQuery().limit(20);
 
   if (questoesCache && questoesCache.length >= 1) {
     const questao = questoesCache[Math.floor(Math.random() * questoesCache.length)];

@@ -229,10 +229,11 @@ export default async function DashboardPage() {
       </div>
 
       {/* Ações rápidas */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-4 gap-3">
         {[
-          { href: '/simulado', icon: 'quiz', label: 'Novo simulado' },
-          { href: '/plano', icon: 'calendar_month', label: 'Plano de estudo' },
+          { href: '/simulado', icon: 'quiz', label: 'Simulado' },
+          { href: '/estimativa', icon: 'emoji_events', label: 'Estimativa' },
+          { href: '/plano', icon: 'calendar_month', label: 'Plano' },
           { href: '/tutor', icon: 'auto_awesome', label: 'Tutor IA' },
         ].map(a => (
           <Link key={a.href} href={a.href}>
