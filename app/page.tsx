@@ -1,5 +1,2 @@
-import { redirect } from 'next/navigation';
-
-export default function RootPage() {
-  redirect('/login');
-}
+export { default } from '@/app/(public)/page';
+export { metadata } from '@/app/(public)/page';
