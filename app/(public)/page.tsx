@@ -1,335 +1,216 @@
-import Link from 'next/link';
-import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
-import { Card } from '@/components/ui/Card';
-import { IDENTIDADE } from '@/config/identidade';
+import type { Metadata } from 'next';
+import { WaitlistForm } from '@/components/landing/WaitlistForm';
 
-// Dados mockados para a landing
-const STATS = [
-  { valor: '8M+', label: 'candidatos no Brasil' },
-  { valor: '50+', label: 'editais monitorados' },
-  { valor: '100%', label: 'automático' },
-  { valor: 'R$0', label: 'para começar' },
-];
-
-const EDITAIS_MOCK = [
-  { orgao: 'Receita Federal', cargo: 'Auditor-Fiscal da Receita Federal', vagas: 699, salario: 'R$ 21.029', prazo: '15/05', urgente: true },
-  { orgao: 'INSS', cargo: 'Técnico do Seguro Social', vagas: 7732, salario: 'R$ 5.905', prazo: '30/05', urgente: false },
-  { orgao: 'Banco Central', cargo: 'Analista — Área 1', vagas: 100, salario: 'R$ 20.924', prazo: '12/05', urgente: true },
-];
+export const metadata: Metadata = {
+  title: 'O Tutor — Acesso antecipado',
+  description: 'O app mais inteligente para concursos públicos. Editais automáticos, simulados adaptativos com IA e plano de estudo personalizado. Cadastre-se para acesso antecipado.',
+  openGraph: {
+    title: 'O Tutor — O Tutor certo para o concurso certo.',
+    description: 'Seja um dos primeiros a testar. Os 100 primeiros ganham 3 meses do Plano Elite grátis.',
+    url: 'https://otutor.com.br',
+    siteName: 'O Tutor',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'O Tutor — Acesso antecipado',
+    description: 'Os 100 primeiros ganham 3 meses do Plano Elite grátis.',
+  },
+};
 
 const FEATURES = [
   {
-    icon: '⬡',
-    cor: 'accent',
-    titulo: 'Crawler autônomo de editais',
-    desc: 'Monitoramento contínuo das principais fontes. Novos concursos chegam antes de todo mundo.',
+    icon: (
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+    ),
+    titulo: 'Editais automáticos',
+    desc: 'Sem buscar, sem perder prazo',
   },
   {
-    icon: '✓',
-    cor: 'teal',
-    titulo: 'Motor IRT — igual ao ENEM',
-    desc: 'Questões adaptadas ao seu nível real. Nem fácil demais, nem impossível.',
+    icon: (
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+    ),
+    titulo: 'IA adaptativa (IRT)',
+    desc: 'Questão certa para o seu nível agora',
   },
   {
-    icon: '▦',
-    cor: 'warning',
-    titulo: 'Plano de estudo dinâmico',
-    desc: 'IA analisa seu desempenho e reconstrói o cronograma conforme você evolui.',
+    icon: (
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+    ),
+    titulo: 'Raio-X do edital',
+    desc: 'Saiba o que mais cai na sua prova',
   },
   {
-    icon: '◻',
-    cor: 'accent',
-    titulo: 'PWA — instala em tudo',
-    desc: 'Funciona no celular, computador e tablet. Instala como app, funciona offline.',
+    icon: (
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+    ),
+    titulo: 'Tutor IA 24/7',
+    desc: 'Tire dúvidas sobre qualquer questão',
+  },
+  {
+    icon: (
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+    ),
+    titulo: 'Apostilas em flashcards',
+    desc: 'Envie seu PDF, receba os cards',
+  },
+  {
+    icon: (
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+    ),
+    titulo: 'Chance de aprovação',
+    desc: 'Veja onde você está vs. aprovados',
   },
 ];
 
-const DEPOIMENTOS = [
+const PASSOS = [
   {
-    texto: 'Passei no TRF depois de 2 anos de tentativa. O plano de estudo adaptativo fez a diferença — priorizou exatamente onde eu estava fraco.',
-    nome: 'Carla Mendes',
-    cargo: 'Analista Judiciário — TRF 3ª Região',
+    num: '01',
+    titulo: 'Edital chega até você',
+    desc: 'Monitoramos 10+ fontes automaticamente. Quando sair um edital no seu perfil, você recebe uma notificação com link de inscrição.',
   },
   {
-    texto: 'Nunca entendi por que errava tantas questões de Direito Administrativo. O gabarito explicado da IA me mostrou a lacuna exata na minha compreensão.',
-    nome: 'Rafael Souza',
-    cargo: 'Auditor Fiscal — SEFAZ-SP',
+    num: '02',
+    titulo: 'Simulado feito para você',
+    desc: 'Nossa IA usa o mesmo motor do ENEM (IRT) para criar questões no seu nível e explicar cada erro com base em lei e doutrina.',
   },
   {
-    texto: 'Os alertas de edital me salvaram. Recebi a notificação do concurso da Receita em tempo real e não perdi o prazo de inscrição.',
-    nome: 'Ana Paula Costa',
-    cargo: 'Técnica — Receita Federal',
+    num: '03',
+    titulo: 'Plano que te leva à aprovação',
+    desc: 'Com base no seu desempenho e na data da prova, O Tutor monta um cronograma diário. Você só precisa seguir.',
   },
 ];
 
-const TECNOLOGIAS = [
-  'Claude API (Anthropic)', 'Teoria de Resposta ao Item (IRT)', 'Supabase + PostgreSQL',
-  'Next.js PWA', 'Web Push (VAPID)', 'Cloudflare CDN',
-];
 
 export default function LandingPage() {
   return (
-    <div className="flex flex-col">
-      {/* HERO */}
-      <section className="max-w-[860px] mx-auto w-full px-4 py-20 flex flex-col items-center text-center gap-6">
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-(--accent-light) border border-(--accent)/20">
-          <span className="w-2 h-2 rounded-full bg-(--teal) animate-pulse-dot" />
-          <span className="text-[12px] font-semibold text-(--accent-text)">IA adaptativa em tempo real</span>
+    <div style={{ fontFamily: '-apple-system, "Segoe UI", sans-serif', color: '#0D1117' }}>
+
+      {/* ── HERO ──────────────────────────────────── */}
+      <section className="max-w-170 mx-auto px-5 pt-16 pb-12 flex flex-col items-center text-center gap-6">
+
+        {/* Badge urgência */}
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-50 border border-red-200">
+          <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+          <span className="text-[12px] font-semibold text-red-600">Acesso antecipado — vagas limitadas</span>
         </div>
 
-        <h1 className="text-[40px] md:text-[52px] font-black tracking-tight text-(--ink) leading-tight max-w-[700px]">
-          {IDENTIDADE.sloganHero || 'Estude com inteligência.'}{' '}
-          <span className="text-(--accent)">E você?</span>
+        {/* Logo */}
+        <div className="text-[28px] font-black text-[#2B3DE8] tracking-tight">O Tutor</div>
+
+        {/* H1 */}
+        <h1 style={{ fontSize: 'clamp(36px, 6vw, 52px)', fontWeight: 900, letterSpacing: '-1px', lineHeight: 1.1, margin: 0 }}>
+          O Tutor certo<br />
+          para o concurso <span style={{ color: '#2B3DE8' }}>certo.</span>
         </h1>
 
-        <p className="text-[16px] text-(--ink-2) max-w-[540px] leading-relaxed">
-          O único app que busca editais automaticamente, gera seu simulado personalizado e monta seu plano de estudo — tudo sem você pedir.
+        {/* Subtítulo */}
+        <p style={{ fontSize: 18, color: '#3A3D4A', lineHeight: 1.7, maxWidth: 520, margin: 0 }}>
+          Editais automáticos, simulados com IA adaptativa e plano de estudo personalizado.
+          Tudo em um app. Tudo gratuito para começar.
         </p>
 
-        <div className="flex flex-col sm:flex-row items-center gap-3">
-          <Link href="/login">
-            <Button size="lg">Começar agora — é grátis</Button>
-          </Link>
-          <Button size="lg" variant="ghost">Ver como funciona</Button>
-        </div>
-
-        <p className="text-[12px] text-(--ink-3)">
-          Sem cartão de crédito · Funciona no celular e no computador
-        </p>
-      </section>
-
-      {/* STATS */}
-      <section className="bg-(--surface-2) border-y border-(--border)">
-        <div className="max-w-[860px] mx-auto w-full px-4 py-8 grid grid-cols-2 md:grid-cols-4 gap-6">
-          {STATS.map((s) => (
-            <div key={s.label} className="flex flex-col items-center gap-1">
-              <span className="text-[28px] font-black text-(--ink)">{s.valor}</span>
-              <span className="text-[12px] text-(--ink-3) text-center">{s.label}</span>
-            </div>
-          ))}
+        {/* Form */}
+        <div id="cadastro" className="w-full mt-2">
+          <WaitlistForm />
         </div>
       </section>
 
-      {/* MOCKUP EDITAIS */}
-      <section id="editais" className="max-w-[860px] mx-auto w-full px-4 py-16 flex flex-col md:flex-row gap-10 items-center">
-        <div className="flex-1 flex flex-col gap-4">
-          <Badge variant="accent">Busca de Editais</Badge>
-          <h2 className="text-[28px] font-bold text-(--ink)">
-            Novos concursos chegam enquanto você estuda
-          </h2>
-          <p className="text-[14px] text-(--ink-2) leading-relaxed">
-            Crawler rodando 24/7 nas maiores fontes. Você recebe notificação push assim que sai um edital compatível com seu perfil.
+      {/* ── PRESENTE ──────────────────────────────── */}
+      <section className="max-w-170 mx-auto px-5 pb-16">
+        <div style={{ border: '2px solid #2B3DE8', borderRadius: 16, padding: '28px 32px', background: '#F7F8FF' }}>
+          <p style={{ fontSize: 13, fontWeight: 700, color: '#2B3DE8', marginBottom: 4 }}>🎁 PRESENTE PARA OS PRIMEIROS 100</p>
+          <p style={{ fontSize: 22, fontWeight: 900, color: '#0D1117', marginBottom: 4 }}>3 meses do Plano Elite</p>
+          <p style={{ fontSize: 14, color: '#3A3D4A', marginBottom: 20 }}>Completamente gratuitos — sem cartão de crédito</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 24px', marginBottom: 20 }}>
+            {[
+              'Tutor IA ilimitado', 'Todos os editais',
+              'Simulado adaptativo (IRT)', 'Upload de apostilas',
+              'Raio-X do edital', 'Plano de estudo com IA',
+            ].map(item => (
+              <div key={item} style={{ fontSize: 13, color: '#3A3D4A', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ color: '#2B3DE8', fontWeight: 700 }}>✓</span> {item}
+              </div>
+            ))}
+          </div>
+          <p style={{ fontSize: 13, color: '#7A7D8A', borderTop: '1px solid rgba(43,61,232,0.15)', paddingTop: 16, margin: 0 }}>
+            Valor do plano: <strong style={{ color: '#2B3DE8' }}>R$24,90/mês</strong> · 3 meses = R$74,70 · Seu custo: <strong style={{ color: '#2B3DE8' }}>R$0</strong>
           </p>
         </div>
+      </section>
 
-        <div className="flex-1 w-full max-w-[420px]">
-          {/* Frame de browser */}
-          <div className="rounded-[var(--radius)] border border-(--border) overflow-hidden shadow-lg">
-            <div className="bg-(--surface-3) px-3 py-2 flex items-center gap-2 border-b border-(--border)">
-              <div className="flex gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
-                <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
-                <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
+      {/* ── COMO FUNCIONA ─────────────────────────── */}
+      <section style={{ background: '#F7F8FC', borderTop: '1px solid rgba(0,0,0,0.06)', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+        <div className="max-w-[860px] mx-auto px-5 py-16">
+          <h2 style={{ fontSize: 28, fontWeight: 800, textAlign: 'center', marginBottom: 40 }}>Como funciona</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {PASSOS.map(p => (
+              <div key={p.num} style={{ background: 'white', borderRadius: 12, padding: '24px 20px', border: '1px solid rgba(0,0,0,0.06)' }}>
+                <div style={{ fontSize: 36, fontWeight: 900, color: '#2B3DE8', opacity: 0.15, lineHeight: 1, marginBottom: 12 }}>{p.num}</div>
+                <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{p.titulo}</h3>
+                <p style={{ fontSize: 13, color: '#3A3D4A', lineHeight: 1.7, margin: 0 }}>{p.desc}</p>
               </div>
-              <div className="flex-1 bg-(--surface) rounded px-2 py-0.5 text-[10px] text-(--ink-3) text-center">
-                {IDENTIDADE.dominioApp || 'app.[DOMINIO]/editais'}
-              </div>
-            </div>
-            <div className="p-3 flex flex-col gap-2 bg-(--surface)">
-              {EDITAIS_MOCK.map((e) => (
-                <div key={e.cargo} className="p-3 border border-(--border) rounded-[var(--radius-sm)] flex flex-col gap-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-semibold text-(--ink-3) uppercase tracking-wide">{e.orgao}</span>
-                    {e.urgente && (
-                      <div className="flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                        <span className="text-[10px] text-red-500 font-medium">{e.prazo}</span>
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-[12px] font-semibold text-(--ink) leading-tight">{e.cargo}</p>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[10px] text-(--ink-3)">{e.vagas} vagas</span>
-                    <span className="text-[10px] font-semibold text-(--teal)">{e.salario}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* MOCKUP SIMULADO */}
-      <section id="simulados" className="bg-(--surface-2) border-y border-(--border)">
-        <div className="max-w-[860px] mx-auto w-full px-4 py-16 flex flex-col md:flex-row-reverse gap-10 items-center">
-          <div className="flex-1 flex flex-col gap-4">
-            <Badge variant="success">Motor IRT Adaptativo</Badge>
-            <h2 className="text-[28px] font-bold text-(--ink)">
-              Questões no nível certo. Sempre.
-            </h2>
-            <p className="text-[14px] text-(--ink-2) leading-relaxed">
-              O motor IRT calibra a dificuldade em tempo real com base no seu desempenho — igual ao ENEM. Gabarito com explicação detalhada da IA após cada questão.
-            </p>
-          </div>
-
-          <div className="flex-1 w-full max-w-[420px]">
-            <div className="rounded-[var(--radius)] border border-(--border) overflow-hidden shadow-lg bg-(--surface)">
-              <div className="p-3 border-b border-(--border) flex items-center justify-between">
-                <span className="text-[11px] font-semibold text-(--ink-3)">Questão 6 de 10</span>
-                <div className="h-1.5 flex-1 mx-3 bg-(--surface-3) rounded-full">
-                  <div className="h-1.5 w-[60%] bg-(--accent) rounded-full" />
-                </div>
-                <span className="text-[11px] text-(--ink-3)">60%</span>
-              </div>
-              <div className="p-4 flex flex-col gap-3">
-                <div className="flex gap-2">
-                  <span className="text-[10px] px-2 py-0.5 bg-(--accent-light) text-(--accent-text) rounded font-semibold">Direito Adm.</span>
-                  <span className="text-[10px] px-2 py-0.5 bg-(--surface-3) text-(--ink-3) rounded">Médio</span>
-                </div>
-                <p className="text-[12px] text-(--ink) leading-relaxed">
-                  Sobre os atos administrativos, é correto afirmar que a revogação opera efeitos...
-                </p>
-                {['Ex tunc, atingindo atos já consumados', 'Ex nunc, preservando efeitos anteriores', 'Ex tunc, por motivo de ilegalidade', 'Ex nunc, por motivo de conveniência'].map((op, i) => (
-                  <div key={i} className={`p-2 rounded text-[11px] border cursor-pointer transition-colors ${i === 1 ? 'border-(--teal) bg-(--teal-light) text-(--teal-text) font-semibold' : 'border-(--border) text-(--ink-2)'}`}>
-                    <span className="font-bold mr-2">{String.fromCharCode(65 + i)}.</span>{op}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* FEATURES */}
-      <section className="max-w-[860px] mx-auto w-full px-4 py-16">
-        <div className="text-center mb-10">
-          <h2 className="text-[28px] font-bold text-(--ink)">Tudo que você precisa em um lugar</h2>
-          <p className="text-[14px] text-(--ink-2) mt-2">Sem planilha. Sem PDF. Sem esforço manual.</p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {FEATURES.map((f) => (
-            <Card key={f.titulo} padding="lg" className="flex flex-col gap-3">
-              <div className={`w-10 h-10 rounded-[var(--radius-sm)] flex items-center justify-center text-lg font-bold ${
-                f.cor === 'accent' ? 'bg-(--accent-light) text-(--accent)' :
-                f.cor === 'teal' ? 'bg-(--teal-light) text-(--teal)' :
-                'bg-amber-50 text-amber-600'
-              }`}>
+      {/* ── FEATURES ──────────────────────────────── */}
+      <section className="max-w-[860px] mx-auto px-5 py-16">
+        <h2 style={{ fontSize: 28, fontWeight: 800, textAlign: 'center', marginBottom: 8 }}>
+          Tudo que você precisa para passar
+        </h2>
+        <p style={{ fontSize: 15, color: '#3A3D4A', textAlign: 'center', marginBottom: 40 }}>
+          O caminho para a posse mais curto e mais inteligente.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          {FEATURES.map(f => (
+            <div key={f.titulo} style={{ border: '1px solid rgba(0,0,0,0.07)', borderRadius: 12, padding: '20px', background: 'white' }}>
+              <div style={{ width: 44, height: 44, borderRadius: 10, background: '#EEF0FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2B3DE8', marginBottom: 12 }}>
                 {f.icon}
               </div>
-              <h3 className="text-[15px] font-bold text-(--ink)">{f.titulo}</h3>
-              <p className="text-[13px] text-(--ink-2) leading-relaxed">{f.desc}</p>
-            </Card>
+              <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{f.titulo}</h3>
+              <p style={{ fontSize: 13, color: '#7A7D8A', margin: 0 }}>{f.desc}</p>
+            </div>
           ))}
         </div>
       </section>
 
-      {/* DEPOIMENTOS */}
-      <section className="bg-(--surface-2) border-y border-(--border)">
-        <div className="max-w-[860px] mx-auto w-full px-4 py-16">
-          <h2 className="text-[24px] font-bold text-(--ink) text-center mb-8">Candidatos que passaram</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {DEPOIMENTOS.map((d) => (
-              <Card key={d.nome} padding="lg" className="flex flex-col gap-3">
-                <div className="flex gap-0.5">
-                  {[...Array(5)].map((_, i) => <span key={i} className="text-yellow-400 text-sm">★</span>)}
-                </div>
-                <p className="text-[13px] text-(--ink-2) leading-relaxed italic">"{d.texto}"</p>
-                <div className="mt-auto">
-                  <p className="text-[13px] font-semibold text-(--ink)">{d.nome}</p>
-                  <p className="text-[11px] text-(--ink-3)">{d.cargo}</p>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* TECNOLOGIA */}
-      <section className="bg-[#0D1117] py-16">
-        <div className="max-w-[860px] mx-auto w-full px-4 flex flex-col items-center gap-6 text-center">
-          <Badge variant="accent">Tecnologia</Badge>
-          <h2 className="text-[28px] font-bold text-white">
-            Construído com IA de ponta. Testado para concursos reais.
-          </h2>
-          <p className="text-[14px] text-white/60 max-w-[480px]">
-            Cada componente escolhido para máxima precisão com custo zero nos primeiros meses.
+      {/* ── URGÊNCIA + 2º CTA ─────────────────────── */}
+      <section style={{ background: '#0D1117', padding: '64px 20px', textAlign: 'center' }}>
+        <div style={{ maxWidth: 580, margin: '0 auto' }}>
+          <p style={{ fontSize: 13, fontWeight: 700, color: '#2B3DE8', letterSpacing: 2, marginBottom: 16, textTransform: 'uppercase' }}>
+            Oferta de lançamento
           </p>
-          <div className="flex flex-wrap justify-center gap-2 mt-2">
-            {TECNOLOGIAS.map((t) => (
-              <span key={t} className="px-3 py-1.5 rounded-full border border-white/10 text-[12px] text-white/70 font-medium">
-                {t}
-              </span>
-            ))}
+          <h2 style={{ fontSize: 'clamp(24px, 5vw, 36px)', fontWeight: 900, color: 'white', marginBottom: 16, letterSpacing: -0.5 }}>
+            Os 100 primeiros garantem<br />
+            <span style={{ color: '#7B8DFF' }}>3 meses do Elite completamente grátis.</span>
+          </h2>
+          <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.55)', marginBottom: 32, lineHeight: 1.7 }}>
+            Sem mensalidade, sem cartão. Avisaremos quando o acesso abrir.
+          </p>
+          <a
+            href="#cadastro"
+            className="inline-block px-8 py-3.5 bg-white text-[#2B3DE8] font-bold text-[16px] rounded-xl hover:bg-[#EEF0FF] transition-colors"
+          >
+            Garantir minha vaga agora
+          </a>
+        </div>
+      </section>
+
+      {/* ── FOOTER ────────────────────────────────── */}
+      <footer style={{ borderTop: '1px solid rgba(0,0,0,0.06)', padding: '28px 20px' }}>
+        <div className="max-w-[860px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 16, fontWeight: 900, color: '#2B3DE8' }}>O Tutor</span>
+            <span style={{ fontSize: 12, color: '#7A7D8A' }}>· © 2026 · otutor.com.br · LGPD compliant</span>
           </div>
-          <Link href="/login">
-            <Button size="lg" className="mt-4">Começar gratuitamente</Button>
-          </Link>
+          <div style={{ display: 'flex', gap: 16 }}>
+            <a href="/privacidade" style={{ fontSize: 12, color: '#7A7D8A', textDecoration: 'none' }}>Privacidade</a>
+            <a href="mailto:contato@otutor.com.br" style={{ fontSize: 12, color: '#7A7D8A', textDecoration: 'none' }}>Contato</a>
+          </div>
         </div>
-      </section>
-
-      {/* PREÇOS */}
-      <section id="precos" className="max-w-[860px] mx-auto w-full px-4 py-16">
-        <div className="text-center mb-10">
-          <h2 className="text-[28px] font-bold text-(--ink)">Planos simples, sem surpresa</h2>
-          <p className="text-[14px] text-(--ink-2) mt-2">Comece grátis. Assine só se quiser mais.</p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
-          {/* Grátis */}
-          <Card padding="lg" className="flex flex-col gap-4">
-            <div>
-              <p className="text-[13px] font-semibold text-(--ink-3) uppercase tracking-wide">Grátis</p>
-              <p className="text-[32px] font-black text-(--ink) mt-1">R$0</p>
-              <p className="text-[12px] text-(--ink-3)">para sempre</p>
-            </div>
-            <ul className="flex flex-col gap-2 text-[13px] text-(--ink-2)">
-              {['10 questões/dia', 'Alertas de editais', '1 edital monitorado', 'Dashboard básico'].map(i => (
-                <li key={i} className="flex items-center gap-2"><span className="text-(--teal)">✓</span>{i}</li>
-              ))}
-            </ul>
-            <Link href="/login" className="mt-auto">
-              <Button variant="ghost" size="md" className="w-full">Começar grátis</Button>
-            </Link>
-          </Card>
-
-          {/* Premium */}
-          <Card padding="lg" className="flex flex-col gap-4 border-2 border-(--accent) relative">
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-              <Badge variant="accent">Mais popular</Badge>
-            </div>
-            <div>
-              <p className="text-[13px] font-semibold text-(--ink-3) uppercase tracking-wide">Premium</p>
-              <p className="text-[32px] font-black text-(--ink) mt-1">R$24,90</p>
-              <p className="text-[12px] text-(--ink-3)">por mês</p>
-            </div>
-            <ul className="flex flex-col gap-2 text-[13px] text-(--ink-2)">
-              {['Questões ilimitadas', 'Gabarito explicado por IA', 'Plano de estudo', 'Raio-X do edital', 'Editais ilimitados', 'Modo offline'].map(i => (
-                <li key={i} className="flex items-center gap-2"><span className="text-(--teal)">✓</span>{i}</li>
-              ))}
-            </ul>
-            <Link href="/login" className="mt-auto">
-              <Button size="md" className="w-full">Assinar Premium</Button>
-            </Link>
-          </Card>
-
-          {/* Avulso */}
-          <Card padding="lg" className="flex flex-col gap-4">
-            <div>
-              <p className="text-[13px] font-semibold text-(--ink-3) uppercase tracking-wide">Avulso</p>
-              <p className="text-[32px] font-black text-(--ink) mt-1">R$34,90</p>
-              <p className="text-[12px] text-(--ink-3)">1 concurso, vitalício</p>
-            </div>
-            <ul className="flex flex-col gap-2 text-[13px] text-(--ink-2)">
-              {['1 edital à sua escolha', 'Questões ilimitadas', 'Gabarito explicado', 'Plano de estudo', 'Sem mensalidade'].map(i => (
-                <li key={i} className="flex items-center gap-2"><span className="text-(--teal)">✓</span>{i}</li>
-              ))}
-            </ul>
-            <Link href="/login" className="mt-auto">
-              <Button variant="ghost" size="md" className="w-full">Comprar acesso</Button>
-            </Link>
-          </Card>
-        </div>
-      </section>
+      </footer>
     </div>
   );
 }
