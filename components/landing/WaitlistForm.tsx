@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 
-const VAGAS_PRESENTE = 100;
+const VAGAS_PRESENTE = 50;
 
 const CARGOS = [
   'INSS', 'PRF', 'Receita Federal', 'Magistratura',
@@ -75,7 +75,7 @@ export function WaitlistForm({ onSuccess }: WaitlistFormProps) {
             Você é o <strong className="text-[#2B3DE8]">#{posicao}</strong> na lista.
             {posicao <= VAGAS_PRESENTE && (
               <span className="block mt-1 text-[13px] font-semibold text-[#2B3DE8]">
-                🎁 Você garantiu os 3 meses do Elite grátis!
+                🎁 Você garantiu os 3 meses do Premium grátis!
               </span>
             )}
           </p>
@@ -152,7 +152,7 @@ export function WaitlistForm({ onSuccess }: WaitlistFormProps) {
       </form>
 
       <p className="text-center text-[12px] text-[#7A7D8A] mt-3">
-        Sem cartão de crédito · Os {VAGAS_PRESENTE} primeiros ganham 3 meses do Elite grátis
+        Sem cartão de crédito · Os {VAGAS_PRESENTE} primeiros ganham 3 meses do Premium grátis
       </p>
 
       {total !== null && (

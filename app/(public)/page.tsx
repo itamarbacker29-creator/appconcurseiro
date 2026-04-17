@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description: 'O app mais inteligente para concursos públicos. Editais automáticos, simulados adaptativos com IA e plano de estudo personalizado. Cadastre-se para acesso antecipado.',
   openGraph: {
     title: 'O Tutor — O Tutor certo para o concurso certo.',
-    description: 'Seja um dos primeiros a testar. Os 100 primeiros ganham 3 meses do Plano Elite grátis.',
+    description: 'Seja um dos primeiros a testar. Os 50 primeiros ganham 3 meses do Plano Premium grátis.',
     url: 'https://otutor.com.br',
     siteName: 'O Tutor',
     type: 'website',
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'O Tutor — Acesso antecipado',
-    description: 'Os 100 primeiros ganham 3 meses do Plano Elite grátis.',
+    description: 'Os 50 primeiros ganham 3 meses do Plano Premium grátis.',
   },
 };
 
@@ -119,8 +119,8 @@ export default function LandingPage() {
       {/* ── PRESENTE ──────────────────────────────── */}
       <section className="max-w-170 mx-auto px-5 pb-16">
         <div style={{ border: '2px solid #2B3DE8', borderRadius: 16, padding: '28px 32px', background: '#F7F8FF' }}>
-          <p style={{ fontSize: 13, fontWeight: 700, color: '#2B3DE8', marginBottom: 4 }}>🎁 PRESENTE PARA OS PRIMEIROS 100</p>
-          <p style={{ fontSize: 22, fontWeight: 900, color: '#0D1117', marginBottom: 4 }}>3 meses do Plano Elite</p>
+          <p style={{ fontSize: 13, fontWeight: 700, color: '#2B3DE8', marginBottom: 4 }}>🎁 PRESENTE PARA OS PRIMEIROS 50</p>
+          <p style={{ fontSize: 22, fontWeight: 900, color: '#0D1117', marginBottom: 4 }}>3 meses do Plano Premium</p>
           <p style={{ fontSize: 14, color: '#3A3D4A', marginBottom: 20 }}>Completamente gratuitos — sem cartão de crédito</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 24px', marginBottom: 20 }}>
             {[
@@ -183,8 +183,8 @@ export default function LandingPage() {
             Oferta de lançamento
           </p>
           <h2 style={{ fontSize: 'clamp(24px, 5vw, 36px)', fontWeight: 900, color: 'white', marginBottom: 16, letterSpacing: -0.5 }}>
-            Os 100 primeiros garantem<br />
-            <span style={{ color: '#7B8DFF' }}>3 meses do Elite completamente grátis.</span>
+            Os 50 primeiros garantem<br />
+            <span style={{ color: '#7B8DFF' }}>3 meses do Premium completamente grátis.</span>
           </h2>
           <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.55)', marginBottom: 32, lineHeight: 1.7 }}>
             Sem mensalidade, sem cartão. Avisaremos quando o acesso abrir.

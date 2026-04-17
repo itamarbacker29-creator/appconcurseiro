@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
             <div style="background:#EEF0FF;border-radius:12px;padding:20px;margin-bottom:24px">
               <p style="font-size:14px;font-weight:600;color:#2B3DE8;margin:0 0 8px">Seu presente de lançamento</p>
               <p style="font-size:13px;color:#3A3D4A;margin:0;line-height:1.5">
-                Os primeiros 100 cadastros ganham <strong>3 meses do Plano Elite gratuitos</strong>
+                Os primeiros 50 cadastros ganham <strong>3 meses do Plano Premium gratuitos</strong>
                 assim que o app abrir. Isso inclui tutor IA ilimitado, simulados adaptativos,
                 raio-X de edital e muito mais.
               </p>
