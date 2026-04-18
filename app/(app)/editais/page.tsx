@@ -24,11 +24,21 @@ interface Edital {
   coletado_em: string;
 }
 
-const AREAS = ['Todos', 'Federal', 'Estadual', 'Municipal', 'Segurança', 'Tributário', 'Saúde', 'Educação'];
+// Federal/Estadual/Municipal filtram pelo campo `nivel`; os demais filtram por `area`
+const FILTROS = ['Todos', 'Federal', 'Estadual', 'Municipal', 'Segurança', 'Tributário', 'Saúde', 'Educação', 'Judiciário', 'Tecnologia'];
+const FILTROS_NIVEL = new Set(['Federal', 'Estadual', 'Municipal']);
+const FILTRO_AREA: Record<string, string> = {
+  'Segurança': 'seguranca',
+  'Tributário': 'tributario',
+  'Saúde': 'saude',
+  'Educação': 'educacao',
+  'Judiciário': 'judiciario',
+  'Tecnologia': 'tecnologia',
+};
 const ESCOLARIDADES = ['Todos', 'fundamental', 'medio', 'superior'];
 const ORDENS = [
-  { val: 'recentes', label: 'Mais recentes' },
   { val: 'salario', label: 'Maior salário' },
+  { val: 'recentes', label: 'Mais recentes' },
   { val: 'prazo', label: 'Prazo mais próximo' },
 ];
 
@@ -39,7 +49,7 @@ export default function EditaisPage() {
   const [area, setArea] = useState('Todos');
   const [escolaridade, setEscolaridade] = useState('Todos');
   const [apenasAbertas, setApenasAbertas] = useState(false);
-  const [ordem, setOrdem] = useState('recentes');
+  const [ordem, setOrdem] = useState('salario');
   const [salvos, setSalvos] = useState<string[]>([]);
 
   const carregar = useCallback(async () => {
@@ -47,14 +57,21 @@ export default function EditaisPage() {
     try {
       let query = supabase.from('editais').select('*').eq('status', 'ativo');
 
-      if (area !== 'Todos') query = query.ilike('area', `%${area.toLowerCase()}%`);
+      if (area !== 'Todos') {
+        if (FILTROS_NIVEL.has(area)) {
+          query = query.eq('nivel', area.toLowerCase());
+        } else {
+          query = query.eq('area', FILTRO_AREA[area] ?? area.toLowerCase());
+        }
+      }
       if (escolaridade !== 'Todos') query = query.eq('escolaridade', escolaridade);
       if (apenasAbertas) query = query.gte('data_inscricao_fim', new Date().toISOString().split('T')[0]);
       if (busca) query = query.or(`orgao.ilike.%${busca}%,cargo.ilike.%${busca}%`);
 
-      if (ordem === 'salario') query = query.order('salario', { ascending: false });
-      else if (ordem === 'prazo') query = query.order('data_inscricao_fim', { ascending: true });
-      else query = query.order('coletado_em', { ascending: false });
+      // NULLS LAST: editais sem salário ficam no fim
+      if (ordem === 'salario') query = query.order('salario', { ascending: false, nullsFirst: false });
+      else if (ordem === 'prazo') query = query.order('data_inscricao_fim', { ascending: true, nullsFirst: false });
+      else query = query.order('coletado_em', { ascending: false, nullsFirst: false });
 
       const { data, error } = await query.limit(100);
       if (error) throw error;
@@ -110,7 +127,7 @@ export default function EditaisPage() {
           onChange={e => setBusca(e.target.value)}
         />
         <div className="flex flex-wrap gap-2">
-          {AREAS.map(a => (
+          {FILTROS.map(a => (
             <button
               key={a}
               onClick={() => setArea(a)}
