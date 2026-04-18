@@ -82,10 +82,10 @@ const PASSOS = [
 ];
 
 const PARA_QUEM = [
-  'Trabalha durante o dia e estuda nas sobras de tempo',
-  'Já tentou mais de uma vez e quer uma preparação mais inteligente',
+  'Quer um guia que diga exatamente o que estudar — e pare de desperdiçar tempo com o que não cai na prova',
+  'Já tentou mais de uma vez e quer uma preparação mais inteligente e direcionada',
   'Não quer pagar R$200/mês em cursinho e quer resultado de verdade',
-  'Quer saber exatamente o que estudar — não só ter acesso a conteúdo',
+  'Precisa de um plano de estudos que se adapte ao seu ritmo e à data da prova',
   'Busca aprovação no INSS, PRF, Tribunais, Polícia Civil ou Receita Federal',
 ];
 
