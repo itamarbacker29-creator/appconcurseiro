@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { SucessoCadastro } from './SucessoCadastro';
 
 const CARGOS = ['INSS', 'PRF', 'Receita Federal', 'Magistratura', 'Polícia Civil', 'Tribunais', 'Banco Central', 'Outro'];
 
@@ -15,14 +17,20 @@ export function FormularioCadastro({ origem, tema = 'light' }: Props) {
   const [cargo, setCargo] = useState('');
   const [estado, setEstado] = useState<'idle' | 'loading' | 'ok' | 'erro'>('idle');
   const [posicao, setPosicao] = useState<number | null>(null);
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [totalIndicacoes, setTotalIndicacoes] = useState(0);
   const [erro, setErro] = useState('');
+
+  const searchParams = useSearchParams();
+  const ref = searchParams.get('ref');
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErro('');
     setEstado('loading');
     try {
-      const r = await fetch('/api/lista-espera', {
+      const url = ref ? `/api/lista-espera?ref=${encodeURIComponent(ref)}` : '/api/lista-espera';
+      const r = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nome, email, cargoInteresse: cargo, origem }),
@@ -30,6 +38,8 @@ export function FormularioCadastro({ origem, tema = 'light' }: Props) {
       const d = await r.json();
       if (!r.ok) { setErro(d.erro ?? 'Algo deu errado.'); setEstado('erro'); return; }
       setPosicao(d.posicao);
+      setReferralCode(d.referralCode);
+      setTotalIndicacoes(d.totalIndicacoes ?? 0);
       setEstado('ok');
     } catch {
       setErro('Sem conexão. Tente novamente.');
@@ -40,19 +50,8 @@ export function FormularioCadastro({ origem, tema = 'light' }: Props) {
   const isDark = tema === 'dark';
   const inputCls = `w-full px-4 py-3 rounded-xl border text-[15px] outline-none transition-all bg-white text-[#0D1117] placeholder:text-[#7A7D8A] focus:border-[#2B3DE8] focus:ring-2 focus:ring-[#2B3DE8]/20 ${isDark ? 'border-white/20' : 'border-[rgba(0,0,0,0.12)]'}`;
 
-  if (estado === 'ok') {
-    return (
-      <div className={`rounded-2xl p-8 text-center ${isDark ? 'bg-white/10 border border-white/20' : 'bg-[#E4F7F0] border border-[#006c4a]/20'}`}>
-        <div className="text-4xl mb-4">🎉</div>
-        <h3 className={`text-[20px] font-bold mb-2 ${isDark ? 'text-white' : 'text-[#0D1117]'}`}>Você está dentro!</h3>
-        {posicao && (
-          <p className={`text-[15px] mb-1 ${isDark ? 'text-white/80' : 'text-[#3A3D4A]'}`}>
-            Você é o <strong className="text-[#2B3DE8]">#{posicao}</strong> na fila.
-          </p>
-        )}
-        <p className={`text-[13px] ${isDark ? 'text-white/60' : 'text-[#7A7D8A]'}`}>Confira seu e-mail para a confirmação.</p>
-      </div>
-    );
+  if (estado === 'ok' && posicao && referralCode) {
+    return <SucessoCadastro posicao={posicao} nome={nome} referralCode={referralCode} totalIndicacoes={totalIndicacoes} />;
   }
 
   return (

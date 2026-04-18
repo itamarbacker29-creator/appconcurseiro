@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { FormularioCadastro } from '@/components/landing/FormularioCadastro';
 import { ContadorVivos } from '@/components/landing/ContadorVivos';
 import { CardPresenteClient } from '@/components/landing/CardPresenteClient';
+import { ReferralBanner } from '@/components/landing/ReferralBanner';
 
 export const metadata: Metadata = {
   title: 'O Tutor — Acesso antecipado',
@@ -77,6 +79,10 @@ export default function LandingPage() {
   return (
     <div style={{ fontFamily: '-apple-system, "Segoe UI", sans-serif', color: '#0D1117' }}>
 
+      <Suspense fallback={null}>
+        <ReferralBanner />
+      </Suspense>
+
       {/* ── HERO ──────────────────────────────────── */}
       <section className="max-w-170 mx-auto px-5 pt-16 pb-10 flex flex-col items-center text-center gap-5">
 
@@ -105,7 +111,9 @@ export default function LandingPage() {
 
         {/* Formulário */}
         <div id="cadastro" className="w-full mt-2">
-          <FormularioCadastro origem="hero" />
+          <Suspense fallback={null}>
+            <FormularioCadastro origem="hero" />
+          </Suspense>
           <ContadorVivos />
         </div>
       </section>
@@ -196,7 +204,9 @@ export default function LandingPage() {
           </p>
           <ContadorVivos tema="dark" mostrarBarra />
           <div className="mt-6">
-            <FormularioCadastro origem="footer" tema="dark" />
+            <Suspense fallback={null}>
+              <FormularioCadastro origem="footer" tema="dark" />
+            </Suspense>
           </div>
         </div>
       </section>
