@@ -39,10 +39,11 @@ export function SucessoCadastro({ posicao, nome, referralCode, totalIndicacoes }
       </div>
 
       <h3 className="text-[20px] font-bold text-[#0D1117] mb-1">
-        Você está dentro, {primeiroNome}!
+        Bem-vindo ao beta, {primeiroNome}!
       </h3>
       <p className="text-[15px] text-[#3A3D4A] mb-5">
-        Você é o <strong className="text-[#2B3DE8]">#{posicao}</strong> na lista.
+        Você é o testador <strong className="text-[#2B3DE8]">#{posicao}</strong> na lista.
+        Quando liberarmos seu acesso, você ganha o Premium grátis.
       </p>
 
       {/* Bloco de indicação */}

@@ -5,20 +5,22 @@ import { ContadorVivos } from '@/components/landing/ContadorVivos';
 import { CardPresenteClient } from '@/components/landing/CardPresenteClient';
 import { ReferralBanner } from '@/components/landing/ReferralBanner';
 
+const MESES_PREMIO = 3; // altere aqui para mudar em toda a landing
+
 export const metadata: Metadata = {
-  title: 'O Tutor — Acesso antecipado',
-  description: 'O app que busca os editais pra você, monta seu simulado e te diz exatamente o que estudar até o dia da prova. Os 50 primeiros ganham 3 meses do Premium grátis.',
+  title: 'O Tutor — Programa de testadores beta',
+  description: `O app que busca editais, monta simulados e te diz o que estudar até o dia da prova. Estamos buscando concurseiros para testar e dar feedback. Testadores ganham ${MESES_PREMIO} meses do Premium grátis.`,
   openGraph: {
-    title: 'O Tutor — Pare de estudar o que não cai.',
-    description: 'Os 50 primeiros ganham 3 meses do Plano Premium grátis. Sem cartão de crédito.',
+    title: 'O Tutor — Ajude a construir o melhor app para concursos.',
+    description: `Buscamos testadores beta. Quem participar ganha ${MESES_PREMIO} meses do Plano Premium grátis. Sem cartão de crédito.`,
     url: 'https://otutor.com.br',
     siteName: 'O Tutor',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'O Tutor — Acesso antecipado',
-    description: 'Os 50 primeiros ganham 3 meses do Plano Premium grátis.',
+    title: 'O Tutor — Programa de testadores beta',
+    description: `Testadores ganham ${MESES_PREMIO} meses do Premium grátis. Ajude a moldar o app.`,
   },
 };
 
@@ -55,6 +57,24 @@ const FEATURES = [
   },
 ];
 
+const PASSOS_TESTE = [
+  {
+    num: '01',
+    titulo: 'Cadastre-se na lista',
+    desc: 'Deixe seu e-mail e concurso de interesse. Liberamos o acesso em ondas, começando pelos primeiros cadastrados.',
+  },
+  {
+    num: '02',
+    titulo: 'Use o app e dê feedback',
+    desc: 'Faça simulados, explore os editais, use o tutor IA. Nos conte o que funciona, o que trava e o que está faltando.',
+  },
+  {
+    num: '03',
+    titulo: 'Ganhe o Premium grátis',
+    desc: `Testadores ativos ganham ${MESES_PREMIO} meses do Plano Premium sem pagar nada. Sua opinião vale muito para nós.`,
+  },
+];
+
 const PASSOS = [
   { num: '01', titulo: 'Edital chega até você', desc: 'Monitoramos 10+ fontes automaticamente. Quando sair um edital no seu perfil, você recebe uma notificação com link de inscrição.' },
   { num: '02', titulo: 'Simulado feito para você', desc: 'Nossa IA usa o mesmo motor do ENEM (IRT) para criar questões no seu nível e explicar cada erro com base em lei e doutrina.' },
@@ -69,12 +89,6 @@ const PARA_QUEM = [
   'Busca aprovação no INSS, PRF, Tribunais, Polícia Civil ou Receita Federal',
 ];
 
-const FEATURES_PRESENTE = [
-  'Tutor IA ilimitado', 'Todos os editais',
-  'Simulado adaptativo', 'Upload de apostilas',
-  'Raio-X do edital', 'Plano de estudo com IA',
-];
-
 export default function LandingPage() {
   return (
     <div style={{ fontFamily: '-apple-system, "Segoe UI", sans-serif', color: '#0D1117' }}>
@@ -86,11 +100,11 @@ export default function LandingPage() {
       {/* ── HERO ──────────────────────────────────── */}
       <section className="max-w-170 mx-auto px-5 pt-16 pb-10 flex flex-col items-center text-center gap-5">
 
-        {/* Badge urgência */}
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-50 border border-red-200">
-          <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-          <span className="text-[12px] font-semibold text-red-600">
-            🔥 Acesso antecipado — apenas 100 vagas com PREMIUM grátis
+        {/* Badge beta */}
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200">
+          <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+          <span className="text-[12px] font-semibold text-amber-700">
+            🧪 Versão beta — buscamos testadores voluntários
           </span>
         </div>
 
@@ -106,8 +120,16 @@ export default function LandingPage() {
         {/* Subtítulo */}
         <p style={{ fontSize: 18, color: '#3A3D4A', lineHeight: 1.7, maxWidth: 500, margin: 0 }}>
           O app que busca os editais pra você, monta seu simulado e te diz
-          exatamente o que estudar até o dia da prova. Tudo grátis para começar.
+          exatamente o que estudar até o dia da prova.
         </p>
+
+        {/* Aviso de beta */}
+        <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 12, padding: '14px 20px', maxWidth: 480, width: '100%' }}>
+          <p style={{ fontSize: 14, color: '#92400E', lineHeight: 1.6, margin: 0 }}>
+            <strong>O Tutor está em desenvolvimento ativo.</strong> Buscamos concurseiros reais para usar o app, reportar problemas e sugerir melhorias.
+            Quem participar dos testes ganha <strong>{MESES_PREMIO} meses do Plano Premium completamente grátis.</strong>
+          </p>
+        </div>
 
         {/* Formulário */}
         <div id="cadastro" className="w-full mt-2">
@@ -118,13 +140,37 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── CARD PRESENTE COM BARRA DE PROGRESSO ── */}
+      {/* ── CARD PROGRAMA DE TESTADORES ── */}
       <section className="max-w-170 mx-auto px-5 pb-14">
-        <CardPresenteClient />
+        <CardPresenteClient mesesPremio={MESES_PREMIO} />
+      </section>
+
+      {/* ── COMO FUNCIONA O PROGRAMA DE TESTES ────── */}
+      <section style={{ background: '#F7F8FC', borderTop: '1px solid rgba(0,0,0,0.06)', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+        <div className="max-w-[900px] mx-auto px-5 py-16">
+          <p style={{ fontSize: 11, fontWeight: 700, color: '#2B3DE8', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 12, textAlign: 'center' }}>
+            Programa de testadores
+          </p>
+          <h2 style={{ fontSize: 28, fontWeight: 800, textAlign: 'center', marginBottom: 8 }}>
+            Como funciona
+          </h2>
+          <p style={{ fontSize: 15, color: '#3A3D4A', textAlign: 'center', marginBottom: 40 }}>
+            Simples e sem compromisso. Teste quando puder, nos conte o que achou.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {PASSOS_TESTE.map(p => (
+              <div key={p.num} style={{ background: 'white', borderRadius: 12, padding: '24px 20px', border: '1px solid rgba(0,0,0,0.06)' }}>
+                <div style={{ fontSize: 36, fontWeight: 900, color: '#2B3DE8', opacity: 0.15, lineHeight: 1, marginBottom: 12 }}>{p.num}</div>
+                <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{p.titulo}</h3>
+                <p style={{ fontSize: 13, color: '#3A3D4A', lineHeight: 1.7, margin: 0 }}>{p.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* ── PARA QUEM É ───────────────────────────── */}
-      <section style={{ background: '#F7F8FC', borderTop: '1px solid rgba(0,0,0,0.06)', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+      <section>
         <div className="max-w-[640px] mx-auto px-5 py-16">
           <p style={{ fontSize: 11, fontWeight: 700, color: '#2B3DE8', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 12 }}>
             Identificação
@@ -134,7 +180,7 @@ export default function LandingPage() {
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {PARA_QUEM.map((item, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 16, background: 'white', borderRadius: 12, padding: '16px 20px', border: '1px solid #EEEEF6' }}>
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 16, background: '#F7F8FC', borderRadius: 12, padding: '16px 20px', border: '1px solid #EEEEF6' }}>
                 <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#E4F7F0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
                   <span style={{ color: '#006c4a', fontSize: 13, fontWeight: 700 }}>✓</span>
                 </div>
@@ -152,28 +198,14 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── COMO FUNCIONA ─────────────────────────── */}
-      <section className="max-w-[900px] mx-auto px-5 py-16">
-        <h2 style={{ fontSize: 28, fontWeight: 800, textAlign: 'center', marginBottom: 40 }}>Como funciona</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {PASSOS.map(p => (
-            <div key={p.num} style={{ background: '#F7F8FC', borderRadius: 12, padding: '24px 20px', border: '1px solid rgba(0,0,0,0.06)' }}>
-              <div style={{ fontSize: 36, fontWeight: 900, color: '#2B3DE8', opacity: 0.15, lineHeight: 1, marginBottom: 12 }}>{p.num}</div>
-              <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{p.titulo}</h3>
-              <p style={{ fontSize: 13, color: '#3A3D4A', lineHeight: 1.7, margin: 0 }}>{p.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── FEATURES ──────────────────────────────── */}
+      {/* ── O QUE O APP FAZ ─────────────────────────── */}
       <section style={{ background: '#F7F8FC', borderTop: '1px solid rgba(0,0,0,0.06)', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
         <div className="max-w-[900px] mx-auto px-5 py-16">
           <h2 style={{ fontSize: 28, fontWeight: 800, textAlign: 'center', marginBottom: 8 }}>
-            Tudo que você precisa para passar
+            O que você vai testar
           </h2>
           <p style={{ fontSize: 15, color: '#3A3D4A', textAlign: 'center', marginBottom: 40 }}>
-            O caminho para a posse mais curto e mais inteligente.
+            Funcionalidades já disponíveis na versão beta.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {FEATURES.map(f => (
@@ -189,18 +221,32 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── COMO O APP FUNCIONA (jornada do usuário) ─── */}
+      <section className="max-w-[900px] mx-auto px-5 py-16">
+        <h2 style={{ fontSize: 28, fontWeight: 800, textAlign: 'center', marginBottom: 40 }}>Como o app funciona</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {PASSOS.map(p => (
+            <div key={p.num} style={{ background: '#F7F8FC', borderRadius: 12, padding: '24px 20px', border: '1px solid rgba(0,0,0,0.06)' }}>
+              <div style={{ fontSize: 36, fontWeight: 900, color: '#2B3DE8', opacity: 0.15, lineHeight: 1, marginBottom: 12 }}>{p.num}</div>
+              <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{p.titulo}</h3>
+              <p style={{ fontSize: 13, color: '#3A3D4A', lineHeight: 1.7, margin: 0 }}>{p.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* ── SEGUNDO FORMULÁRIO (FUNDO ESCURO) ────── */}
       <section style={{ background: '#0D1117', padding: '80px 20px' }} id="cadastro-final">
         <div className="max-w-[520px] mx-auto text-center">
-          <p style={{ fontSize: 11, fontWeight: 700, color: '#5B6BFF', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 16 }}>
-            Oferta de lançamento
+          <p style={{ fontSize: 11, fontWeight: 700, color: '#F59E0B', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 16 }}>
+            Programa de testadores beta
           </p>
           <h2 style={{ fontSize: 'clamp(24px, 5vw, 34px)', fontWeight: 900, color: 'white', marginBottom: 12, letterSpacing: -0.5, lineHeight: 1.2 }}>
-            Últimas vagas com<br />
-            <span style={{ color: '#5B6BFF' }}>3 meses do Premium grátis.</span>
+            Ajude a construir o app.<br />
+            <span style={{ color: '#5B6BFF' }}>Ganhe {MESES_PREMIO} meses do Premium grátis.</span>
           </h2>
           <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.55)', marginBottom: 32, lineHeight: 1.7 }}>
-            Sem mensalidade, sem cartão. Avisaremos quando o acesso abrir.
+            Sem mensalidade, sem cartão. Use o app, dê seu feedback e receba o prêmio quando abrirmos o acesso.
           </p>
           <ContadorVivos tema="dark" mostrarBarra />
           <div className="mt-6">

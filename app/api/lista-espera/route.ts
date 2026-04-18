@@ -72,20 +72,23 @@ export async function POST(req: NextRequest) {
       await resend.emails.send({
         from: 'O Tutor <noreply@otutor.com.br>',
         to: email,
-        subject: 'Você está na lista — O Tutor',
+        subject: 'Bem-vindo ao programa de testes — O Tutor',
         html: `
           <div style="font-family:-apple-system,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px">
             <h1 style="font-size:24px;font-weight:700;color:#0D1117;margin-bottom:8px">
-              Você está dentro, ${nome.split(' ')[0]}!
+              Bem-vindo ao beta, ${nome.split(' ')[0]}!
             </h1>
-            <p style="color:#3A3D4A;font-size:15px;line-height:1.6;margin-bottom:24px">
-              Você é o <strong>#${posicaoExibida}</strong> na lista de espera do O Tutor.
+            <p style="color:#3A3D4A;font-size:15px;line-height:1.6;margin-bottom:8px">
+              Você é o testador <strong>#${posicaoExibida}</strong> na lista do O Tutor.
+            </p>
+            <p style="color:#3A3D4A;font-size:14px;line-height:1.6;margin-bottom:24px">
+              Quando liberarmos seu acesso, você receberá outro e-mail. O Plano Premium será ativado automaticamente na sua conta como agradecimento pela participação nos testes.
             </p>
             <div style="background:#EEF0FF;border-radius:12px;padding:20px;margin-bottom:24px">
-              <p style="font-size:14px;font-weight:600;color:#2B3DE8;margin:0 0 8px">Suba na fila indicando amigos!</p>
+              <p style="font-size:14px;font-weight:600;color:#2B3DE8;margin:0 0 8px">Indique outros concurseiros!</p>
               <p style="font-size:13px;color:#3A3D4A;margin:0 0 12px;line-height:1.5">
-                Indique 3 amigos e entre no <strong>Top 20%</strong> da lista.<br/>
-                Indique 5 e ganhe <strong>3 meses Premium garantidos</strong>.<br/>
+                Indique 3 amigos e entre no <strong>Top 20%</strong> da fila.<br/>
+                Indique 5 e garanta <strong>3 meses Premium</strong>.<br/>
                 Indique 10 e garanta <strong>6 meses Premium</strong>.
               </p>
               <a href="${linkReferral}" style="display:inline-block;background:#2B3DE8;color:white;font-size:14px;font-weight:700;padding:12px 20px;border-radius:10px;text-decoration:none">
