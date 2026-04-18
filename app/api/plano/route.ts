@@ -48,11 +48,7 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
 
-  // Verificar plano (apenas premium+)
-  const { data: profile } = await supabase.from('profiles').select('plano, data_prova').eq('id', user.id).single();
-  if (profile?.plano === 'free') {
-    return NextResponse.json({ error: 'Plano de estudo disponível apenas para assinantes Premium.' }, { status: 403 });
-  }
+  const { data: profile } = await supabase.from('profiles').select('plano, data_prova, concurso_alvo_nome').eq('id', user.id).single();
 
   const { permitido } = await verificarLimite(limitadores.gerarPlano, user.id);
   if (!permitido) return NextResponse.json({ error: 'Limite de geração de planos atingido.' }, { status: 429 });
@@ -77,7 +73,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const prompt = PROMPT_PLANO
-      .replace('{concurso}', edital ? `${edital.orgao} — ${edital.cargo}` : 'Concurso público geral')
+      .replace('{concurso}', edital ? `${edital.orgao} — ${edital.cargo}` : (profile?.concurso_alvo_nome ?? 'Concurso público geral'))
       .replace('{dataProva}', profile?.data_prova ?? 'Não definida')
       .replace('{diasRestantes}', String(diasRestantes))
       .replace('{questoesPorDia}', String(questoesPorDia))

@@ -18,8 +18,11 @@ export async function POST(req: NextRequest) {
   const nome = String(body.nome ?? '').trim();
   const email = String(body.email ?? '').trim().toLowerCase();
   const cargoInteresse = String(body.cargoInteresse ?? '').trim() || null;
-  const origem = req.nextUrl.searchParams.get('utm_source') ?? 'landing';
-  const refCode = req.nextUrl.searchParams.get('ref') ?? null;
+  const refCode       = req.nextUrl.searchParams.get('ref') ?? null;
+  const utm_source    = req.nextUrl.searchParams.get('utm_source') ?? null;
+  const utm_campaign  = req.nextUrl.searchParams.get('utm_campaign') ?? null;
+  const utm_medium    = req.nextUrl.searchParams.get('utm_medium') ?? null;
+  const origem        = utm_source ?? 'landing';
 
   if (!nome || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ erro: 'Nome e e-mail válidos são obrigatórios' }, { status: 400 });
@@ -40,7 +43,7 @@ export async function POST(req: NextRequest) {
 
   const { data: inserido, error } = await admin
     .from('lista_espera')
-    .insert({ nome, email, cargo_interesse: cargoInteresse, origem, indicado_por: indicadoPorId })
+    .insert({ nome, email, cargo_interesse: cargoInteresse, origem, indicado_por: indicadoPorId, utm_source, utm_campaign, utm_medium })
     .select('posicao, referral_code, total_indicacoes')
     .single();
 

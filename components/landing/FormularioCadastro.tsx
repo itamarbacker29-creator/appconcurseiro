@@ -22,14 +22,23 @@ export function FormularioCadastro({ origem, tema = 'light' }: Props) {
   const [erro, setErro] = useState('');
 
   const searchParams = useSearchParams();
-  const ref = searchParams.get('ref');
+  const ref           = searchParams.get('ref');
+  const utmSource     = searchParams.get('utm_source');
+  const utmCampaign   = searchParams.get('utm_campaign');
+  const utmMedium     = searchParams.get('utm_medium');
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErro('');
     setEstado('loading');
     try {
-      const url = ref ? `/api/lista-espera?ref=${encodeURIComponent(ref)}` : '/api/lista-espera';
+      const params = new URLSearchParams();
+      if (ref)          params.set('ref', ref);
+      if (utmSource)    params.set('utm_source', utmSource);
+      if (utmCampaign)  params.set('utm_campaign', utmCampaign);
+      if (utmMedium)    params.set('utm_medium', utmMedium);
+      const qs = params.toString();
+      const url = `/api/lista-espera${qs ? `?${qs}` : ''}`;
       const r = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -41,6 +50,13 @@ export function FormularioCadastro({ origem, tema = 'light' }: Props) {
       setReferralCode(d.referralCode);
       setTotalIndicacoes(d.totalIndicacoes ?? 0);
       setEstado('ok');
+      // Dispara evento de conversão para o Meta Pixel
+      if (typeof window !== 'undefined' && (window as { fbq?: (...a: unknown[]) => void }).fbq) {
+        (window as { fbq?: (...a: unknown[]) => void }).fbq!('track', 'Lead', {
+          content_name: 'Lista de espera O Tutor',
+          content_category: 'Concurso público',
+        });
+      }
     } catch {
       setErro('Sem conexão. Tente novamente.');
       setEstado('erro');

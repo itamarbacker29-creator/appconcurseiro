@@ -1145,9 +1145,9 @@ def upsert(edital: dict) -> bool:
         return False
 
 # ── Execução ────────────────────────────────────────────────────
-print(f"🚀 Seed de editais — O Tutor")
-print(f"📅 Datas relativas a: {HOJE.isoformat()}")
-print(f"📦 {len(EDITAIS)} editais para inserir\n")
+print(f"[SEED] Seed de editais - O Tutor")
+print(f"[SEED] Datas relativas a: {HOJE.isoformat()}")
+print(f"[SEED] {len(EDITAIS)} editais para inserir\n")
 
 ok = erro = 0
 for edital in EDITAIS:
@@ -1156,12 +1156,12 @@ for edital in EDITAIS:
     local = f"{edital['cidade']}/{edital['estado']}" if edital.get("cidade") else edital.get("estado", "")
     if upsert(edital):
         ok += 1
-        print(f"  ✓ [{edital['nivel'][:3].upper()}] {edital['orgao']}")
-        print(f"       {edital['cargo']} | {vagas} | {salario} | {local} | {edital['banca']}")
+        print(f"  OK [{edital['nivel'][:3].upper()}] {edital['orgao']}")
+        print(f"      {edital['cargo']} | {vagas} | {salario} | {local} | {edital['banca']}")
     else:
         erro += 1
-        print(f"  ✗ {edital['orgao']} — {edital['cargo']}")
+        print(f"  ERRO {edital['orgao']} - {edital['cargo']}")
 
 print(f"\n{'='*60}")
-print(f"  ✅ Inseridos: {ok}   ❌ Erros: {erro}   📦 Total: {len(EDITAIS)}")
+print(f"  Inseridos: {ok}   Erros: {erro}   Total: {len(EDITAIS)}")
 print(f"{'='*60}")
