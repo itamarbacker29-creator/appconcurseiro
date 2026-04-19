@@ -28,7 +28,7 @@ function TelaBloqueada() {
         <p className="text-[12px] font-semibold text-(--accent) uppercase tracking-wide">Disponível no plano Premium</p>
         <ul className="flex flex-col gap-2 text-[13px] text-(--ink-2) text-left">
           {[
-            'Powered by Claude Haiku — modelo mais preciso para direito',
+            'IA de alta tecnologia — respostas com base em lei e jurisprudência',
             'Referências em lei, artigos e jurisprudência',
             'Contexto do seu edital e banca',
             '50 perguntas/mês no Premium · ilimitado no Elite',
@@ -191,7 +191,7 @@ function ChatTutor({ plano }: { plano: string }) {
         </div>
         <div>
           <p className="text-[15px] font-bold text-(--ink)">Tutor IA</p>
-          <p className="text-[11px] text-(--ink-3)">Claude Haiku · {limiteLabel}</p>
+          <p className="text-[11px] text-(--ink-3)">IA de alta tecnologia · {limiteLabel}</p>
         </div>
       </div>
 

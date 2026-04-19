@@ -30,7 +30,7 @@ const MATERIAS: { nome: string; icon: string }[] = [
   { nome: 'Matemática Financeira', icon: 'calculate' },
 ];
 
-const TOTAL_QUESTOES = 10;
+const totalQuestoes_PADRAO = 10;
 const NIVEIS = ['', 'Muito Fácil', 'Fácil', 'Médio', 'Difícil', 'Muito Difícil'];
 const LIMITE_FREE = 5;
 
@@ -38,12 +38,15 @@ export default function SimuladoPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { toast } = useToast();
-  const editalId = searchParams.get('edital');
+  const editalId     = searchParams.get('edital');
+  const materiaParam = searchParams.get('materia');
+  const quantParam   = searchParams.get('quantidade');
 
   const [fase, setFase] = useState<'selecao' | 'questao' | 'resultado'>('selecao');
   const [plano, setPlano] = useState<string>('free');
   const [simuladosMes, setSimuladosMes] = useState(0);
   const [materiaSelecionada, setMateriaSelecionada] = useState('');
+  const totalQuestoes = quantParam ? Math.min(40, Math.max(5, Number(quantParam))) : totalQuestoes_PADRAO;
   const [questaoAtual, setQuestaoAtual] = useState<Questao | null>(null);
   const [questoesFeitas, setQuestoesFeitas] = useState(0);
   const [acertos, setAcertos] = useState(0);
@@ -72,6 +75,14 @@ export default function SimuladoPage() {
       });
     });
   }, []);
+
+  // Auto-iniciar se veio com ?materia= do plano de estudos
+  useEffect(() => {
+    if (materiaParam && fase === 'selecao') {
+      iniciarSimulado(materiaParam);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [materiaParam]);
 
   useEffect(() => {
     if (fase !== 'questao') return;
@@ -143,7 +154,7 @@ export default function SimuladoPage() {
   function proximaQuestao() {
     const novoTotal = questoesFeitas + 1;
     setQuestoesFeitas(novoTotal);
-    if (novoTotal >= TOTAL_QUESTOES) setFase('resultado');
+    if (novoTotal >= totalQuestoes) setFase('resultado');
     else carregarQuestao(materiaSelecionada);
   }
 
@@ -213,7 +224,7 @@ export default function SimuladoPage() {
 
   // ─── Resultado ─────────────────────────────────────────────────────────────
   if (fase === 'resultado') {
-    const pct = Math.round((acertos / TOTAL_QUESTOES) * 100);
+    const pct = Math.round((acertos / totalQuestoes) * 100);
     const corScore = pct >= 70 ? 'var(--teal)' : pct >= 50 ? 'var(--warning)' : 'var(--danger)';
     const msgScore = pct >= 70 ? 'Ótimo desempenho!' : pct >= 50 ? 'Desempenho médio' : 'Precisa melhorar';
     // SVG circle progress
@@ -242,7 +253,7 @@ export default function SimuladoPage() {
           </div>
           <div className="text-center">
             <p className="text-[18px] font-bold text-(--ink)">{msgScore}</p>
-            <p className="text-[13px] text-(--ink-3) mt-0.5">{acertos} de {TOTAL_QUESTOES} corretas em {materiaSelecionada}</p>
+            <p className="text-[13px] text-(--ink-3) mt-0.5">{acertos} de {totalQuestoes} corretas em {materiaSelecionada}</p>
           </div>
         </div>
 
@@ -292,10 +303,10 @@ export default function SimuladoPage() {
         <div className="flex items-center gap-3">
           <div className="flex-1">
             <div className="flex justify-between text-[11px] text-(--ink-3) mb-1.5">
-              <span className="font-medium">Questão {questoesFeitas + 1} de {TOTAL_QUESTOES}</span>
+              <span className="font-medium">Questão {questoesFeitas + 1} de {totalQuestoes}</span>
               <span className="font-mono tabular-nums">{formatTempo(tempo)}</span>
             </div>
-            <ProgressBar value={questoesFeitas} max={TOTAL_QUESTOES} size="sm" />
+            <ProgressBar value={questoesFeitas} max={totalQuestoes} size="sm" />
           </div>
           <button
             onClick={() => setModalSair(true)}
@@ -380,7 +391,7 @@ export default function SimuladoPage() {
               </Button>
             ) : (
               <Button onClick={proximaQuestao} className="w-full mt-auto">
-                {questoesFeitas + 1 < TOTAL_QUESTOES ? 'Próxima questão →' : 'Ver resultado'}
+                {questoesFeitas + 1 < totalQuestoes ? 'Próxima questão →' : 'Ver resultado'}
               </Button>
             )}
           </>
