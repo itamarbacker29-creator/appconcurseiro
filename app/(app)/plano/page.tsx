@@ -549,10 +549,17 @@ export default function PlanoPage() {
         body: JSON.stringify({ questoesPorDia }),
       });
       const dados = await resp.json();
-      if (!resp.ok) { toast(dados.error ?? 'Erro ao gerar plano', 'error'); return; }
+      if (!resp.ok) {
+        const msg = dados.error ?? '';
+        if (resp.status === 429) toast('Limite de geração de planos atingido. Tente novamente amanhã.', 'error');
+        else if (resp.status === 503 || msg.toLowerCase().includes('sobrecarga') || msg.toLowerCase().includes('sobrecarregado')) toast('Serviço de IA temporariamente indisponível. Tente em alguns minutos.', 'error');
+        else if (resp.status >= 500) toast('Tempo limite atingido. O plano é complexo — tente novamente.', 'error');
+        else toast(msg || 'Erro ao gerar plano.', 'error');
+        return;
+      }
       setPlano(dados.plano);
       setSemanaAtiva(1);
-      toast('Plano gerado pela IA de alta tecnologia!', 'success');
+      toast('Seu plano de estudo foi gerado!', 'success');
     } catch {
       toast('Erro de conexão. Tente novamente.', 'error');
     } finally {

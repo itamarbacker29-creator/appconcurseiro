@@ -95,21 +95,38 @@ export default async function EditalPage({ params }: { params: Promise<{ id: str
       )}
 
       {/* CTAs */}
-      <div className="flex flex-wrap gap-3">
-        <a href={edital.link_inscricao} target="_blank" rel="noopener noreferrer">
-          <Button size="md">Ir para inscrição oficial ↗</Button>
-        </a>
-        <Link href={`/simulado?edital=${edital.id}`}>
-          <Button size="md" variant="ghost">Iniciar simulado</Button>
-        </Link>
-        <Link href={`/plano?edital=${edital.id}`}>
-          <Button size="md" variant="ghost">Adicionar ao plano</Button>
-        </Link>
-        {edital.link_edital_pdf && (
-          <a href={edital.link_edital_pdf} target="_blank" rel="noopener noreferrer">
-            <Button size="md" variant="ghost">Ver edital PDF</Button>
-          </a>
-        )}
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap gap-3">
+          {edital.link_inscricao ? (
+            <a href={edital.link_inscricao} target="_blank" rel="noopener noreferrer">
+              <Button size="md">Ir para inscrição oficial ↗</Button>
+            </a>
+          ) : (
+            <div className="flex flex-col gap-1">
+              <div className="flex flex-wrap gap-2">
+                {edital.link_fonte && (
+                  <a href={edital.link_fonte} target="_blank" rel="noopener noreferrer">
+                    <Button size="md" variant="ghost">Ver anúncio do edital ↗</Button>
+                  </a>
+                )}
+              </div>
+              <p className="text-[12px] text-(--ink-3) max-w-115">
+                ⚠️ Link oficial de inscrição não disponível. Use o anúncio acima para localizar o portal oficial do órgão (ex: site da banca organizadora ou gov.br).
+              </p>
+            </div>
+          )}
+          <Link href={`/simulado?edital=${edital.id}`}>
+            <Button size="md" variant="ghost">Iniciar simulado</Button>
+          </Link>
+          <Link href={`/plano?edital=${edital.id}`}>
+            <Button size="md" variant="ghost">Adicionar ao plano</Button>
+          </Link>
+          {edital.link_edital_pdf && (
+            <a href={edital.link_edital_pdf} target="_blank" rel="noopener noreferrer">
+              <Button size="md" variant="ghost">Ver edital PDF</Button>
+            </a>
+          )}
+        </div>
       </div>
     </div>
   );

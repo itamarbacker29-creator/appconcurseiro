@@ -48,14 +48,15 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
 
-  const { data: profile } = await supabase.from('profiles').select('plano, data_prova, concurso_alvo_nome').eq('id', user.id).single();
-
-  const { permitido } = await verificarLimite(limitadores.gerarPlano, user.id);
-  if (!permitido) return NextResponse.json({ error: 'Limite de geração de planos atingido.' }, { status: 429 });
-
   const { editalId, questoesPorDia = 15 } = await req.json();
 
-  const { data: habilidades } = await supabase.from('habilidade_usuario').select('materia, theta').eq('user_id', user.id);
+  const [{ data: profile }, limitResult, { data: habilidades }] = await Promise.all([
+    supabase.from('profiles').select('plano, data_prova, concurso_alvo_nome').eq('id', user.id).single(),
+    verificarLimite(limitadores.gerarPlano, user.id),
+    supabase.from('habilidade_usuario').select('materia, theta').eq('user_id', user.id),
+  ]);
+
+  if (!limitResult.permitido) return NextResponse.json({ error: 'Limite de geração de planos atingido.' }, { status: 429 });
 
   let edital = null;
   if (editalId) {

@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
   const b = (questao.nivel - 3) * 0.8; // dificuldade mapeada do nível
   const novoTheta = atualizarTheta(thetaAtual, correta, a, b);
 
-  await supabase.from('habilidade_usuario').upsert({
+  const { error: errTheta } = await supabase.from('habilidade_usuario').upsert({
     user_id: user.id,
     materia: questao.materia,
     theta: novoTheta,
@@ -55,6 +55,7 @@ export async function POST(req: NextRequest) {
     total_acertos: (hab?.total_acertos ?? 0) + (correta ? 1 : 0),
     atualizado_em: new Date().toISOString(),
   }, { onConflict: 'user_id,materia' });
+  if (errTheta) console.error('[simulado/responder] Falha ao atualizar theta IRT:', errTheta);
 
   // Criar flashcard automático se errou pela 2ª vez
   if (!correta) {

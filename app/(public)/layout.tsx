@@ -4,11 +4,11 @@ import { Footer } from '@/components/layout/Footer';
 
 const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
 
-// Landing page usa cores hardcoded (design intencional de marketing).
-// color-scheme: light garante que o sistema não inverta para dark mode.
+// public-layout força CSS vars para tema claro independente do OS.
+// Necessário pois Navbar usa CSS vars que respondem ao prefers-color-scheme.
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ colorScheme: 'light', background: '#ffffff', color: '#0D1117' }}>
+    <div className="public-layout" style={{ colorScheme: 'light', background: '#ffffff', color: '#0D1117' }}>
       {PIXEL_ID && (
         <Script id="meta-pixel" strategy="afterInteractive">{`
           !function(f,b,e,v,n,t,s)

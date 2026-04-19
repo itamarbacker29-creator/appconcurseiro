@@ -40,7 +40,7 @@ const PLANOS = [
     destaques: [
       'Editais ilimitados',
       '30 simulados por mês',
-      'IA: Claude Haiku (mais preciso)',
+      'IA de alta tecnologia (mais preciso)',
       'Tutor de dúvidas: 50 msgs/mês',
     ],
   },
@@ -51,7 +51,7 @@ const PLANOS = [
     cor: 'text-(--teal)',
     destaques: [
       'Tudo ilimitado',
-      'Claude Haiku em tudo',
+      'IA de alta tecnologia em tudo',
       'Tutor de dúvidas ilimitado',
       'Plano de estudo por IA',
     ],
@@ -74,6 +74,7 @@ export default function ContaPage() {
   const [loading, setLoading] = useState(true);
   const [salvandoPerfil, setSalvandoPerfil] = useState(false);
   const [salvandoEstilos, setSalvandoEstilos] = useState(false);
+  const [confirmandoSair, setConfirmandoSair] = useState(false);
 
   const [concursoNome, setConcursoNome] = useState('');
   const [dataProva, setDataProva] = useState('');
@@ -119,10 +120,14 @@ export default function ContaPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ concurso_alvo_nome: concursoNome, data_prova: dataProva }),
       });
-      if (!res.ok) throw new Error();
-      toast('Perfil atualizado!', 'success');
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        toast(json.error ?? 'Erro ao salvar perfil', 'error');
+      } else {
+        toast('Perfil atualizado!', 'success');
+      }
     } catch {
-      toast('Erro ao salvar', 'error');
+      toast('Falha de conexão. Verifique sua internet.', 'error');
     }
     setSalvandoPerfil(false);
   }
@@ -135,15 +140,20 @@ export default function ContaPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ estilos_aprendizado: estilos }),
       });
-      if (!res.ok) throw new Error();
-      toast('Preferências salvas!', 'success');
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        toast(json.error ?? 'Erro ao salvar preferências', 'error');
+      } else {
+        toast('Preferências salvas!', 'success');
+      }
     } catch {
-      toast('Erro ao salvar', 'error');
+      toast('Falha de conexão. Verifique sua internet.', 'error');
     }
     setSalvandoEstilos(false);
   }
 
   async function sair() {
+    if (!confirmandoSair) { setConfirmandoSair(true); return; }
     await supabase.auth.signOut();
     router.push('/');
   }
@@ -281,9 +291,17 @@ export default function ContaPage() {
       <section className="bg-(--surface) border border-(--border) rounded-(--radius) p-5 flex flex-col gap-3">
         <h2 className="text-[15px] font-bold text-(--ink)">Sessão</h2>
         <p className="text-[13px] text-(--ink-3)">Logado como <strong>{perfil.email}</strong></p>
-        <Button variant="danger" onClick={sair} className="self-start">
-          Sair da conta
-        </Button>
+        {confirmandoSair ? (
+          <div className="flex items-center gap-3">
+            <p className="text-[13px] text-(--danger) font-medium">Confirmar saída?</p>
+            <Button variant="danger" onClick={sair} className="self-start">Sim, sair</Button>
+            <Button variant="ghost" onClick={() => setConfirmandoSair(false)} className="self-start">Cancelar</Button>
+          </div>
+        ) : (
+          <Button variant="danger" onClick={sair} className="self-start">
+            Sair da conta
+          </Button>
+        )}
       </section>
     </div>
   );

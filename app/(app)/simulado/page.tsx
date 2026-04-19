@@ -55,6 +55,7 @@ export default function SimuladoPage() {
   const [gabaritoResposta, setGabaritoResposta] = useState<{ correta: boolean; gabarito: string; explicacao: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [tempo, setTempo] = useState(0);
+  const [tempoTotal, setTempoTotal] = useState(0);
   const [modalSair, setModalSair] = useState(false);
   const [historico, setHistorico] = useState<Array<{ materia: string; correta: boolean }>>([]);
 
@@ -152,6 +153,7 @@ export default function SimuladoPage() {
   }
 
   function proximaQuestao() {
+    setTempoTotal(t => t + tempo);
     const novoTotal = questoesFeitas + 1;
     setQuestoesFeitas(novoTotal);
     if (novoTotal >= totalQuestoes) setFase('resultado');
@@ -254,6 +256,7 @@ export default function SimuladoPage() {
           <div className="text-center">
             <p className="text-[18px] font-bold text-(--ink)">{msgScore}</p>
             <p className="text-[13px] text-(--ink-3) mt-0.5">{acertos} de {totalQuestoes} corretas em {materiaSelecionada}</p>
+            <p className="text-[12px] text-(--ink-3) mt-1">Tempo total: {formatTempo(tempoTotal + tempo)}</p>
           </div>
         </div>
 
@@ -319,12 +322,23 @@ export default function SimuladoPage() {
 
       {/* Conteúdo */}
       <div className="flex-1 p-4 md:p-6 flex flex-col gap-5">
-        {loading && !questaoAtual ? (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-10 h-10 border-2 border-(--accent) border-t-transparent rounded-full animate-spin" />
-              <p className="text-[13px] text-(--ink-3)">Gerando questão adaptativa...</p>
+        {loading ? (
+          <div className="flex flex-col gap-4 animate-pulse">
+            <div className="flex gap-2">
+              <div className="h-6 w-32 bg-(--surface-2) rounded-full" />
+              <div className="h-6 w-20 bg-(--surface-2) rounded-full" />
             </div>
+            <div className="bg-(--surface-2) rounded-(--radius) p-4 flex flex-col gap-2">
+              <div className="h-4 w-full bg-(--border) rounded" />
+              <div className="h-4 w-4/5 bg-(--border) rounded" />
+              <div className="h-4 w-3/5 bg-(--border) rounded" />
+            </div>
+            <div className="flex flex-col gap-2">
+              {[0,1,2,3,4].map(i => (
+                <div key={i} className="h-12 bg-(--surface-2) rounded-(--radius) border border-(--border)" />
+              ))}
+            </div>
+            <p className="text-[13px] text-(--ink-3) text-center mt-2">Gerando questão adaptativa...</p>
           </div>
         ) : questaoAtual ? (
           <>

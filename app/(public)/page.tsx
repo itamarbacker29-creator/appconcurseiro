@@ -5,22 +5,23 @@ import { ContadorVivos } from '@/components/landing/ContadorVivos';
 import { CardPresenteClient } from '@/components/landing/CardPresenteClient';
 import { ReferralBanner } from '@/components/landing/ReferralBanner';
 
-const MESES_PREMIO = 3; // altere aqui para mudar em toda a landing
+const MESES_PREMIO = 3;   // base — indicações sobem até 6 meses
+const MESES_MAX    = 6;   // usado nas chamadas "até X meses"
 
 export const metadata: Metadata = {
-  title: 'O Tutor — Programa de testadores beta',
-  description: `O app que busca editais, monta simulados e te diz o que estudar até o dia da prova. Estamos buscando concurseiros para testar e dar feedback. Testadores ganham ${MESES_PREMIO} meses do Premium grátis.`,
+  title: 'O Tutor — Programa de beta testers',
+  description: `O app que busca editais, monta simulados e diz exatamente o que estudar para a aprovação. Buscamos concurseiros para testar e dar feedback. Beta testers podem ganhar até ${MESES_MAX} meses do Premium grátis.`,
   openGraph: {
-    title: 'O Tutor — Ajude a construir o melhor app para concursos.',
-    description: `Buscamos testadores beta. Quem participar ganha ${MESES_PREMIO} meses do Plano Premium grátis. Sem cartão de crédito.`,
+    title: 'O Tutor — Ajude a aprimorar o melhor app para concursos.',
+    description: `Buscamos beta testers. Quem participar pode ganhar até ${MESES_MAX} meses do Plano Premium grátis. Sem cartão de crédito.`,
     url: 'https://otutor.com.br',
     siteName: 'O Tutor',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'O Tutor — Programa de testadores beta',
-    description: `Testadores ganham ${MESES_PREMIO} meses do Premium grátis. Ajude a moldar o app.`,
+    title: 'O Tutor — Programa de beta testers',
+    description: `Beta testers podem ganhar até ${MESES_MAX} meses do Premium grátis. Ajude a aprimorar o app.`,
   },
 };
 
@@ -28,32 +29,32 @@ const FEATURES = [
   {
     icon: <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
     titulo: 'Editais automáticos',
-    desc: 'Sem buscar, sem perder prazo',
+    desc: 'Monitoramos os principais concursos — você recebe alertas com link de inscrição',
   },
   {
     icon: <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
-    titulo: 'IA adaptativa (IRT)',
-    desc: 'Questão certa para o seu nível agora',
+    titulo: 'Simulado adaptativo (IRT)',
+    desc: 'Questões no seu nível exato — o mesmo motor do ENEM, calibrado para bancas',
   },
   {
-    icon: <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
-    titulo: 'Raio-X do edital',
-    desc: 'Saiba o que mais cai na sua prova',
+    icon: <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+    titulo: 'Plano de estudos diário',
+    desc: 'Cronograma adaptado ao seu desempenho e à data da prova — atualizado automaticamente',
   },
   {
     icon: <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
     titulo: 'Tutor IA 24/7',
-    desc: 'Tire dúvidas sobre qualquer questão',
-  },
-  {
-    icon: <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
-    titulo: 'Apostilas em flashcards',
-    desc: 'Envie seu PDF, receba os cards',
+    desc: 'Tire dúvidas com base em lei e jurisprudência — referência no artigo, sem "achismos"',
   },
   {
     icon: <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
-    titulo: 'Chance de aprovação',
-    desc: 'Veja onde você está vs. aprovados',
+    titulo: 'Raio-X do desempenho',
+    desc: 'Veja em que matérias você está abaixo dos aprovados e priorize onde importa',
+  },
+  {
+    icon: <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+    titulo: 'Flashcards automáticos',
+    desc: 'A cada questão errada duas vezes, O Tutor cria um flashcard para você revisar',
   },
 ];
 
@@ -70,8 +71,8 @@ const PASSOS_TESTE = [
   },
   {
     num: '03',
-    titulo: 'Ganhe o Premium grátis',
-    desc: `Testadores ativos ganham ${MESES_PREMIO} meses do Plano Premium sem pagar nada. Sua opinião vale muito para nós.`,
+    titulo: 'Ganhe até 6 meses do Premium grátis',
+    desc: `Beta testers ativos ganham ${MESES_PREMIO} meses do Plano Premium. Indique amigos e acumule até ${MESES_MAX} meses — tudo sem pagar nada.`,
   },
 ];
 
@@ -82,10 +83,10 @@ const PASSOS = [
 ];
 
 const PARA_QUEM = [
-  'Quer um guia que diga exatamente o que estudar — e pare de desperdiçar tempo com o que não cai na prova',
-  'Já tentou mais de uma vez e quer uma preparação mais inteligente e direcionada',
-  'Não quer pagar R$200/mês em cursinho e quer resultado de verdade',
-  'Precisa de um plano de estudos que se adapte ao seu ritmo e à data da prova',
+  'Quer um guia de estudos focado — que aponte exatamente o que estudar para a aprovação, sem desperdiçar tempo com o que não cai na prova',
+  'Trabalha durante o dia e precisa de um plano inteligente que se encaixe na sua rotina e maximize cada hora de estudo',
+  'Não quer pagar R$200/mês em cursinho e quer resultado de verdade pelo seu esforço',
+  'Já tentou mais de uma vez e quer uma preparação mais estratégica e direcionada ao seu edital',
   'Busca aprovação no INSS, PRF, Tribunais, Polícia Civil ou Receita Federal',
 ];
 
@@ -104,7 +105,7 @@ export default function LandingPage() {
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200">
           <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
           <span className="text-[12px] font-semibold text-amber-700">
-            🧪 Versão beta — buscamos testadores voluntários
+            🧪 Versão beta — buscamos beta testers voluntários
           </span>
         </div>
 
@@ -127,7 +128,7 @@ export default function LandingPage() {
         <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 12, padding: '14px 20px', maxWidth: 480, width: '100%' }}>
           <p style={{ fontSize: 14, color: '#92400E', lineHeight: 1.6, margin: 0 }}>
             <strong>O Tutor está em desenvolvimento ativo.</strong> Buscamos concurseiros reais para usar o app, reportar problemas e sugerir melhorias.
-            Quem participar dos testes ganha <strong>{MESES_PREMIO} meses do Plano Premium completamente grátis.</strong>
+            Quem participar dos testes pode ganhar <strong>até {MESES_MAX} meses do Plano Premium completamente grátis.</strong>
           </p>
         </div>
 
@@ -149,7 +150,7 @@ export default function LandingPage() {
       <section style={{ background: '#F7F8FC', borderTop: '1px solid rgba(0,0,0,0.06)', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
         <div className="max-w-[900px] mx-auto px-5 py-16">
           <p style={{ fontSize: 11, fontWeight: 700, color: '#2B3DE8', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 12, textAlign: 'center' }}>
-            Programa de testadores
+            Programa de beta testers
           </p>
           <h2 style={{ fontSize: 28, fontWeight: 800, textAlign: 'center', marginBottom: 8 }}>
             Como funciona
@@ -239,11 +240,11 @@ export default function LandingPage() {
       <section style={{ background: '#0D1117', padding: '80px 20px' }} id="cadastro-final">
         <div className="max-w-[520px] mx-auto text-center">
           <p style={{ fontSize: 11, fontWeight: 700, color: '#F59E0B', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 16 }}>
-            Programa de testadores beta
+            Programa de beta testers
           </p>
           <h2 style={{ fontSize: 'clamp(24px, 5vw, 34px)', fontWeight: 900, color: 'white', marginBottom: 12, letterSpacing: -0.5, lineHeight: 1.2 }}>
-            Ajude a construir o app.<br />
-            <span style={{ color: '#5B6BFF' }}>Ganhe {MESES_PREMIO} meses do Premium grátis.</span>
+            Ajude a aprimorar o app.<br />
+            <span style={{ color: '#5B6BFF' }}>Ganhe até {MESES_MAX} meses do Premium grátis.</span>
           </h2>
           <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.55)', marginBottom: 32, lineHeight: 1.7 }}>
             Sem mensalidade, sem cartão. Use o app, dê seu feedback e receba o prêmio quando abrirmos o acesso.

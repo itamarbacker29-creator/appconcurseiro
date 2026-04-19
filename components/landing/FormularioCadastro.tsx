@@ -87,7 +87,7 @@ export function FormularioCadastro({ origem, tema = 'light' }: Props) {
         {estado === 'loading' ? 'Cadastrando...' : 'Quero meu acesso gratuito →'}
       </button>
       <p className={`text-center text-[12px] ${isDark ? 'text-white/50' : 'text-[#7A7D8A]'}`}>
-        Sem cartão de crédito · Testadores ganham o Premium grátis por 3 meses
+        Sem cartão de crédito · Beta testers podem ganhar até 6 meses do Premium grátis
       </p>
     </form>
   );

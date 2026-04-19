@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
 
   const body = await req.json();
-  const { escolaridade, areas_interesse, estados_interesse, data_prova } = body;
+  const { escolaridade, areas_interesse, estados_interesse, data_prova, concurso_alvo_nome } = body;
 
   const { error } = await supabase
     .from('profiles')
@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
       areas_interesse,
       estados_interesse,
       data_prova: data_prova || null,
+      concurso_alvo_nome: concurso_alvo_nome || null,
       onboarding_completo: true,
     })
     .eq('id', user.id);

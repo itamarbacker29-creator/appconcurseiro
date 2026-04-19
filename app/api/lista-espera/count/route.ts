@@ -10,5 +10,7 @@ export async function GET() {
     .from('lista_espera')
     .select('id', { count: 'exact', head: true });
   const real = count ?? 0;
-  return NextResponse.json({ count: real + OFFSET_INICIAL, real });
+  return NextResponse.json({ count: real + OFFSET_INICIAL, real }, {
+    headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
+  });
 }

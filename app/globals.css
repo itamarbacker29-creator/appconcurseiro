@@ -74,6 +74,29 @@
   --md-sys-shape-corner-full:         9999px;
 }
 
+/* Landing/public — força tema claro independente do OS (Navbar usa CSS vars) */
+.public-layout {
+  color-scheme: light;
+  --accent: #2B3DE8;
+  --accent-hover: #1E30D4;
+  --accent-light: #EEF0FF;
+  --accent-text: #1E30D4;
+  --teal: #0EA574;
+  --teal-light: #E4F7F0;
+  --danger: #E24B4A;
+  --danger-light: #FDECEA;
+  --ink: #0D1117;
+  --ink-2: #3A3D4A;
+  --ink-3: #7A7D8A;
+  --surface: #FFFFFF;
+  --surface-2: #F7F8FC;
+  --surface-3: #EEEEF6;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-strong: rgba(0, 0, 0, 0.14);
+  --background: #FFFFFF;
+  --foreground: #0D1117;
+}
+
 /* Dark mode */
 @media (prefers-color-scheme: dark) {
   :root {

@@ -14,10 +14,15 @@ export async function POST(req: NextRequest) {
 
   const hoje = new Date().toISOString().split('T')[0];
 
-  await supabase.from('checkins').upsert(
+  const { error } = await supabase.from('checkins').upsert(
     { user_id: user.id, data: hoje, nivel, materia: materia ?? null },
     { onConflict: 'user_id,data' }
   );
+
+  if (error) {
+    console.error('[plano/checkin] Erro ao salvar check-in:', error);
+    return NextResponse.json({ error: 'Falha ao registrar check-in' }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }

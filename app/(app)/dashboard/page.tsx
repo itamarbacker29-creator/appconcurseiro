@@ -59,9 +59,9 @@ export default async function DashboardPage() {
     : null;
 
   const metricas = [
-    { label: 'Sequência', valor: `${sequencia}`, sub: 'dias consecutivos', icon: 'local_fire_department', cor: 'accent' },
+    { label: 'Sequência', valor: sequencia > 0 ? `${sequencia}` : '—', sub: sequencia > 0 ? 'dias consecutivos' : 'faça seu 1º simulado', icon: 'local_fire_department', cor: 'accent' },
     { label: 'Questões', valor: `${totalQuestoes}`, sub: 'respondidas', icon: 'quiz', cor: 'teal' },
-    { label: 'Acertos', valor: `${taxaAcerto}%`, sub: 'taxa geral', icon: 'target', cor: taxaAcerto >= 70 ? 'teal' : 'warning' },
+    { label: 'Acertos', valor: totalQuestoes > 0 ? `${taxaAcerto}%` : '—', sub: totalQuestoes > 0 ? 'taxa geral' : 'sem dados ainda', icon: 'target', cor: taxaAcerto >= 70 ? 'teal' : 'warning' },
     { label: 'Editais', valor: `${editaisSalvos?.length ?? 0}`, sub: 'salvos', icon: 'bookmark', cor: 'accent' },
   ];
 
@@ -231,13 +231,16 @@ export default async function DashboardPage() {
       {/* Ações rápidas */}
       <div className="grid grid-cols-4 gap-3">
         {[
-          { href: '/simulado', icon: 'quiz', label: 'Simulado' },
-          { href: '/estimativa', icon: 'emoji_events', label: 'Estimativa' },
-          { href: '/plano', icon: 'calendar_month', label: 'Plano' },
-          { href: '/tutor', icon: 'auto_awesome', label: 'Tutor IA' },
+          { href: '/simulado', icon: 'quiz', label: 'Simulado', bloqueado: false },
+          { href: '/estimativa', icon: 'emoji_events', label: 'Estimativa', bloqueado: false },
+          { href: '/plano', icon: 'calendar_month', label: 'Plano', bloqueado: false },
+          { href: profile?.plano === 'free' ? '/conta#plano' : '/tutor', icon: 'auto_awesome', label: 'Tutor IA', bloqueado: profile?.plano === 'free' },
         ].map(a => (
           <Link key={a.href} href={a.href}>
-            <Card padding="md" className="flex flex-col items-center gap-2 text-center hover:border-(--accent)/40 hover:bg-(--accent-light) transition-all cursor-pointer">
+            <Card padding="md" className="relative flex flex-col items-center gap-2 text-center hover:border-(--accent)/40 hover:bg-(--accent-light) transition-all cursor-pointer">
+              {a.bloqueado && (
+                <span className="absolute top-1.5 right-1.5 material-symbols-outlined text-(--ink-3)" style={{ fontSize: 14 }}>lock</span>
+              )}
               <span className="material-symbols-outlined text-(--accent)" style={{ fontSize: 24 }}>{a.icon}</span>
               <span className="text-[12px] font-semibold text-(--ink-2)">{a.label}</span>
             </Card>

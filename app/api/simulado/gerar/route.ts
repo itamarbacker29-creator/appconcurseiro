@@ -26,12 +26,10 @@ Responda APENAS em JSON válido, sem markdown, sem texto antes ou depois:
 }`;
 
 function extrairJSON(texto: string): string {
-  // Remove blocos markdown
   texto = texto.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '').trim();
-  // Extrai primeiro objeto JSON encontrado
   const match = texto.match(/\{[\s\S]*\}/);
   if (match) return match[0];
-  return texto;
+  throw new Error('Resposta da IA não contém JSON válido');
 }
 
 export async function POST(req: NextRequest) {
@@ -79,7 +77,7 @@ export async function POST(req: NextRequest) {
   const adminClient = createAdminClient();
 
   const baseQuery = () => {
-    let q = adminClient
+    let q = supabase
       .from('questoes')
       .select('*')
       .eq('materia', materia)
@@ -112,7 +110,7 @@ export async function POST(req: NextRequest) {
 
   // Buscar dados do edital
   const { data: edital } = editalId
-    ? await adminClient.from('editais').select('banca, materias').eq('id', editalId).single()
+    ? await supabase.from('editais').select('banca, materias').eq('id', editalId).single()
     : { data: null };
 
   try {

@@ -40,10 +40,10 @@ export async function POST(req: NextRequest) {
 
   // Rate limit por plano (premium=50/mês via Redis, elite=ilimitado)
   if (plano === 'premium') {
-    const { permitido, restante } = await verificarLimite(limitadores.tutorMensagem, user.id);
+    const { permitido } = await verificarLimite(limitadores.tutorMensagem, user.id);
     if (!permitido) {
       return NextResponse.json(
-        { error: `Limite de ${restante} mensagens/mês atingido. Faça upgrade para Elite para acesso ilimitado.` },
+        { error: 'Limite de 50 mensagens/mês atingido. Faça upgrade para Elite para acesso ilimitado.' },
         { status: 429 }
       );
     }

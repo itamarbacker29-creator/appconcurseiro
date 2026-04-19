@@ -38,6 +38,7 @@ export default function OnboardingPage() {
           areas_interesse: areas,
           estados_interesse: estados,
           data_prova: dataProva || null,
+          concurso_alvo_nome: concurso || null,
         }),
       });
 

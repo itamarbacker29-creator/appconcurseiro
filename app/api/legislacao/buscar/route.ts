@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ erro: 'URL inválida' }, { status: 400 });
   }
 
-  if (!FONTES_PERMITIDAS.some(f => urlObj.hostname.includes(f))) {
+  if (!FONTES_PERMITIDAS.some(f => urlObj.hostname === f || urlObj.hostname.endsWith(`.${f}`))) {
     return NextResponse.json({ erro: 'Fonte não permitida' }, { status: 403 });
   }
 

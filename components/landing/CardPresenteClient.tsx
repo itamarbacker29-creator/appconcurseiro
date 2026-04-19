@@ -5,9 +5,12 @@ import { useState, useEffect } from 'react';
 const TOTAL_VAGAS = 100;
 
 const FEATURES = [
-  'Tutor IA ilimitado', 'Todos os editais',
-  'Simulado adaptativo', 'Upload de apostilas',
-  'Raio-X do edital', 'Plano de estudo com IA',
+  'Plano de estudos diário com IA',
+  'Simulado adaptativo (motor IRT)',
+  'Tutor IA com referência em lei',
+  'Raio-X do seu desempenho',
+  'Todos os editais monitorados',
+  'Flashcards automáticos por erro',
 ];
 
 const COMPROMISSOS = [
@@ -47,10 +50,10 @@ export function CardPresenteClient({ mesesPremio = 3 }: Props) {
         <span style={{ fontSize: 32 }}>🧪</span>
         <div>
           <p style={{ fontSize: 11, fontWeight: 700, color: '#2B3DE8', letterSpacing: 2, textTransform: 'uppercase', margin: 0 }}>
-            Recompensa para testadores beta
+            Recompensa para beta testers
           </p>
           <h3 style={{ fontSize: 22, fontWeight: 800, color: '#0D1117', margin: 0 }}>
-            {mesesPremio} meses do Plano Premium grátis
+            Até 6 meses do Plano Premium grátis
           </h3>
         </div>
       </div>
@@ -109,7 +112,7 @@ export function CardPresenteClient({ mesesPremio = 3 }: Props) {
           R${(24.9 * mesesPremio).toFixed(0).replace('.', ',')}
         </span>
         <span style={{ fontSize: 40, fontWeight: 900, color: '#0D1117', lineHeight: 1 }}>R$0</span>
-        <span style={{ fontSize: 13, color: '#3A3D4A' }}>pelos primeiros {mesesPremio} meses</span>
+        <span style={{ fontSize: 13, color: '#3A3D4A' }}>pelos primeiros 3–6 meses</span>
       </div>
     </div>
   );

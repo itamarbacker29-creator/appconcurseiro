@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useDeferredValue } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -19,7 +19,8 @@ interface Edital {
   estado: string;
   area: string;
   data_inscricao_fim: string;
-  link_inscricao: string;
+  link_inscricao: string | null;
+  link_fonte: string | null;
   banca: string;
   coletado_em: string;
 }
@@ -51,11 +52,15 @@ export default function EditaisPage() {
   const [apenasAbertas, setApenasAbertas] = useState(false);
   const [ordem, setOrdem] = useState('salario');
   const [salvos, setSalvos] = useState<string[]>([]);
+  const buscaDeferida = useDeferredValue(busca);
 
   const carregar = useCallback(async () => {
     setLoading(true);
     try {
-      let query = supabase.from('editais').select('*').eq('status', 'ativo');
+      let query = supabase
+        .from('editais')
+        .select('id,orgao,cargo,escolaridade,vagas,salario,estado,area,nivel,data_inscricao_fim,link_inscricao,link_fonte,banca,coletado_em')
+        .eq('status', 'ativo');
 
       if (area !== 'Todos') {
         if (FILTROS_NIVEL.has(area)) {
@@ -66,7 +71,7 @@ export default function EditaisPage() {
       }
       if (escolaridade !== 'Todos') query = query.eq('escolaridade', escolaridade);
       if (apenasAbertas) query = query.gte('data_inscricao_fim', new Date().toISOString().split('T')[0]);
-      if (busca) query = query.or(`orgao.ilike.%${busca}%,cargo.ilike.%${busca}%`);
+      if (buscaDeferida) query = query.or(`orgao.ilike.%${buscaDeferida}%,cargo.ilike.%${buscaDeferida}%`);
 
       // NULLS LAST: editais sem salário ficam no fim
       if (ordem === 'salario') query = query.order('salario', { ascending: false, nullsFirst: false });
@@ -81,7 +86,7 @@ export default function EditaisPage() {
     } finally {
       setLoading(false);
     }
-  }, [area, escolaridade, apenasAbertas, busca, ordem]);
+  }, [area, escolaridade, apenasAbertas, buscaDeferida, ordem]);
 
   useEffect(() => { carregar(); }, [carregar]);
 
@@ -226,9 +231,15 @@ export default function EditaisPage() {
                 )}
 
                 <div className="flex gap-2 flex-wrap">
-                  <a href={e.link_inscricao} target="_blank" rel="noopener noreferrer">
-                    <Button size="sm" variant="primary">Inscrever-se</Button>
-                  </a>
+                  {e.link_inscricao ? (
+                    <a href={e.link_inscricao} target="_blank" rel="noopener noreferrer">
+                      <Button size="sm" variant="primary">Inscrever-se ↗</Button>
+                    </a>
+                  ) : e.link_fonte ? (
+                    <a href={e.link_fonte} target="_blank" rel="noopener noreferrer" title="Link do portal de origem — procure o link oficial de inscrição nesta página">
+                      <Button size="sm" variant="ghost">Ver anúncio do edital ↗</Button>
+                    </a>
+                  ) : null}
                   <Link href={`/editais/${e.id}`}>
                     <Button size="sm" variant="ghost">Ver detalhes</Button>
                   </Link>
