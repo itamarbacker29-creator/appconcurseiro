@@ -56,7 +56,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className={`h-full ${manrope.variable} ${inter.variable}`}>
+    <html lang="pt-BR" className={`h-full ${manrope.variable} ${inter.variable}`} style={{ colorScheme: 'light' }}>
       <head>
         <link
           rel="stylesheet"

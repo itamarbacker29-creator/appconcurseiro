@@ -4,6 +4,8 @@
    DESIGN SYSTEM — PALETA E TOKENS
    ============================================ */
 :root {
+  color-scheme: light;
+
   /* Primária */
   --accent: #2B3DE8;
   --accent-hover: #1E30D4;
@@ -97,45 +99,6 @@
   --foreground: #0D1117;
 }
 
-/* Dark mode */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --accent: #5B6BFF;
-    --accent-hover: #6B7BFF;
-    --accent-light: #1C1F3A;
-    --accent-text: #8B97FF;
-    --teal: #10C285;
-    --teal-light: #0D2A22;
-    --teal-text: #14E89A;
-    --danger: #FF6B6A;
-    --danger-light: #2A0F0F;
-    --ink: #F0F1F8;
-    --ink-2: #B8BAC8;
-    --ink-3: #6E7080;
-    --surface: #13141C;
-    --surface-2: #1A1B26;
-    --surface-3: #22243A;
-    --border: rgba(255, 255, 255, 0.07);
-    --border-strong: rgba(255, 255, 255, 0.12);
-    --background: var(--surface);
-    --foreground: var(--ink);
-
-    --md-sys-color-primary:              #5B6BFF;
-    --md-sys-color-on-primary:           #FFFFFF;
-    --md-sys-color-primary-container:    #1C1F3A;
-    --md-sys-color-on-primary-container: #8B97FF;
-    --md-sys-color-secondary:              #10C285;
-    --md-sys-color-on-secondary:           #FFFFFF;
-    --md-sys-color-secondary-container:    #0D2A22;
-    --md-sys-color-on-secondary-container: #14E89A;
-    --md-sys-color-surface:            #13141C;
-    --md-sys-color-on-surface:         #F0F1F8;
-    --md-sys-color-surface-variant:    #1A1B26;
-    --md-sys-color-on-surface-variant: #B8BAC8;
-    --md-sys-color-outline:            rgba(255,255,255,0.12);
-    --md-sys-color-outline-variant:    rgba(255,255,255,0.07);
-  }
-}
 
 /* ============================================
    BASE
