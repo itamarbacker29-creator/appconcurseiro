@@ -1,9 +1,12 @@
+import React from 'react';
+
 interface SkeletonProps {
   className?: string;
   lines?: number;
+  style?: React.CSSProperties;
 }
 
-export function Skeleton({ className = '', lines }: SkeletonProps) {
+export function Skeleton({ className = '', lines, style }: SkeletonProps) {
   if (lines) {
     return (
       <div className="flex flex-col gap-2">
@@ -17,7 +20,7 @@ export function Skeleton({ className = '', lines }: SkeletonProps) {
     );
   }
 
-  return <div className={`skeleton ${className}`} />;
+  return <div className={`skeleton ${className}`} style={style} />;
 }
 
 export function CardSkeleton() {

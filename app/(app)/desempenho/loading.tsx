@@ -24,7 +24,7 @@ export default function DesempenhoLoading() {
         <div className="flex items-end gap-1 h-24">
           {Array.from({ length: 14 }).map((_, i) => (
             <div key={i} className="flex-1">
-              <Skeleton className="w-full rounded-t" style={{ height: `${20 + Math.random() * 60}px` }} />
+              <Skeleton className="w-full rounded-t" style={{ height: `${[40,70,55,85,30,65,50,90,45,75,35,60,80,50][i]}px` }} />
             </div>
           ))}
         </div>
