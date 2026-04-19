@@ -118,6 +118,9 @@ export default async function EditalPage({ params }: { params: Promise<{ id: str
           <Link href={`/simulado?edital=${edital.id}`}>
             <Button size="md" variant="ghost">Iniciar simulado</Button>
           </Link>
+          <Link href={`/editais/${edital.id}/raio-x`}>
+            <Button size="md" variant="ghost">Ver Raio-X</Button>
+          </Link>
           <Link href={`/plano?edital=${edital.id}`}>
             <Button size="md" variant="ghost">Adicionar ao plano</Button>
           </Link>
