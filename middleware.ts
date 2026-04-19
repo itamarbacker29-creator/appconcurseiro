@@ -50,6 +50,16 @@ export async function middleware(req: NextRequest) {
     }
   }
 
+  // Subdomínio app.otutor.com.br → redireciona para /login ou /dashboard
+  const hostname = req.headers.get('host') ?? '';
+  if (hostname.startsWith('app.')) {
+    const pathname2 = req.nextUrl.pathname;
+    if (pathname2 === '/') {
+      const destino = session ? '/dashboard' : '/login';
+      return NextResponse.redirect(new URL(destino, req.url));
+    }
+  }
+
   // Auth guard
   const pathname = req.nextUrl.pathname;
   const protegida = ROTAS_PROTEGIDAS.some(r => pathname.startsWith(r));
