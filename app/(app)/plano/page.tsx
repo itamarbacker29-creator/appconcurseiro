@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -41,19 +42,23 @@ const DIAS_PT: Record<string, string> = {
   Sexta: 'Sex', Sábado: 'Sáb', Domingo: 'Dom',
 };
 
-const PASSOS_SESSAO = [
-  { label: 'Aquecimento', desc: '5 min revisando o tópico anterior', icon: '◎' },
-  { label: 'Estudo', desc: 'Leia o conteúdo principal do tópico', icon: '□' },
-  { label: 'Questões', desc: 'Resolva as questões do dia', icon: '▷' },
-  { label: 'Revisão', desc: 'Anote os erros e revise os conceitos', icon: '✓' },
+const FORMATOS = [
+  { id: 'video',     icone: '▶',  label: 'Vídeos (YouTube)' },
+  { id: 'podcast',   icone: '🎙', label: 'Podcasts' },
+  { id: 'livro',     icone: '📚', label: 'Livros e apostilas' },
+  { id: 'artigo',    icone: '📄', label: 'Artigos e resumos' },
+  { id: 'flashcard', icone: '◇',  label: 'Flashcards' },
+  { id: 'exercicio', icone: '✎',  label: 'Exercícios práticos' },
+  { id: 'mapa',      icone: '◈',  label: 'Mapas mentais' },
+  { id: 'aovivo',    icone: '◎',  label: 'Aulas ao vivo' },
 ];
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ─── AlertaRisco ──────────────────────────────────────────────────────────────
 
 function AlertaRisco({ alerta }: { alerta: Plano['alerta'] }) {
   if (!alerta) return null;
   const estilos = {
-    critico: { bg: 'bg-red-50 border-red-200', texto: 'text-red-700', badge: 'CRÍTICO' },
+    critico: { bg: 'bg-red-50 border-red-200',     texto: 'text-red-700',   badge: 'CRÍTICO' },
     atencao: { bg: 'bg-amber-50 border-amber-200', texto: 'text-amber-700', badge: 'ATENÇÃO' },
     bom:     { bg: 'bg-green-50 border-green-200', texto: 'text-green-700', badge: 'BOM CAMINHO' },
   };
@@ -68,57 +73,72 @@ function AlertaRisco({ alerta }: { alerta: Plano['alerta'] }) {
   );
 }
 
-function ProjecaoEvolucao({ projecao }: { projecao: Plano['projecao'] }) {
+// ─── ProjecaoEvolucao ─────────────────────────────────────────────────────────
+
+function ProjecaoEvolucao({ projecao, questoesPorDia }: { projecao: Plano['projecao']; questoesPorDia: number }) {
   if (!projecao || projecao.length < 2) return null;
-  const max = Math.max(...projecao.map(p => p.percentual), 100);
+  const META = 60;
   return (
     <Card padding="md" className="mb-4">
       <p className="text-[13px] font-semibold text-(--ink) mb-3">Projeção de evolução</p>
-      <div className="flex items-end gap-2 h-24">
-        {projecao.map((p, i) => (
-          <div key={i} className="flex-1 flex flex-col items-center gap-1">
-            <span className="text-[10px] font-bold text-(--accent)">{p.percentual}%</span>
-            <div
-              className="w-full rounded-t bg-(--accent) transition-all"
-              style={{ height: `${(p.percentual / max) * 72}px`, opacity: 0.4 + (i / projecao.length) * 0.6 }}
-            />
-            <span className="text-[9px] text-(--ink-3)">S{p.semana}</span>
-          </div>
-        ))}
+      <div className="flex flex-col gap-2">
+        {projecao.map((p) => {
+          const atingeMeta = p.percentual >= META;
+          return (
+            <div key={p.semana} className="flex items-center gap-3">
+              <span className="text-[11px] text-(--ink-3) w-16 shrink-0">Semana {p.semana}</span>
+              <div className="flex-1 h-2 bg-(--surface-2) rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${atingeMeta ? 'bg-green-500' : 'bg-(--accent)'}`}
+                  style={{ width: `${p.percentual}%` }}
+                />
+              </div>
+              <span className={`text-[11px] font-bold w-8 text-right ${atingeMeta ? 'text-green-600' : 'text-(--accent)'}`}>
+                {p.percentual}%
+              </span>
+              {atingeMeta && <span className="text-[9px] text-green-600 font-bold shrink-0">← meta</span>}
+            </div>
+          );
+        })}
       </div>
-      <p className="text-[11px] text-(--ink-3) mt-2">Estimativa baseada no seu ritmo atual de acertos</p>
+      <p className="text-[11px] text-(--ink-3) mt-3">
+        Projeção com {questoesPorDia} questões/dia. Atualizada conforme seu desempenho real.
+      </p>
     </Card>
   );
 }
+
+// ─── ComparativoAprovados ─────────────────────────────────────────────────────
 
 function ComparativoAprovados({ comparativo }: { comparativo: Plano['comparativo'] }) {
   if (!comparativo || comparativo.length === 0) return null;
   return (
     <Card padding="md" className="mb-4">
-      <p className="text-[13px] font-semibold text-(--ink) mb-3">Você vs. média dos aprovados</p>
+      <p className="text-[13px] font-semibold text-(--ink) mb-1">Onde estão os aprovados</p>
+      <p className="text-[11px] text-(--ink-3) mb-3">Desempenho médio de candidatos aprovados nas principais bancas</p>
       <div className="flex flex-col gap-3">
         {comparativo.map((c, i) => (
           <div key={i}>
-            <div className="flex justify-between text-[11px] text-(--ink-2) mb-1">
-              <span className="font-medium">{c.materia}</span>
-              <span className="text-(--ink-3)">Aprovados: {c.aprovados}%</span>
+            <div className="flex justify-between text-[11px] mb-1">
+              <span className="font-medium text-(--ink-2)">{c.materia}</span>
+              <span>
+                <span className={`font-bold ${c.voce < c.aprovados ? 'text-red-500' : 'text-green-600'}`}>
+                  Você: {c.voce}%
+                </span>
+                <span className="text-(--ink-3) mx-1">·</span>
+                <span className="text-green-600 font-medium">Aprovados: {c.aprovados}%</span>
+              </span>
             </div>
-            <div className="relative h-5 bg-(--surface-2) rounded-full overflow-hidden">
+            <div className="relative h-2 bg-(--surface-2) rounded-full overflow-hidden">
+              <div className="absolute h-full bg-green-200 rounded-full" style={{ width: `${c.aprovados}%` }} />
               <div
-                className="absolute top-0 left-0 h-full bg-(--accent) rounded-full transition-all"
-                style={{ width: `${c.voce}%`, opacity: 0.7 }}
-              />
-              <div
-                className="absolute top-0 left-0 h-full border-r-2 border-green-500"
-                style={{ left: `${c.aprovados}%` }}
+                className={`absolute h-full rounded-full ${c.voce < c.aprovados ? 'bg-red-400' : 'bg-green-500'}`}
+                style={{ width: `${c.voce}%` }}
               />
             </div>
-            <div className="flex justify-between text-[10px] mt-0.5">
-              <span className="text-(--accent) font-medium">Você: {c.voce}%</span>
-              {c.voce < c.aprovados && (
-                <span className="text-amber-600">Faltam {c.aprovados - c.voce}pp</span>
-              )}
-            </div>
+            {c.voce < c.aprovados && (
+              <p className="text-[10px] text-amber-600 mt-0.5">Faltam {c.aprovados - c.voce}pp para a média dos aprovados</p>
+            )}
           </div>
         ))}
       </div>
@@ -126,17 +146,73 @@ function ComparativoAprovados({ comparativo }: { comparativo: Plano['comparativo
   );
 }
 
-function SessaoDiaria({ dia, questoesPorDia }: { dia: DiaPlano; questoesPorDia: number }) {
+// ─── SessaoDiaria ─────────────────────────────────────────────────────────────
+
+function SessaoDiaria({
+  dia,
+  questoesPorDia,
+  formatos,
+  onConcluir,
+}: {
+  dia: DiaPlano;
+  questoesPorDia: number;
+  formatos: string[];
+  onConcluir: () => void;
+}) {
   const [expandida, setExpandida] = useState(false);
   const [buscaSugerida, setBuscaSugerida] = useState<string | null>(null);
   const [carregandoBusca, setCarregandoBusca] = useState(false);
-  const [passosConcluidos, setPassosConcluidos] = useState<boolean[]>([false, false, false, false]);
+  const [passosConcluidos, setPassosConcluidos] = useState([false, false, false, false]);
+
+  const tempoTotal = 5 + 20 + Math.round(dia.questoes * 1.5) + 5;
+
+  const passos = [
+    {
+      num: 1,
+      label: 'Aquecimento',
+      tempo: '5 min',
+      desc: 'Releia seus últimos erros nessa matéria antes de começar.',
+      link: { label: 'Ver meus erros →', href: `/desempenho?materia=${encodeURIComponent(dia.materia)}` },
+    },
+    {
+      num: 2,
+      label: 'Estudo',
+      tempo: '20 min',
+      desc: buscaSugerida ?? (carregandoBusca ? 'Carregando sugestão...' : 'Busque o tópico no YouTube ou na sua apostila.'),
+      link: buscaSugerida
+        ? {
+            label: 'Buscar →',
+            href: `https://www.youtube.com/results?search_query=${encodeURIComponent(buscaSugerida)}`,
+            externo: true,
+          }
+        : null,
+    },
+    {
+      num: 3,
+      label: 'Questões',
+      tempo: `${Math.round(dia.questoes * 1.5)} min`,
+      desc: `${dia.questoes} questões de ${dia.materia}${dia.topico ? ` — ${dia.topico}` : ''}.`,
+      link: {
+        label: 'Iniciar simulado →',
+        href: `/simulado?materia=${encodeURIComponent(dia.materia)}&topico=${encodeURIComponent(dia.topico ?? '')}&quantidade=${dia.questoes}`,
+      },
+    },
+    {
+      num: 4,
+      label: 'Revisão',
+      tempo: '5 min',
+      desc: 'Anote os erros. O plano ajusta o nível de amanhã automaticamente.',
+      link: null,
+    },
+  ];
 
   async function carregarBusca() {
     if (buscaSugerida !== null || carregandoBusca) return;
     setCarregandoBusca(true);
     try {
-      const r = await fetch(`/api/plano/busca-sugerida?materia=${encodeURIComponent(dia.materia)}&topico=${encodeURIComponent(dia.topico)}`);
+      const params = new URLSearchParams({ materia: dia.materia, topico: dia.topico ?? '' });
+      if (formatos.length > 0) params.set('formatos', formatos.join(', '));
+      const r = await fetch(`/api/plano/busca-sugerida?${params}`);
       const { busca } = await r.json();
       setBuscaSugerida(busca ?? `${dia.topico} ${dia.materia} concurso aula`);
     } catch {
@@ -147,7 +223,9 @@ function SessaoDiaria({ dia, questoesPorDia }: { dia: DiaPlano; questoesPorDia: 
   }
 
   function togglePasso(i: number) {
-    setPassosConcluidos(prev => prev.map((v, idx) => idx === i ? !v : v));
+    const novo = passosConcluidos.map((v, idx) => idx === i ? !v : v);
+    setPassosConcluidos(novo);
+    if (novo.every(Boolean)) onConcluir();
   }
 
   function toggleExpandir() {
@@ -174,6 +252,7 @@ function SessaoDiaria({ dia, questoesPorDia }: { dia: DiaPlano; questoesPorDia: 
           {concluidos > 0 && (
             <span className="text-[10px] text-green-600 font-medium">{concluidos}/4</span>
           )}
+          <span className="text-[11px] text-(--ink-3)">{tempoTotal} min</span>
           <span className="text-[12px] font-bold text-(--teal)">{dia.questoes}q</span>
           {dia.tipo === 'revisao' && <Badge variant="warning">Revisão</Badge>}
           <span className="text-[10px] text-(--ink-3) ml-1">{expandida ? '▲' : '▼'}</span>
@@ -182,46 +261,62 @@ function SessaoDiaria({ dia, questoesPorDia }: { dia: DiaPlano; questoesPorDia: 
 
       {expandida && (
         <div className="border-t border-(--border) p-3 flex flex-col gap-3">
-          {/* Passos da sessão */}
-          <div className="grid grid-cols-2 gap-2">
-            {PASSOS_SESSAO.map((passo, i) => (
-              <button
-                key={i}
-                onClick={() => togglePasso(i)}
-                className={`flex items-center gap-2 p-2 rounded-(--radius-sm) text-left border transition-all ${
+          <div className="flex items-center gap-1.5 text-[11px] text-(--ink-3)">
+            <span>⏱</span>
+            <span>Tempo estimado: <strong className="text-(--ink)">{tempoTotal} min</strong></span>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            {passos.map((passo, i) => (
+              <div
+                key={passo.num}
+                className={`flex gap-3 p-2.5 rounded-(--radius-sm) border transition-all cursor-pointer ${
                   passosConcluidos[i]
                     ? 'bg-green-50 border-green-200'
                     : 'bg-(--surface) border-(--border-strong) hover:border-(--accent)'
                 }`}
+                onClick={() => togglePasso(i)}
               >
-                <span className={`text-[16px] ${passosConcluidos[i] ? 'text-green-500' : 'text-(--ink-3)'}`}>
-                  {passosConcluidos[i] ? '✓' : passo.icon}
-                </span>
-                <div>
-                  <p className={`text-[11px] font-semibold ${passosConcluidos[i] ? 'text-green-700' : 'text-(--ink)'}`}>
-                    {passo.label}
-                  </p>
-                  <p className="text-[10px] text-(--ink-3) leading-tight">{passo.desc}</p>
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5 ${
+                  passosConcluidos[i] ? 'bg-green-500 text-white' : 'bg-(--accent) text-white'
+                }`}>
+                  {passosConcluidos[i] ? '✓' : passo.num}
                 </div>
-              </button>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={`text-[12px] font-semibold ${passosConcluidos[i] ? 'text-green-700' : 'text-(--ink)'}`}>
+                      {passo.label}
+                    </span>
+                    <span className="text-[10px] text-(--ink-3) shrink-0">{passo.tempo}</span>
+                  </div>
+                  <p className="text-[11px] text-(--ink-3) leading-snug mt-0.5">{passo.desc}</p>
+                  {passo.link && (
+                    <span
+                      onClick={e => e.stopPropagation()}
+                      className="inline-block mt-1"
+                    >
+                      {passo.link.externo ? (
+                        <a
+                          href={passo.link.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] text-(--accent) font-semibold hover:underline"
+                        >
+                          {passo.link.label}
+                        </a>
+                      ) : (
+                        <Link
+                          href={passo.link.href}
+                          className="text-[11px] text-(--accent) font-semibold hover:underline"
+                        >
+                          {passo.link.label}
+                        </Link>
+                      )}
+                    </span>
+                  )}
+                </div>
+              </div>
             ))}
-          </div>
-
-          {/* Busca sugerida */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[11px] text-(--ink-3)">Pesquisar no YouTube:</span>
-            {carregandoBusca ? (
-              <span className="text-[11px] text-(--ink-3) animate-pulse">Carregando...</span>
-            ) : buscaSugerida ? (
-              <a
-                href={`https://www.youtube.com/results?search_query=${encodeURIComponent(buscaSugerida)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[11px] text-(--accent) underline font-medium hover:opacity-80"
-              >
-                {buscaSugerida}
-              </a>
-            ) : null}
           </div>
         </div>
       )}
@@ -229,52 +324,52 @@ function SessaoDiaria({ dia, questoesPorDia }: { dia: DiaPlano; questoesPorDia: 
   );
 }
 
+// ─── CheckInDiario ────────────────────────────────────────────────────────────
+
 function CheckInDiario({ onCheckin }: { onCheckin: (nivel: string) => void }) {
   const [feito, setFeito] = useState(false);
   const [enviando, setEnviando] = useState(false);
 
-  async function registrar(nivel: string) {
+  const OPCOES = [
+    { nivel: 'dificil',   emoji: '😓', label: 'Difícil',   acao: 'Amanhã será mais leve.',    cor: 'border-red-200 text-red-600 hover:bg-red-50' },
+    { nivel: 'ok',        emoji: '😐', label: 'Ok',         acao: 'Mantendo o ritmo.',         cor: 'border-amber-200 text-amber-600 hover:bg-amber-50' },
+    { nivel: 'tranquilo', emoji: '😊', label: 'Tranquilo',  acao: 'Aumentando o desafio.',     cor: 'border-green-200 text-green-600 hover:bg-green-50' },
+  ];
+
+  async function registrar(opcao: typeof OPCOES[0]) {
     setEnviando(true);
     try {
       await fetch('/api/plano/checkin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nivel }),
+        body: JSON.stringify({ nivel: opcao.nivel }),
       });
       setFeito(true);
-      onCheckin(nivel);
+      onCheckin(`${opcao.emoji} ${opcao.acao}`);
     } finally {
       setEnviando(false);
     }
   }
 
-  if (feito) {
-    return (
-      <div className="fixed bottom-20 left-0 right-0 flex justify-center pointer-events-none z-40">
-        <div className="bg-(--surface) border border-(--border) rounded-full px-4 py-2 text-[12px] text-green-600 font-medium shadow-lg">
-          Check-in registrado
-        </div>
-      </div>
-    );
-  }
+  if (feito) return null;
 
   return (
     <div className="fixed bottom-20 left-0 right-0 flex justify-center z-40 px-4">
-      <div className="bg-(--surface) border border-(--border) rounded-(--radius) shadow-xl p-3 flex flex-col gap-2 w-full max-w-sm">
-        <p className="text-[12px] font-semibold text-(--ink) text-center">Como foi o estudo de hoje?</p>
-        <div className="flex gap-2">
-          {[
-            { nivel: 'dificil',   label: 'Difícil',   cor: 'border-red-200 text-red-600 hover:bg-red-50' },
-            { nivel: 'ok',        label: 'Ok',         cor: 'border-amber-200 text-amber-600 hover:bg-amber-50' },
-            { nivel: 'tranquilo', label: 'Tranquilo',  cor: 'border-green-200 text-green-600 hover:bg-green-50' },
-          ].map(({ nivel, label, cor }) => (
+      <div className="bg-(--surface) border border-(--border) rounded-(--radius) shadow-xl p-4 flex flex-col gap-3 w-full max-w-sm">
+        <div>
+          <p className="text-[13px] font-bold text-(--ink)">Como foi a sessão de hoje?</p>
+          <p className="text-[11px] text-(--ink-3)">Sua resposta ajusta o nível de amanhã.</p>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {OPCOES.map(opcao => (
             <button
-              key={nivel}
+              key={opcao.nivel}
               disabled={enviando}
-              onClick={() => registrar(nivel)}
-              className={`flex-1 py-1.5 rounded-(--radius-sm) border text-[12px] font-medium transition-all ${cor}`}
+              onClick={() => registrar(opcao)}
+              className={`flex flex-col items-center gap-1.5 py-3 rounded-(--radius-sm) border text-[11px] font-semibold transition-all disabled:opacity-50 ${opcao.cor}`}
             >
-              {label}
+              <span className="text-[20px]">{opcao.emoji}</span>
+              {opcao.label}
             </button>
           ))}
         </div>
@@ -283,35 +378,43 @@ function CheckInDiario({ onCheckin }: { onCheckin: (nivel: string) => void }) {
   );
 }
 
-function PreferenciasEstudo({ onAtualizar }: { onAtualizar: () => void }) {
-  const [aberto, setAberto] = useState(false);
+// ─── PreferenciasEstudo ───────────────────────────────────────────────────────
+
+function PreferenciasEstudo({
+  formatosSalvos,
+  onAtualizar,
+}: {
+  formatosSalvos: string[];
+  onAtualizar: (formatos: string[]) => void;
+}) {
+  const [aberto, setAberto] = useState(formatosSalvos.length === 0);
   const [concurso, setConcurso] = useState('');
   const [data, setData] = useState('');
+  const [selecionados, setSelecionados] = useState<string[]>(formatosSalvos);
   const [salvando, setSalvando] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetch('/api/plano')
-      .then(r => r.json())
-      .then(({ plano }) => {
-        if (plano?.data_prova) setData(plano.data_prova);
-      })
-      .catch(() => {});
-  }, []);
+  useEffect(() => { setSelecionados(formatosSalvos); }, [formatosSalvos]);
+
+  function toggleFormato(id: string) {
+    setSelecionados(prev =>
+      prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]
+    );
+  }
 
   async function salvar() {
     setSalvando(true);
     try {
-      const { supabase } = await import('@/lib/supabase');
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       await supabase.from('profiles').update({
+        formatos_preferidos: selecionados,
         ...(concurso ? { concurso_alvo_nome: concurso } : {}),
         ...(data ? { data_prova: data } : {}),
       }).eq('id', user.id);
       toast('Preferências salvas', 'success');
       setAberto(false);
-      onAtualizar();
+      onAtualizar(selecionados);
     } catch {
       toast('Erro ao salvar', 'error');
     } finally {
@@ -319,37 +422,72 @@ function PreferenciasEstudo({ onAtualizar }: { onAtualizar: () => void }) {
     }
   }
 
+  const labelSelecionados = selecionados
+    .map(id => FORMATOS.find(f => f.id === id)?.label)
+    .filter(Boolean)
+    .join(' · ');
+
   return (
     <div className="mb-4">
       <button
         onClick={() => setAberto(v => !v)}
         className="w-full flex items-center justify-between px-4 py-3 rounded-(--radius) border border-(--border-strong) text-[13px] text-(--ink-2) hover:border-(--accent) transition-colors bg-(--surface)"
       >
-        <span className="font-medium">Meu concurso alvo</span>
-        <span className="text-[11px] text-(--ink-3)">{aberto ? '▲ fechar' : '▼ editar'}</span>
+        <div className="text-left">
+          <span className="font-medium block">Meu estilo de estudo</span>
+          {!aberto && labelSelecionados && (
+            <span className="text-[11px] text-(--ink-3)">{labelSelecionados}</span>
+          )}
+        </div>
+        <span className="text-[11px] text-(--ink-3) shrink-0 ml-2">{aberto ? '▲ fechar' : '▼ editar'}</span>
       </button>
+
       {aberto && (
-        <Card padding="md" className="mt-2 flex flex-col gap-3 border-(--border-strong)">
+        <Card padding="md" className="mt-2 flex flex-col gap-4 border-(--border-strong)">
           <div>
-            <label className="text-[12px] font-medium text-(--ink-2) block mb-1">Concurso alvo</label>
-            <input
-              type="text"
-              value={concurso}
-              onChange={e => setConcurso(e.target.value)}
-              placeholder="Ex: INSS — Técnico do Seguro Social"
-              className="w-full h-9 px-3 rounded-(--radius-sm) border border-(--border-strong) text-[13px] bg-(--surface) text-(--ink) outline-none focus:border-(--accent)"
-            />
+            <p className="text-[12px] font-semibold text-(--ink) mb-1">Como você prefere estudar?</p>
+            <p className="text-[11px] text-(--ink-3) mb-3">Usamos isso para sugerir os melhores recursos em cada sessão.</p>
+            <div className="flex flex-wrap gap-2">
+              {FORMATOS.map(f => (
+                <button
+                  key={f.id}
+                  onClick={() => toggleFormato(f.id)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] border transition-all ${
+                    selecionados.includes(f.id)
+                      ? 'bg-(--accent) text-white border-(--accent)'
+                      : 'border-(--border-strong) text-(--ink-2) hover:border-(--accent)'
+                  }`}
+                >
+                  <span>{f.icone}</span>
+                  <span>{f.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
-          <div>
-            <label className="text-[12px] font-medium text-(--ink-2) block mb-1">Data da prova</label>
-            <input
-              type="date"
-              value={data}
-              onChange={e => setData(e.target.value)}
-              className="w-full h-9 px-3 rounded-(--radius-sm) border border-(--border-strong) text-[13px] bg-(--surface) text-(--ink) outline-none focus:border-(--accent)"
-            />
+
+          <div className="flex flex-col gap-2">
+            <div>
+              <label className="text-[12px] font-medium text-(--ink-2) block mb-1">Concurso alvo</label>
+              <input
+                type="text"
+                value={concurso}
+                onChange={e => setConcurso(e.target.value)}
+                placeholder="Ex: INSS — Técnico do Seguro Social"
+                className="w-full h-9 px-3 rounded-(--radius-sm) border border-(--border-strong) text-[13px] bg-(--surface) text-(--ink) outline-none focus:border-(--accent)"
+              />
+            </div>
+            <div>
+              <label className="text-[12px] font-medium text-(--ink-2) block mb-1">Data da prova</label>
+              <input
+                type="date"
+                value={data}
+                onChange={e => setData(e.target.value)}
+                className="w-full h-9 px-3 rounded-(--radius-sm) border border-(--border-strong) text-[13px] bg-(--surface) text-(--ink) outline-none focus:border-(--accent)"
+              />
+            </div>
           </div>
-          <Button size="sm" loading={salvando} onClick={salvar}>Salvar</Button>
+
+          <Button size="sm" loading={salvando} onClick={salvar}>Salvar preferências</Button>
         </Card>
       )}
     </div>
@@ -362,6 +500,7 @@ export default function PlanoPage() {
   const { toast } = useToast();
   const [plano, setPlano] = useState<Plano | null>(null);
   const [habilidades, setHabilidades] = useState<Habilidade[]>([]);
+  const [formatos, setFormatos] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [gerando, setGerando] = useState(false);
   const [questoesPorDia, setQuestoesPorDia] = useState(15);
@@ -372,24 +511,31 @@ export default function PlanoPage() {
     async function carregar() {
       const { data: { user } } = await supabase.auth.getUser();
 
-      const [planoResp, habResp] = await Promise.allSettled([
+      const [planoResp, habResp, profileResp] = await Promise.allSettled([
         fetch('/api/plano').then(r => r.json()),
         user
           ? supabase.from('habilidade_usuario').select('materia, theta').eq('user_id', user.id)
           : Promise.resolve({ data: [] }),
+        user
+          ? supabase.from('profiles').select('formatos_preferidos, questoes_por_dia').eq('id', user.id).single()
+          : Promise.resolve({ data: null }),
       ]);
 
       if (planoResp.status === 'fulfilled' && planoResp.value?.plano?.cronograma) {
         setPlano(planoResp.value.plano.cronograma);
       }
       if (habResp.status === 'fulfilled') {
-        const result = habResp.value as { data: Habilidade[] | null };
-        setHabilidades(result.data ?? []);
+        const r = habResp.value as { data: Habilidade[] | null };
+        setHabilidades(r.data ?? []);
       }
-      setLoading(false);
+      if (profileResp.status === 'fulfilled') {
+        const r = profileResp.value as { data: { formatos_preferidos?: string[]; questoes_por_dia?: number } | null };
+        if (r.data?.formatos_preferidos?.length) setFormatos(r.data.formatos_preferidos);
+        if (r.data?.questoes_por_dia) setQuestoesPorDia(r.data.questoes_por_dia);
+      }
 
-      const hora = new Date().getHours();
-      if (hora >= 19) setMostrarCheckin(true);
+      setLoading(false);
+      if (new Date().getHours() >= 19) setMostrarCheckin(true);
     }
     carregar();
   }, []);
@@ -403,10 +549,7 @@ export default function PlanoPage() {
         body: JSON.stringify({ questoesPorDia }),
       });
       const dados = await resp.json();
-      if (!resp.ok) {
-        toast(dados.error ?? 'Erro ao gerar plano', 'error');
-        return;
-      }
+      if (!resp.ok) { toast(dados.error ?? 'Erro ao gerar plano', 'error'); return; }
       setPlano(dados.plano);
       setSemanaAtiva(1);
       toast('Plano gerado pela IA de alta tecnologia!', 'success');
@@ -417,49 +560,40 @@ export default function PlanoPage() {
     }
   }
 
-  // Gerar alerta de risco com base no histórico de check-ins (simulado localmente)
   function inferirAlerta(): Plano['alerta'] {
     if (!plano) return undefined;
     if (plano.alerta) return plano.alerta;
-    const prioridades = plano.prioridades ?? [];
-    if (prioridades.length === 0) return undefined;
-    const hab = habilidades.find(h => h.materia === prioridades[0]);
-    if (!hab) return { nivel: 'atencao', mensagem: `Comece pelos simulados de ${prioridades[0]} para calibrar seu desempenho.` };
+    const prio = plano.prioridades?.[0];
+    if (!prio) return undefined;
+    const hab = habilidades.find(h => h.materia === prio);
+    if (!hab) return { nivel: 'atencao', mensagem: `Faça simulados de ${prio} para calibrar seu desempenho inicial.` };
     const pct = Math.round(50 + hab.theta * 15);
-    if (pct < 50) return { nivel: 'critico', mensagem: `${prioridades[0]} está abaixo de 50% — precisa de atenção urgente antes da prova.` };
-    if (pct < 65) return { nivel: 'atencao', mensagem: `${prioridades[0]} ainda está abaixo da média dos aprovados. Intensifique os exercícios.` };
-    return { nivel: 'bom', mensagem: `Você está no caminho certo! Mantenha o ritmo e foque nas revisões.` };
+    if (pct < 50) return { nivel: 'critico', mensagem: `${prio} está em ${pct}% — abaixo do mínimo para aprovação. Priorize essa matéria agora.` };
+    if (pct < 65) return { nivel: 'atencao', mensagem: `${prio} em ${pct}% — abaixo da média dos aprovados. Intensifique os exercícios.` };
+    return { nivel: 'bom', mensagem: 'Você está no caminho certo! Mantenha o ritmo e foque nas revisões da última semana.' };
   }
 
-  // Montar dados de comparativo com aprovados a partir das habilidades locais
   function inferirComparativo(): Plano['comparativo'] {
     if (!plano) return undefined;
-    if (plano.comparativo && plano.comparativo.length > 0) return plano.comparativo;
-    const REFERENCIA: Record<string, number> = {
+    if (plano.comparativo?.length) return plano.comparativo;
+    const REF: Record<string, number> = {
       'Português': 72, 'Direito Constitucional': 68, 'Direito Administrativo': 65,
       'Raciocínio Lógico': 60, 'Informática': 65,
     };
-    return habilidades
-      .filter(h => REFERENCIA[h.materia])
-      .slice(0, 4)
-      .map(h => ({
-        materia: h.materia,
-        voce: Math.max(0, Math.min(100, Math.round(50 + h.theta * 15))),
-        aprovados: REFERENCIA[h.materia],
-      }));
+    return habilidades.filter(h => REF[h.materia]).slice(0, 4).map(h => ({
+      materia: h.materia,
+      voce: Math.max(0, Math.min(100, Math.round(50 + h.theta * 15))),
+      aprovados: REF[h.materia],
+    }));
   }
 
-  // Projeção simples: assume melhora de 3-5pp/semana
   function inferirProjecao(): Plano['projecao'] {
     if (!plano) return undefined;
-    if (plano.projecao && plano.projecao.length > 0) return plano.projecao;
-    const mediaAtual = habilidades.length > 0
+    if (plano.projecao?.length) return plano.projecao;
+    const media = habilidades.length > 0
       ? Math.round(habilidades.reduce((s, h) => s + Math.max(0, Math.min(100, Math.round(50 + h.theta * 15))), 0) / habilidades.length)
       : 50;
-    return plano.semanas.map((s, i) => ({
-      semana: s.semana,
-      percentual: Math.min(95, mediaAtual + i * 4),
-    }));
+    return plano.semanas.map((s, i) => ({ semana: s.semana, percentual: Math.min(95, media + i * 4) }));
   }
 
   if (loading) {
@@ -474,9 +608,6 @@ export default function PlanoPage() {
   }
 
   const semanaData = plano?.semanas.find(s => s.semana === semanaAtiva);
-  const alerta = inferirAlerta();
-  const comparativo = inferirComparativo();
-  const projecao = inferirProjecao();
 
   return (
     <div className="p-4 md:p-6 max-w-[900px] mx-auto pb-36">
@@ -485,8 +616,8 @@ export default function PlanoPage() {
         <p className="text-[13px] text-(--ink-3) mt-1">Cronograma personalizado pela nossa IA de alta tecnologia.</p>
       </div>
 
-      {/* Melhoria 0 — Preferências colapsáveis */}
-      <PreferenciasEstudo onAtualizar={gerarPlano} />
+      {/* Melhoria 0 — Preferências + formatos */}
+      <PreferenciasEstudo formatosSalvos={formatos} onAtualizar={setFormatos} />
 
       {/* Gerador */}
       <Card padding="md" className="mb-4 flex flex-col gap-4">
@@ -523,14 +654,12 @@ export default function PlanoPage() {
 
       {plano ? (
         <>
-          {/* Melhoria 3 — Alerta de risco */}
-          <AlertaRisco alerta={alerta} />
+          <AlertaRisco alerta={inferirAlerta()} />
 
-          {/* Diagnóstico */}
           <Card padding="md" className="mb-4">
             <p className="text-[13px] font-semibold text-(--ink) mb-2">Diagnóstico</p>
             <p className="text-[13px] text-(--ink-2) leading-relaxed">{plano.diagnostico}</p>
-            {plano.prioridades && plano.prioridades.length > 0 && (
+            {plano.prioridades?.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-3">
                 <span className="text-[11px] font-semibold text-(--ink-3)">Prioridades:</span>
                 {plano.prioridades.map((p, i) => (
@@ -540,11 +669,8 @@ export default function PlanoPage() {
             )}
           </Card>
 
-          {/* Melhoria 5 — Comparativo com aprovados */}
-          <ComparativoAprovados comparativo={comparativo} />
-
-          {/* Melhoria 2 — Projeção de evolução */}
-          <ProjecaoEvolucao projecao={projecao} />
+          <ComparativoAprovados comparativo={inferirComparativo()} />
+          <ProjecaoEvolucao projecao={inferirProjecao()} questoesPorDia={questoesPorDia} />
 
           {/* Seletor de semana */}
           <div className="flex gap-2 mb-4 flex-wrap">
@@ -563,17 +689,21 @@ export default function PlanoPage() {
             ))}
           </div>
 
-          {/* Melhoria 1 — Sessões expandíveis */}
+          {/* Melhoria 1 — Sessões expandíveis com links */}
           {semanaData && (
             <Card padding="md">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-[14px] font-bold text-(--ink)">
-                  Semana {semanaData.semana} — Foco: {semanaData.foco}
-                </h2>
-              </div>
+              <h2 className="text-[14px] font-bold text-(--ink) mb-4">
+                Semana {semanaData.semana} — Foco: {semanaData.foco}
+              </h2>
               <div className="flex flex-col gap-2">
                 {semanaData.dias.map((dia, i) => (
-                  <SessaoDiaria key={i} dia={dia} questoesPorDia={questoesPorDia} />
+                  <SessaoDiaria
+                    key={i}
+                    dia={dia}
+                    questoesPorDia={questoesPorDia}
+                    formatos={formatos}
+                    onConcluir={() => setMostrarCheckin(true)}
+                  />
                 ))}
               </div>
               <div className="mt-4">
@@ -592,16 +722,16 @@ export default function PlanoPage() {
         <Card padding="lg" className="text-center">
           <p className="text-[15px] font-semibold text-(--ink-2)">Nenhum plano gerado ainda.</p>
           <p className="text-[13px] text-(--ink-3) mt-1">
-            Clique em "Gerar plano" para criar seu cronograma personalizado pela IA de alta tecnologia.
+            Clique em "Gerar plano" para criar seu cronograma personalizado.
           </p>
         </Card>
       )}
 
       {/* Melhoria 4 — Check-in diário */}
       {mostrarCheckin && plano && (
-        <CheckInDiario onCheckin={nivel => {
+        <CheckInDiario onCheckin={msg => {
           setMostrarCheckin(false);
-          toast(`Check-in registrado: ${nivel}`, 'success');
+          toast(msg, 'success');
         }} />
       )}
     </div>
