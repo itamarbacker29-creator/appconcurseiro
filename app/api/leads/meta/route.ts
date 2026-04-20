@@ -15,17 +15,16 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
 
-  // Make.com envia os campos com os nomes do formulário Meta
-  // Suporta tanto snake_case quanto os nomes originais do Meta
+  // Make.com envia os campos com os nomes exatos do formulário Meta
   const nome = String(
-    body.nome_completo ?? body.full_name ?? body.nome ?? ''
+    body['Full name'] ?? body.full_name ?? body.nome_completo ?? body.nome ?? ''
   ).trim();
   const email = String(
-    body['e-mail'] ?? body.email ?? ''
+    body['Email'] ?? body['e-mail'] ?? body.email ?? ''
   ).trim().toLowerCase();
-  const cargoInteresse = String(
-    body['qual_concurso_você_busca?'] ?? body.qual_concurso ?? body.cargoInteresse ?? ''
-  ).trim() || null;
+  // "Qual concurso você busca?" pode chegar como array ["tribunais"] ou string
+  const concursoRaw = body['Qual concurso você busca?'] ?? body.qual_concurso ?? body.cargoInteresse ?? '';
+  const cargoInteresse = (Array.isArray(concursoRaw) ? concursoRaw[0] : String(concursoRaw)).trim() || null;
 
   if (!nome || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: 'nome e email obrigatórios' }, { status: 400 });
