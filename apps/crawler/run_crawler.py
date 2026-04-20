@@ -69,8 +69,16 @@ Retorne APENAS um array JSON válido, sem markdown. Cada edital:
   "banca": "nome da banca ou null",
   "data_inscricao_inicio": "YYYY-MM-DD" ou null,
   "data_inscricao_fim": "YYYY-MM-DD" ou null,
+  "data_prova": "YYYY-MM-DD" ou null,
   "link_inscricao": "URL completa ou null",
-  "link_edital_pdf": "URL do PDF do edital oficial ou null"
+  "link_edital_pdf": "URL do PDF do edital oficial ou null",
+  "taxa_inscricao": número float ou null,
+  "isencao_taxa": {{"disponivel": true/false, "criterios": ["CadÚnico"]}} ou null,
+  "formacao_exigida": ["Direito", "Administração"] ou [],
+  "registro_conselho_exigido": ["OAB"] ou [],
+  "cotas": {{"pcd": 5, "racial": 20, "indigena": null, "quilombola": null}} ou null,
+  "etapas": ["Prova objetiva", "Prova discursiva"] ou [],
+  "local_prova": ["São Paulo"] ou []
 }}
 
 Se nenhum item for válido, retorne []."""
@@ -235,24 +243,38 @@ def normalizar(edital: dict) -> dict | None:
     if link_pdf and not link_pdf.lower().endswith(".pdf") and "edital" not in link_pdf.lower():
         link_pdf = None
 
+    def safe_list(v):
+        return v if isinstance(v, list) else []
+
+    def safe_jsonb(v):
+        return v if isinstance(v, dict) else None
+
     return {
-        "orgao":                 orgao,
-        "cargo":                 cargo,
-        "escolaridade":          escolaridade,
-        "nivel":                 nivel,
-        "cidade":                str(edital["cidade"]).strip()[:100] if edital.get("cidade") else None,
-        "estado":                str(edital.get("estado") or "Nacional").strip()[:10],
-        "area":                  area,
-        "vagas":                 parse_int(edital.get("vagas")),
-        "salario":               parse_float(edital.get("salario")),
-        "banca":                 str(edital["banca"]).strip()[:100] if edital.get("banca") else None,
-        "data_inscricao_inicio": edital.get("data_inscricao_inicio") or None,
-        "data_inscricao_fim":    edital.get("data_inscricao_fim") or None,
-        "link_inscricao":        link_inscricao,
-        "link_edital_pdf":       link_pdf,
-        "materias":              [],
-        "status":                "ativo",
-        "pdf_processado":        False,
+        "orgao":                      orgao,
+        "cargo":                      cargo,
+        "escolaridade":               escolaridade,
+        "nivel":                      nivel,
+        "cidade":                     str(edital["cidade"]).strip()[:100] if edital.get("cidade") else None,
+        "estado":                     str(edital.get("estado") or "Nacional").strip()[:10],
+        "area":                       area,
+        "vagas":                      parse_int(edital.get("vagas")),
+        "salario":                    parse_float(edital.get("salario")),
+        "banca":                      str(edital["banca"]).strip()[:100] if edital.get("banca") else None,
+        "data_inscricao_inicio":      edital.get("data_inscricao_inicio") or None,
+        "data_inscricao_fim":         edital.get("data_inscricao_fim") or None,
+        "data_prova":                 edital.get("data_prova") or None,
+        "link_inscricao":             link_inscricao,
+        "link_edital_pdf":            link_pdf,
+        "taxa_inscricao":             parse_float(edital.get("taxa_inscricao")),
+        "isencao_taxa":               safe_jsonb(edital.get("isencao_taxa")),
+        "formacao_exigida":           safe_list(edital.get("formacao_exigida")),
+        "registro_conselho_exigido":  safe_list(edital.get("registro_conselho_exigido")),
+        "cotas":                      safe_jsonb(edital.get("cotas")),
+        "etapas":                     safe_list(edital.get("etapas")),
+        "local_prova":                safe_list(edital.get("local_prova")),
+        "materias":                   [],
+        "status":                     "ativo",
+        "pdf_processado":             False,
     }
 
 
@@ -350,11 +372,14 @@ def upload_pdf_storage(edital_id: str, pdf_bytes: bytes) -> str | None:
         return None
 
 
-def extrair_materias_gemini(pdf_bytes: bytes) -> list[str]:
-    """Usa Gemini Flash para extrair matérias do conteúdo do PDF."""
+def extrair_campos_pdf_gemini(pdf_bytes: bytes) -> dict:
+    """
+    Usa Gemini Flash com PDF inline para extrair matérias e campos estruturados.
+    Retorna dict com campos encontrados (vazio em caso de falha).
+    """
     if not GEMINI_API_KEY:
-        print("  [GEMINI] GEMINI_API_KEY não configurada — pulando extração de matérias")
-        return []
+        print("  [GEMINI] GEMINI_API_KEY não configurada — pulando extração de PDF")
+        return {}
     try:
         from google import genai as google_genai
         from google.genai import types as gtypes
@@ -365,22 +390,38 @@ def extrair_materias_gemini(pdf_bytes: bytes) -> list[str]:
             contents=[
                 gtypes.Part.from_bytes(data=pdf_bytes, mime_type="application/pdf"),
                 (
-                    "Liste todas as matérias e disciplinas cobradas neste edital de concurso público. "
-                    "Retorne APENAS um array JSON de strings, sem markdown. "
-                    'Exemplo: ["Português", "Direito Constitucional", "Raciocínio Lógico"]. '
-                    "Se não encontrar conteúdo programático, retorne []."
+                    "Analise este edital de concurso público e extraia em JSON:\n"
+                    "{\n"
+                    '  "materias": ["Português", "Direito Constitucional"],\n'
+                    '  "taxa_inscricao": 80.00,\n'
+                    '  "isencao_taxa": {"disponivel": true, "criterios": ["CadÚnico"]},\n'
+                    '  "formacao_exigida": ["Direito"],\n'
+                    '  "registro_conselho_exigido": ["OAB"],\n'
+                    '  "cotas": {"pcd": 5, "racial": 20, "indigena": null, "quilombola": null},\n'
+                    '  "etapas": ["Prova objetiva", "Prova discursiva"],\n'
+                    '  "local_prova": ["São Paulo"],\n'
+                    '  "data_prova": "YYYY-MM-DD",\n'
+                    '  "data_inscricao_inicio": "YYYY-MM-DD",\n'
+                    '  "data_inscricao_fim": "YYYY-MM-DD"\n'
+                    "}\n"
+                    "Retorne APENAS o JSON, sem markdown. Use null para campos não encontrados, [] para listas vazias. "
+                    "Máximo 40 matérias."
                 ),
             ],
         )
         texto = response.text.strip()
         texto = re.sub(r'^```(?:json)?\s*', '', texto, flags=re.MULTILINE)
         texto = re.sub(r'\s*```\s*$', '', texto, flags=re.MULTILINE)
-        materias = json.loads(texto.strip())
-        if isinstance(materias, list):
-            return [str(m).strip() for m in materias if m][:40]  # máximo 40 matérias
+        dados = json.loads(texto.strip())
+        if not isinstance(dados, dict):
+            return {}
+        # Sanitiza matérias
+        if isinstance(dados.get("materias"), list):
+            dados["materias"] = [str(m).strip() for m in dados["materias"] if m][:40]
+        return dados
     except Exception as e:
-        print(f"  [GEMINI] Erro na extração de matérias: {e}")
-    return []
+        print(f"  [GEMINI] Erro na extração de PDF: {e}")
+    return {}
 
 
 async def processar_pdfs_pendentes():
@@ -451,15 +492,26 @@ async def processar_pdfs_pendentes():
             if link_pdf != edital.get("link_edital_pdf"):
                 atualizacao["link_edital_pdf"] = link_pdf
 
-        # 4. Extrair matérias via Gemini
-        materias_atuais = edital.get("materias") or []
-        if not materias_atuais:
-            materias = extrair_materias_gemini(pdf_bytes)
+        # 4. Extrair campos estruturados via Gemini
+        campos = extrair_campos_pdf_gemini(pdf_bytes)
+        if campos:
+            CAMPOS_PDF = [
+                "materias", "taxa_inscricao", "isencao_taxa", "formacao_exigida",
+                "registro_conselho_exigido", "cotas", "etapas", "local_prova",
+                "data_prova", "data_inscricao_inicio", "data_inscricao_fim",
+            ]
+            for campo in CAMPOS_PDF:
+                val = campos.get(campo)
+                if val is not None:
+                    # Não sobrescreve campos que já existem no edital (ex: datas já salvas)
+                    if not edital.get(campo):
+                        atualizacao[campo] = val
+            materias = campos.get("materias") or []
             if materias:
-                atualizacao["materias"] = materias
-                print(f"    Matérias extraídas: {len(materias)} ({', '.join(materias[:5])}{'...' if len(materias) > 5 else ''})")
-            else:
-                print("    Sem matérias extraídas.")
+                print(f"    Matérias: {len(materias)} ({', '.join(materias[:4])}{'…' if len(materias) > 4 else ''})")
+            print(f"    Campos extraídos: {len([k for k in CAMPOS_PDF if campos.get(k)])}")
+        else:
+            print("    Sem campos extraídos do PDF.")
 
         supabase.table("editais").update(atualizacao).eq("id", eid).execute()
 
