@@ -8,6 +8,13 @@ import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
 
+const FORMACOES = [
+  'Ensino Médio completo', 'Graduação em andamento', 'Direito', 'Administração',
+  'Contabilidade', 'Engenharia', 'Psicologia', 'Nutrição', 'Enfermagem',
+  'Medicina', 'Outra graduação',
+];
+const CONSELHOS = ['OAB','CREA','CRM','CRO','CRP','CRN','COREN','Outro'];
+
 const ESTILOS = [
   { id: 'videos', label: '▶ Vídeos (YouTube)' },
   { id: 'podcasts', label: '🎙 Podcasts' },
@@ -65,6 +72,13 @@ interface Perfil {
   data_prova: string | null;
   concurso_alvo_nome: string | null;
   estilos_aprendizado: string[] | null;
+  formacao: string | null;
+  registros_conselho: string[] | null;
+  pcd: boolean;
+  elegivel_cota_racial: boolean;
+  elegivel_cota_indigena: boolean;
+  elegivel_cota_quilombola: boolean;
+  elegivel_isencao_taxa: boolean;
 }
 
 export default function ContaPage() {
@@ -79,6 +93,15 @@ export default function ContaPage() {
   const [concursoNome, setConcursoNome] = useState('');
   const [dataProva, setDataProva] = useState('');
   const [estilos, setEstilos] = useState<string[]>([]);
+  // Elegibilidade
+  const [formacao, setFormacao] = useState('');
+  const [conselhos, setConselhos] = useState<string[]>([]);
+  const [pcd, setPcd] = useState(false);
+  const [cotaRacial, setCotaRacial] = useState(false);
+  const [cotaIndigena, setCotaIndigena] = useState(false);
+  const [cotaQuilombola, setCotaQuilombola] = useState(false);
+  const [isencao, setIsencao] = useState(false);
+  const [salvandoElegibilidade, setSalvandoElegibilidade] = useState(false);
 
   useEffect(() => {
     async function carregar() {
@@ -87,7 +110,7 @@ export default function ContaPage() {
 
       const { data } = await supabase
         .from('profiles')
-        .select('nome, plano, data_prova, concurso_alvo_nome, estilos_aprendizado')
+        .select('nome, plano, data_prova, concurso_alvo_nome, estilos_aprendizado, formacao, registros_conselho, pcd, elegivel_cota_racial, elegivel_cota_indigena, elegivel_cota_quilombola, elegivel_isencao_taxa')
         .eq('id', user.id)
         .single();
 
@@ -98,11 +121,25 @@ export default function ContaPage() {
         data_prova: data?.data_prova ?? null,
         concurso_alvo_nome: data?.concurso_alvo_nome ?? null,
         estilos_aprendizado: data?.estilos_aprendizado ?? null,
+        formacao: data?.formacao ?? null,
+        registros_conselho: data?.registros_conselho ?? null,
+        pcd: data?.pcd ?? false,
+        elegivel_cota_racial: data?.elegivel_cota_racial ?? false,
+        elegivel_cota_indigena: data?.elegivel_cota_indigena ?? false,
+        elegivel_cota_quilombola: data?.elegivel_cota_quilombola ?? false,
+        elegivel_isencao_taxa: data?.elegivel_isencao_taxa ?? false,
       };
       setPerfil(p);
       setConcursoNome(p.concurso_alvo_nome ?? '');
       setDataProva(p.data_prova ?? '');
       setEstilos(p.estilos_aprendizado ?? []);
+      setFormacao(p.formacao ?? '');
+      setConselhos(p.registros_conselho ?? []);
+      setPcd(p.pcd);
+      setCotaRacial(p.elegivel_cota_racial);
+      setCotaIndigena(p.elegivel_cota_indigena);
+      setCotaQuilombola(p.elegivel_cota_quilombola);
+      setIsencao(p.elegivel_isencao_taxa);
       setLoading(false);
     }
     carregar();
@@ -110,6 +147,37 @@ export default function ContaPage() {
 
   function toggleEstilo(id: string) {
     setEstilos(prev => prev.includes(id) ? prev.filter(e => e !== id) : [...prev, id]);
+  }
+
+  function toggleConselho(c: string) {
+    setConselhos(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]);
+  }
+
+  async function salvarElegibilidade() {
+    setSalvandoElegibilidade(true);
+    try {
+      const res = await fetch('/api/conta', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          formacao: formacao || null,
+          registros_conselho: conselhos,
+          pcd, elegivel_cota_racial: cotaRacial,
+          elegivel_cota_indigena: cotaIndigena,
+          elegivel_cota_quilombola: cotaQuilombola,
+          elegivel_isencao_taxa: isencao,
+        }),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        toast(json.error ?? 'Erro ao salvar', 'error');
+      } else {
+        toast('Perfil de elegibilidade salvo!', 'success');
+      }
+    } catch {
+      toast('Falha de conexão.', 'error');
+    }
+    setSalvandoElegibilidade(false);
   }
 
   async function salvarPerfil() {
@@ -242,6 +310,54 @@ export default function ContaPage() {
         </div>
         <Button loading={salvandoEstilos} onClick={salvarEstilos} variant="ghost" className="self-start">
           Salvar preferências
+        </Button>
+      </section>
+
+      {/* Perfil de elegibilidade */}
+      <section id="elegibilidade" className="bg-(--surface) border border-(--border) rounded-(--radius) p-5 flex flex-col gap-4">
+        <div>
+          <h2 className="text-[15px] font-bold text-(--ink)">Perfil de elegibilidade</h2>
+          <p className="text-[12px] text-(--ink-3) mt-1">Usado para analisar se você é elegível aos editais e se concorre por cotas.</p>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-[12px] font-medium text-(--ink-3)">Formação</label>
+          <select value={formacao} onChange={e => setFormacao(e.target.value)}
+            className="h-10 rounded-sm border border-(--border-strong) px-3 text-[14px] bg-(--surface) text-(--ink) outline-none focus:border-(--accent) transition-colors">
+            <option value="">Selecione</option>
+            {FORMACOES.map(f => <option key={f} value={f}>{f}</option>)}
+          </select>
+        </div>
+        <div className="flex flex-col gap-2">
+          <label className="text-[12px] font-medium text-(--ink-3)">Registros em conselho profissional</label>
+          <div className="flex flex-wrap gap-2">
+            {CONSELHOS.map(c => (
+              <button key={c} onClick={() => toggleConselho(c)}
+                className={[
+                  'px-3 py-1.5 rounded-full text-[13px] font-medium border transition-all',
+                  conselhos.includes(c) ? 'bg-(--accent) text-white border-(--accent)' : 'border-(--border-strong) text-(--ink-2) hover:border-(--accent)',
+                ].join(' ')}>
+                {c}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="flex flex-col gap-2">
+          <label className="text-[12px] font-medium text-(--ink-3)">Situações especiais</label>
+          {[
+            { val: pcd, set: setPcd, label: 'Pessoa com Deficiência (PcD)' },
+            { val: cotaRacial, set: setCotaRacial, label: 'Preto ou pardo (cota racial)' },
+            { val: cotaIndigena, set: setCotaIndigena, label: 'Indígena' },
+            { val: cotaQuilombola, set: setCotaQuilombola, label: 'Quilombola' },
+            { val: isencao, set: setIsencao, label: 'Inscrito no CadÚnico ou doador de medula (isenção de taxa)' },
+          ].map(item => (
+            <label key={item.label} className="flex items-center gap-2 text-[13px] text-(--ink-2) cursor-pointer">
+              <input type="checkbox" checked={item.val} onChange={e => item.set(e.target.checked)} className="accent-(--accent)" />
+              {item.label}
+            </label>
+          ))}
+        </div>
+        <Button loading={salvandoElegibilidade} onClick={salvarElegibilidade} variant="ghost" className="self-start">
+          Salvar elegibilidade
         </Button>
       </section>
 
