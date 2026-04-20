@@ -15,15 +15,21 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
 
-  // Make.com envia os campos com os nomes exatos do formulário Meta
-  const nome = String(
-    body['Full name'] ?? body.full_name ?? body.nome_completo ?? body.nome ?? ''
-  ).trim();
-  const email = String(
-    body['Email'] ?? body['e-mail'] ?? body.email ?? ''
-  ).trim().toLowerCase();
-  // "Qual concurso você busca?" pode chegar como array ["tribunais"] ou string
-  const concursoRaw = body['Qual concurso você busca?'] ?? body.qual_concurso ?? body.cargoInteresse ?? '';
+  // Extrai campos independente de como o Make.com estrutura o payload.
+  // Suporta: campo direto, aninhado em field_data, ou bundle completo do Make.
+  const fd = body.field_data ?? body.fieldData ?? body['Field data'] ?? {};
+
+  function pick(...keys: string[]): string {
+    for (const k of keys) {
+      const v = body[k] ?? fd[k];
+      if (v !== undefined && v !== null && String(v).trim()) return String(v).trim();
+    }
+    return '';
+  }
+
+  const nome = pick('Full name', 'full_name', 'nome_completo', 'nome');
+  const email = pick('Email', 'e-mail', 'email').toLowerCase();
+  const concursoRaw = body['Qual concurso você busca?'] ?? fd['Qual concurso você busca?'] ?? body.qual_concurso ?? '';
   const cargoInteresse = (Array.isArray(concursoRaw) ? concursoRaw[0] : String(concursoRaw)).trim() || null;
 
   if (!nome || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
