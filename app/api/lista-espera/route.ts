@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
     try {
       const linkReferral = `https://otutor.com.br?ref=${referralCode}`;
       await resend.emails.send({
-        from: 'O Tutor <noreply@otutor.com.br>',
+        from: 'O Tutor <contato@otutor.com.br>',
         to: email,
         subject: 'Bem-vindo ao programa de testes — O Tutor',
         html: `
