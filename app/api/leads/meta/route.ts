@@ -14,7 +14,6 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  console.log('[leads/meta] body recebido:', JSON.stringify(body));
 
   // Extrai campos independente de como o Make.com estrutura o payload.
   // Suporta: campo direto, aninhado em field_data, ou bundle completo do Make.
