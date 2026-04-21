@@ -35,6 +35,6 @@ export async function verificarLimite(
     return { permitido: success, restante: remaining };
   } catch (e) {
     console.error('[ratelimit] Erro ao verificar limite:', e);
-    return { permitido: false, restante: 0 };
+    return { permitido: true, restante: 999 }; // falha silenciosa — não bloqueia o usuário
   }
 }

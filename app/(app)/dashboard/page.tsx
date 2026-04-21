@@ -72,7 +72,7 @@ export default async function DashboardPage() {
       <div className="rounded-(--radius) overflow-hidden bg-(--accent) text-white p-5 flex items-center justify-between gap-4">
         <div>
           <p className="text-white/70 text-[13px] font-medium">{saudacao()}</p>
-          <h1 className="text-[22px] font-black tracking-tight mt-0.5">{nome.split(' ')[0]}</h1>
+          <h1 className="text-[22px] font-black tracking-tight mt-0.5 text-white">{nome.split(' ')[0]}</h1>
           {diasRestantes !== null ? (
             <p className="text-white/80 text-[13px] mt-1">
               {nomeProvaRef && <span className="font-semibold text-white">{nomeProvaRef} · </span>}
@@ -136,7 +136,7 @@ export default async function DashboardPage() {
                 const prazo = e.data_inscricao_fim ? new Date(e.data_inscricao_fim) : null;
                 const urgente = prazo && (prazo.getTime() - Date.now()) / 86400000 <= 5;
                 return (
-                  <div key={es.edital_id} className="p-3 bg-(--surface-2) rounded-(--radius-sm) flex flex-col gap-1">
+                  <Link key={es.edital_id} href={`/editais/${es.edital_id}`} className="p-3 bg-(--surface-2) rounded-(--radius-sm) flex flex-col gap-1 hover:bg-(--surface-2)/80 transition-colors">
                     <p className="text-[10px] font-semibold text-(--ink-3) uppercase tracking-wide">{e.orgao}</p>
                     <p className="text-[13px] font-semibold text-(--ink) leading-tight">{e.cargo}</p>
                     <div className="flex items-center gap-2 flex-wrap mt-0.5">
@@ -152,7 +152,7 @@ export default async function DashboardPage() {
                         </p>
                       )}
                     </div>
-                  </div>
+                  </Link>
                 );
               })}
             </div>
