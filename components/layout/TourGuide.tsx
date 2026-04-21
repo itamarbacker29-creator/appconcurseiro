@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 
-const TOUR_KEY = 'otutor_tour_v1';
+const TOUR_KEY = 'otutor_tour_v2';
 const PAD = 8;
 const GAP = 14;
 const TOOLTIP_W = 272;
