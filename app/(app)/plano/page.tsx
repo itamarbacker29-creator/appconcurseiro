@@ -36,6 +36,7 @@ interface Plano {
 }
 
 interface Habilidade { materia: string; theta: number }
+interface EditalSalvo { edital_id: string; editais: { orgao: string; cargo: string; materias: string[] | null } | null }
 
 const DIAS_PT: Record<string, string> = {
   Segunda: 'Seg', Terça: 'Ter', Quarta: 'Qua', Quinta: 'Qui',
@@ -506,12 +507,14 @@ export default function PlanoPage() {
   const [questoesPorDia, setQuestoesPorDia] = useState(15);
   const [semanaAtiva, setSemanaAtiva] = useState(1);
   const [mostrarCheckin, setMostrarCheckin] = useState(false);
+  const [editaisSalvos, setEditaisSalvos] = useState<EditalSalvo[]>([]);
+  const [editalSelecionado, setEditalSelecionado] = useState<string>('');
 
   useEffect(() => {
     async function carregar() {
       const { data: { user } } = await supabase.auth.getUser();
 
-      const [planoResp, habResp, profileResp] = await Promise.allSettled([
+      const [planoResp, habResp, profileResp, editaisResp] = await Promise.allSettled([
         fetch('/api/plano').then(r => r.json()),
         user
           ? supabase.from('habilidade_usuario').select('materia, theta').eq('user_id', user.id)
@@ -519,6 +522,9 @@ export default function PlanoPage() {
         user
           ? supabase.from('profiles').select('formatos_preferidos, questoes_por_dia').eq('id', user.id).single()
           : Promise.resolve({ data: null }),
+        user
+          ? supabase.from('editais_salvos').select('edital_id, editais(orgao, cargo, materias)').eq('user_id', user.id).limit(10)
+          : Promise.resolve({ data: [] }),
       ]);
 
       if (planoResp.status === 'fulfilled' && planoResp.value?.plano?.cronograma) {
@@ -533,6 +539,10 @@ export default function PlanoPage() {
         if (r.data?.formatos_preferidos?.length) setFormatos(r.data.formatos_preferidos);
         if (r.data?.questoes_por_dia) setQuestoesPorDia(r.data.questoes_por_dia);
       }
+      if (editaisResp.status === 'fulfilled') {
+        const r = editaisResp.value as { data: EditalSalvo[] | null };
+        setEditaisSalvos(r.data ?? []);
+      }
 
       setLoading(false);
       if (new Date().getHours() >= 19) setMostrarCheckin(true);
@@ -546,7 +556,7 @@ export default function PlanoPage() {
       const resp = await fetch('/api/plano', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ questoesPorDia }),
+        body: JSON.stringify({ questoesPorDia, editalId: editalSelecionado || undefined }),
       });
       const dados = await resp.json();
       if (!resp.ok) {
@@ -628,6 +638,37 @@ export default function PlanoPage() {
 
       {/* Gerador */}
       <Card padding="md" className="mb-4 flex flex-col gap-4">
+        {/* Seletor de edital */}
+        {editaisSalvos.length > 0 && (
+          <div>
+            <label className="text-[13px] font-medium text-(--ink-2) block mb-1">
+              Basear plano em um edital salvo
+            </label>
+            <select
+              value={editalSelecionado}
+              onChange={e => setEditalSelecionado(e.target.value)}
+              className="w-full h-10 px-3 rounded-sm border border-(--border-strong) text-[13px] bg-(--surface) text-(--ink) outline-none focus:border-(--accent) transition-colors"
+            >
+              <option value="">— Plano geral (sem edital específico)</option>
+              {editaisSalvos.map(es => (
+                <option key={es.edital_id} value={es.edital_id}>
+                  {es.editais?.orgao ?? ''} — {es.editais?.cargo ?? ''}
+                  {es.editais?.materias?.length ? ` (${es.editais.materias.length} matérias)` : ''}
+                </option>
+              ))}
+            </select>
+            {editalSelecionado && (() => {
+              const ed = editaisSalvos.find(es => es.edital_id === editalSelecionado);
+              const mats = ed?.editais?.materias;
+              return mats && mats.length > 0 ? (
+                <p className="text-[11px] text-(--ink-3) mt-1">
+                  Matérias: {mats.slice(0, 5).join(', ')}{mats.length > 5 ? ` +${mats.length - 5}` : ''}
+                </p>
+              ) : null;
+            })()}
+          </div>
+        )}
+
         <div className="flex flex-col md:flex-row md:items-center gap-3">
           <div className="flex-1">
             <label className="text-[13px] font-medium text-(--ink-2) block mb-1">

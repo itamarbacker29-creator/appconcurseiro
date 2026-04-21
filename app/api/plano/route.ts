@@ -39,7 +39,7 @@ Gere um plano de estudo semanal para as próximas 4 semanas em JSON:
 }
 
 Priorize matérias com menor desempenho E maior importância nos concursos.
-Alterne matérias diferentes a cada dia.
+{materias_edital}Alterne matérias diferentes a cada dia.
 Reserve a última semana para revisão.
 Retorne APENAS o JSON, sem markdown.`;
 
@@ -60,25 +60,33 @@ export async function POST(req: NextRequest) {
 
   let edital = null;
   if (editalId) {
-    const { data } = await supabase.from('editais').select('orgao, cargo, materias, banca').eq('id', editalId).single();
+    const { data } = await supabase.from('editais').select('orgao, cargo, materias, banca, data_prova').eq('id', editalId).single();
     edital = data;
   }
 
-  const diasRestantes = profile?.data_prova
-    ? Math.max(1, Math.ceil((new Date(profile.data_prova).getTime() - Date.now()) / 86400000))
+  const dataProvaFinal = edital?.data_prova ?? profile?.data_prova ?? null;
+  const diasRestantes = dataProvaFinal
+    ? Math.max(1, Math.ceil((new Date(dataProvaFinal).getTime() - Date.now()) / 86400000))
     : 90;
 
   const desempenhoTexto = habilidades?.map(h =>
     `  - ${h.materia}: ${thetaParaPercentual(h.theta)}%`
   ).join('\n') ?? '  (sem dados ainda)';
 
+  // Matérias do edital — quando disponíveis, o plano foca exclusivamente nelas
+  const materiasEdital: string[] = Array.isArray(edital?.materias) ? edital.materias : [];
+  const materiasEditalTexto = materiasEdital.length > 0
+    ? `\nIMPORTANTE — Este plano é específico para o edital. Inclua SOMENTE as matérias abaixo no cronograma:\n${materiasEdital.map(m => `  · ${m}`).join('\n')}\nPara matérias sem dado de desempenho do candidato, assuma 50% de acerto.\n\n`
+    : '';
+
   try {
     const prompt = PROMPT_PLANO
       .replace('{concurso}', edital ? `${edital.orgao} — ${edital.cargo}` : (profile?.concurso_alvo_nome ?? 'Concurso público geral'))
-      .replace('{dataProva}', profile?.data_prova ?? 'Não definida')
+      .replace('{dataProva}', dataProvaFinal ?? 'Não definida')
       .replace('{diasRestantes}', String(diasRestantes))
       .replace('{questoesPorDia}', String(questoesPorDia))
-      .replace('{desempenho}', desempenhoTexto);
+      .replace('{desempenho}', desempenhoTexto)
+      .replace('{materias_edital}', materiasEditalTexto);
 
     const raw = await gerarTexto(prompt, (profile?.plano ?? 'free') as PlanoIA, undefined, 4096);
     // Remove markdown fences e extrai o primeiro objeto JSON encontrado

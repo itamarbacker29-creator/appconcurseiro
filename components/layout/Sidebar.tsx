@@ -21,9 +21,12 @@ const NAV: NavItem[] = [
   { href: '/estimativa',  label: 'Estimativa',      icon: 'emoji_events' },
   { href: '/plano',       label: 'Plano de Estudo', icon: 'calendar_month' },
   { href: '/flashcards',  label: 'Flashcards',      icon: 'style' },
+  { href: '/apostilas',   label: 'Apostilas',       icon: 'menu_book' },
   { href: '/tutor',       label: 'Tutor IA',        icon: 'auto_awesome' },
   { href: '/conta',       label: 'Conta',           icon: 'manage_accounts' },
 ];
+
+const MOBILE_NAV_HREFS = ['/dashboard', '/editais', '/simulado', '/desempenho', '/conta'];
 
 interface SidebarProps {
   user: { nome: string; email: string; plano: string } | null;
@@ -110,7 +113,7 @@ export function Sidebar({ user }: SidebarProps) {
 
       {/* Mobile bottom tab bar — Dashboard, Editais, Simulados, Desempenho, Conta */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-(--surface) border-t border-(--border) flex">
-        {[NAV[0], NAV[1], NAV[2], NAV[3], NAV[8]].map(item => {
+        {NAV.filter(item => MOBILE_NAV_HREFS.includes(item.href)).map(item => {
           const active = pathname.startsWith(item.href);
           return (
             <Link
