@@ -25,6 +25,24 @@ Responda APENAS em JSON válido, sem markdown, sem texto antes ou depois:
   "explicacao": "explicação detalhada de por que a alternativa correta está correta e por que as demais são incorretas"
 }`;
 
+/** Embaralha as opcoes e reescreve as letras A-E, atualizando o gabarito. */
+function embaralharOpcoes(opcoes: { letra: string; texto: string }[], gabarito: string) {
+  const textoCorreto = opcoes.find(o => o.letra.toUpperCase() === gabarito.toUpperCase())?.texto;
+  if (!textoCorreto) return { opcoes, gabarito };
+
+  const textos = opcoes.map(o => o.texto);
+  // Fisher-Yates
+  for (let i = textos.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [textos[i], textos[j]] = [textos[j], textos[i]];
+  }
+
+  const letras = ['A', 'B', 'C', 'D', 'E'];
+  const novasOpcoes = textos.map((texto, i) => ({ letra: letras[i], texto }));
+  const novoGabarito = novasOpcoes.find(o => o.texto === textoCorreto)!.letra;
+  return { opcoes: novasOpcoes, gabarito: novoGabarito };
+}
+
 function extrairJSON(texto: string): string {
   texto = texto.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '').trim();
   const match = texto.match(/\{[\s\S]*\}/);
@@ -123,6 +141,10 @@ export async function POST(req: NextRequest) {
     const textoResposta = extrairJSON(await gerarTexto(prompt, plano));
     const novaQuestao = JSON.parse(textoResposta);
 
+    // Embaralha opções para evitar viés da IA (que tende a colocar gabarito em B)
+    const { opcoes: opcosEmbaralhadas, gabarito: gabaritoFinal } =
+      embaralharOpcoes(novaQuestao.opcoes ?? [], novaQuestao.gabarito ?? 'A');
+
     // Usa admin client para inserir (sem restrições de RLS)
     const { data: salva, error: errInsert } = await adminClient.from('questoes').insert({
       edital_id: editalId ?? null,
@@ -130,8 +152,8 @@ export async function POST(req: NextRequest) {
       nivel,
       banca: edital?.banca ?? null,
       enunciado: novaQuestao.enunciado,
-      opcoes: novaQuestao.opcoes,
-      gabarito: novaQuestao.gabarito,
+      opcoes: opcosEmbaralhadas,
+      gabarito: gabaritoFinal,
       explicacao: novaQuestao.explicacao ?? null,
       origem: 'ia',
     }).select().single();
