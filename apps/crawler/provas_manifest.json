@@ -1,0 +1,18 @@
+[
+  {
+    "_nota": "Adicione URLs de PDFs públicos aqui. Prova + Gabarito são obrigatórios.",
+    "_fontes": [
+      "CEBRASPE: https://www.cebraspe.org.br/concursos (aba 'Provas e Gabaritos')",
+      "FGV: https://conhecimento.fgv.br/concursos",
+      "FCC: https://www.concursosfcc.com.br",
+      "VUNESP: https://www.vunesp.com.br",
+      "IADES: https://iades.com.br/concursos",
+      "IDECAN: https://idecan.org.br",
+      "NC-UFPR: https://www.nc.ufpr.br"
+    ],
+    "banca": "_EXEMPLO",
+    "concurso": "_EXEMPLO - apague esta entrada e adicione as reais abaixo",
+    "prova_url": "",
+    "gabarito_url": ""
+  }
+]
