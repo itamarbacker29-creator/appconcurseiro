@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase-server';
 import { Sidebar } from '@/components/layout/Sidebar';
+import { TourGuide } from '@/components/layout/TourGuide';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,6 +29,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <main className="flex-1 overflow-x-hidden pb-16 md:pb-0">
         {children}
       </main>
+      <TourGuide />
     </div>
   );
 }

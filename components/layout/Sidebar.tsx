@@ -64,6 +64,7 @@ export function Sidebar({ user }: SidebarProps) {
               <Link
                 key={item.href}
                 href={item.href}
+                data-tour={`nav-${item.href.slice(1)}`}
                 className={[
                   'flex items-center gap-3 px-3 py-2 rounded-(--radius-sm) text-[13px] font-medium transition-all',
                   active
@@ -115,6 +116,7 @@ export function Sidebar({ user }: SidebarProps) {
             <Link
               key={item.href}
               href={item.href}
+              data-tour={`nav-${item.href.slice(1)}`}
               className={[
                 'flex-1 flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors',
                 active ? 'text-(--accent)' : 'text-(--ink-3)',
