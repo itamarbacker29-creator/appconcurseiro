@@ -17,11 +17,18 @@ interface Material {
 }
 
 const MATERIAS = [
+  // Direito
   'Direito Constitucional', 'Direito Administrativo', 'Direito Penal',
   'Direito Processual Penal', 'Direito Civil', 'Direito do Trabalho',
-  'Direito Tributário', 'Português', 'Inglês', 'Matemática',
-  'Raciocínio Lógico', 'Informática', 'Administração', 'Economia',
-  'Contabilidade', 'Legislação Específica',
+  'Direito Tributário', 'Direito Processual Civil', 'Direito Empresarial',
+  // Geral
+  'Português', 'Língua Inglesa', 'Matemática', 'Raciocínio Lógico',
+  'Informática', 'Administração', 'Economia', 'Contabilidade',
+  'Finanças Públicas', 'Estatística', 'Atualidades', 'Conhecimentos Gerais',
+  'Legislação Específica',
+  // Saúde
+  'Saúde Pública', 'Epidemiologia', 'Enfermagem', 'Farmácia',
+  'Odontologia', 'Fisioterapia', 'Nutrição', 'Psicologia', 'Serviço Social',
 ];
 
 function formatBytes(bytes: number | null): string {

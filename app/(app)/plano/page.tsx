@@ -173,7 +173,7 @@ function SessaoDiaria({
       label: 'Aquecimento',
       tempo: '5 min',
       desc: 'Releia seus últimos erros nessa matéria antes de começar.',
-      link: { label: 'Ver meus erros →', href: `/desempenho?materia=${encodeURIComponent(dia.materia)}` },
+      link: { label: 'Ver meus erros →', href: `/erros?materia=${encodeURIComponent(dia.materia)}` },
     },
     {
       num: 2,
