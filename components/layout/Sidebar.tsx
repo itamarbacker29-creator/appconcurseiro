@@ -48,7 +48,7 @@ export function Sidebar({ user }: SidebarProps) {
         {/* Logo */}
         <div className="px-4 py-4 border-b border-(--border)">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <img src="/logo.svg" alt="O Tutor" width={32} height={32} />
+            <img src="/logo.png" alt="O Tutor" width={32} height={32} />
             <span className="font-black text-[15px] tracking-tight text-(--accent)" style={{ fontFamily: 'var(--font-montserrat, Montserrat, sans-serif)' }}>
               {IDENTIDADE.nomeCurto}
             </span>

@@ -6,7 +6,7 @@ export function Footer() {
     <footer className="border-t border-(--border) bg-(--surface-2) py-8 mt-auto">
       <div className="max-w-[860px] mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <img src="/logo.svg" alt="O Tutor" width={26} height={26} />
+          <img src="/logo.png" alt="O Tutor" width={26} height={26} />
           <span className="text-[13px] font-black text-(--accent)" style={{ fontFamily: 'var(--font-montserrat, Montserrat, sans-serif)' }}>{IDENTIDADE.nomeCurto}</span>
         </div>
 
