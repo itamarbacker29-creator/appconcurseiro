@@ -1,18 +1,13 @@
 import type { Metadata, Viewport } from 'next';
-import { Manrope, Inter } from 'next/font/google';
+import { Montserrat } from 'next/font/google';
 import './globals.css';
 import { IDENTIDADE } from '@/config/identidade';
 import { ToastProvider } from '@/components/ui/Toast';
 
-const manrope = Manrope({
+const montserrat = Montserrat({
   subsets: ['latin'],
-  variable: '--font-manrope',
-  display: 'swap',
-});
-
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
+  variable: '--font-montserrat',
+  weight: ['400', '500', '600', '700', '800', '900'],
   display: 'swap',
 });
 
@@ -56,14 +51,14 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className={`h-full ${manrope.variable} ${inter.variable}`} style={{ colorScheme: 'light' }}>
+    <html lang="pt-BR" className={`h-full ${montserrat.variable}`} style={{ colorScheme: 'light' }}>
       <head>
         <link
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"
         />
       </head>
-      <body className="min-h-full flex flex-col bg-(--surface) text-(--ink)">
+      <body className="min-h-full flex flex-col bg-(--surface-2) text-(--ink)">
         <ToastProvider>
           {children}
         </ToastProvider>

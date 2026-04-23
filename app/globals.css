@@ -6,11 +6,11 @@
 :root {
   color-scheme: light;
 
-  /* Primária */
-  --accent: #2B3DE8;
-  --accent-hover: #1E30D4;
-  --accent-light: #EEF0FF;
-  --accent-text: #1E30D4;
+  /* Primária — Laranja O Tutor */
+  --accent: #FF8400;
+  --accent-hover: #E07500;
+  --accent-light: #FFF3E0;
+  --accent-text: #CC6A00;
 
   /* Sucesso / Acerto */
   --teal: #0EA574;
@@ -23,15 +23,15 @@
   --warning: #F59E0B;
   --warning-light: #FFF8E1;
 
-  /* Neutros */
-  --ink: #0D1117;
-  --ink-2: #3A3D4A;
-  --ink-3: #7A7D8A;
+  /* Neutros — Navy + Creme */
+  --ink: #17375E;
+  --ink-2: #2D5080;
+  --ink-3: #7A8FA6;
   --surface: #FFFFFF;
-  --surface-2: #F7F8FC;
-  --surface-3: #EEEEF6;
-  --border: rgba(0, 0, 0, 0.08);
-  --border-strong: rgba(0, 0, 0, 0.14);
+  --surface-2: #F4F1DA;
+  --surface-3: #EBE8CB;
+  --border: rgba(23, 55, 94, 0.10);
+  --border-strong: rgba(23, 55, 94, 0.18);
 
   /* Layout */
   --radius: 12px;
@@ -39,16 +39,16 @@
   --sidebar-w: 220px;
 
   /* Alias background/foreground */
-  --background: var(--surface);
+  --background: var(--surface-2);
   --foreground: var(--ink);
 
   /* ============================================
-     MATERIAL DESIGN 3 — TOKENS (Stitch)
+     MATERIAL DESIGN 3 — TOKENS
      ============================================ */
-  --md-sys-color-primary:              #2B3DE8;
+  --md-sys-color-primary:              #FF8400;
   --md-sys-color-on-primary:           #FFFFFF;
-  --md-sys-color-primary-container:    #EEF0FF;
-  --md-sys-color-on-primary-container: #1E30D4;
+  --md-sys-color-primary-container:    #FFF3E0;
+  --md-sys-color-on-primary-container: #CC6A00;
 
   --md-sys-color-secondary:              #0EA574;
   --md-sys-color-on-secondary:           #FFFFFF;
@@ -61,11 +61,11 @@
   --md-sys-color-on-error-container: #B3110F;
 
   --md-sys-color-surface:            #FFFFFF;
-  --md-sys-color-on-surface:         #0D1117;
-  --md-sys-color-surface-variant:    #F7F8FC;
-  --md-sys-color-on-surface-variant: #3A3D4A;
-  --md-sys-color-outline:            rgba(0,0,0,0.14);
-  --md-sys-color-outline-variant:    rgba(0,0,0,0.08);
+  --md-sys-color-on-surface:         #17375E;
+  --md-sys-color-surface-variant:    #F4F1DA;
+  --md-sys-color-on-surface-variant: #2D5080;
+  --md-sys-color-outline:            rgba(23,55,94,0.18);
+  --md-sys-color-outline-variant:    rgba(23,55,94,0.10);
 
   --md-sys-shape-corner-none:         0px;
   --md-sys-shape-corner-extra-small:  4px;
@@ -79,24 +79,24 @@
 /* Landing/public — força tema claro independente do OS (Navbar usa CSS vars) */
 .public-layout {
   color-scheme: light;
-  --accent: #2B3DE8;
-  --accent-hover: #1E30D4;
-  --accent-light: #EEF0FF;
-  --accent-text: #1E30D4;
+  --accent: #FF8400;
+  --accent-hover: #E07500;
+  --accent-light: #FFF3E0;
+  --accent-text: #CC6A00;
   --teal: #0EA574;
   --teal-light: #E4F7F0;
   --danger: #E24B4A;
   --danger-light: #FDECEA;
-  --ink: #0D1117;
-  --ink-2: #3A3D4A;
-  --ink-3: #7A7D8A;
+  --ink: #17375E;
+  --ink-2: #2D5080;
+  --ink-3: #7A8FA6;
   --surface: #FFFFFF;
-  --surface-2: #F7F8FC;
-  --surface-3: #EEEEF6;
-  --border: rgba(0, 0, 0, 0.08);
-  --border-strong: rgba(0, 0, 0, 0.14);
-  --background: #FFFFFF;
-  --foreground: #0D1117;
+  --surface-2: #F4F1DA;
+  --surface-3: #EBE8CB;
+  --border: rgba(23, 55, 94, 0.10);
+  --border-strong: rgba(23, 55, 94, 0.18);
+  --background: #F4F1DA;
+  --foreground: #17375E;
 }
 
 
@@ -108,17 +108,17 @@
 }
 
 body {
-  background: var(--surface);
+  background: var(--surface-2);
   color: var(--ink);
-  font-family: var(--font-inter, "Inter", -apple-system, "Segoe UI", sans-serif);
+  font-family: var(--font-montserrat, "Montserrat", -apple-system, "Segoe UI", sans-serif);
   font-size: 15px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-manrope, "Manrope", var(--font-inter, "Inter"), sans-serif);
-  font-weight: 700;
+  font-family: var(--font-montserrat, "Montserrat", sans-serif);
+  font-weight: 900;
   letter-spacing: -0.5px;
   line-height: 1.2;
   color: var(--ink);
@@ -205,7 +205,8 @@ a {
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
 .font-display {
-  font-family: var(--font-manrope, "Manrope", sans-serif);
+  font-family: var(--font-montserrat, "Montserrat", sans-serif);
+  font-weight: 900;
 }
 
 /* MD3 elevation shadows */

@@ -10,8 +10,8 @@ export const IDENTIDADE = {
   emailNoreply:       'noreply@otutor.com.br',
   slogan:             'A guia mais inteligente para sua aprovação.',
   sloganHero:         'Sua aprovação começa aqui',
-  corPrimaria:        '#2B3DE8',
-  corPrimariaDark:    '#5B6BFF',
+  corPrimaria:        '#FF8400',
+  corPrimariaDark:    '#E07500',
   packageName:        'br.com.otutor.app',
   stripePrefix:       'otutor_',
 } as const;

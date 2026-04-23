@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 220" fill="none">
+  <defs>
+    <linearGradient id="flameGrad" x1="100" y1="0" x2="100" y2="220" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FF4500"/>
+      <stop offset="55%" stop-color="#FF8400"/>
+      <stop offset="100%" stop-color="#FFA040"/>
+    </linearGradient>
+    <linearGradient id="flickerGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FF3300"/>
+      <stop offset="100%" stop-color="#FF6A00"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Main flame body -->
+  <path d="
+    M100,8
+    C112,8 130,28 142,52
+    C152,72 150,90 162,108
+    C172,124 174,144 164,162
+    C154,180 136,194 114,202
+    C110,204 106,205 100,206
+    C94,205 90,204 86,202
+    C64,194 46,180 36,162
+    C26,144 28,124 38,108
+    C50,90 48,72 58,52
+    C70,28 88,8 100,8Z
+  " fill="url(#flameGrad)"/>
+
+  <!-- Left secondary flame flicker -->
+  <path d="
+    M56,62
+    C50,58 36,68 38,84
+    C40,94 36,102 30,96
+    C22,86 24,70 30,60
+    C38,48 56,62 56,62Z
+  " fill="url(#flickerGrad)"/>
+
+  <!-- Left lens outer -->
+  <circle cx="76" cy="148" r="30" fill="none" stroke="#F4F1DA" stroke-width="9"/>
+  <!-- Right lens outer -->
+  <circle cx="124" cy="148" r="30" fill="none" stroke="#F4F1DA" stroke-width="9"/>
+  <!-- Bridge between lenses -->
+  <line x1="106" y1="148" x2="94" y2="148" stroke="#F4F1DA" stroke-width="9" stroke-linecap="round"/>
+  <!-- Left frame end -->
+  <line x1="46" y1="148" x2="38" y2="145" stroke="#F4F1DA" stroke-width="9" stroke-linecap="round"/>
+  <!-- Right frame end -->
+  <line x1="154" y1="148" x2="162" y2="145" stroke="#F4F1DA" stroke-width="9" stroke-linecap="round"/>
+
+  <!-- Left eye (happy arc — smiling closed) -->
+  <path d="M62,146 Q76,162 90,146" stroke="#F4F1DA" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+  <!-- Right eye -->
+  <path d="M110,146 Q124,162 138,146" stroke="#F4F1DA" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+</svg>
