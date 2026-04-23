@@ -33,7 +33,7 @@ export function DesempenhoChart({ dados }: Props) {
           <Tooltip
             cursor={{ fill: 'rgba(23,55,94,0.05)' }}
             contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid rgba(23,55,94,0.12)', color: '#17375E' }}
-            formatter={(v: number) => [`${v}%`, 'Taxa']}
+            formatter={(v) => [`${v}%`, 'Taxa']}
           />
           <ReferenceLine
             y={60}
