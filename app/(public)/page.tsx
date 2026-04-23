@@ -266,7 +266,8 @@ export default function LandingPage() {
             <span style={{ fontSize: 12, color: '#7A7D8A' }}>· © 2026 · otutor.com.br · LGPD compliant</span>
           </div>
           <div style={{ display: 'flex', gap: 16 }}>
-            <a href="/privacidade" style={{ fontSize: 12, color: '#7A7D8A', textDecoration: 'none' }}>Privacidade</a>
+            <a href="/privacidade" style={{ fontSize: 12, color: '#7A7D8A', textDecoration: 'none' }}>Política de Privacidade</a>
+            <a href="/termos" style={{ fontSize: 12, color: '#7A7D8A', textDecoration: 'none' }}>Termos de Uso</a>
             <a href="mailto:contato@otutor.com.br" style={{ fontSize: 12, color: '#7A7D8A', textDecoration: 'none' }}>Contato</a>
           </div>
         </div>
