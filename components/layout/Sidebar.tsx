@@ -108,7 +108,7 @@ export function Sidebar({ user }: SidebarProps) {
       </aside>
 
       {/* Mobile bottom tab bar — Dashboard, Editais, Simulados, Desempenho, Conta */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-(--surface) border-t border-(--border) flex">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-(--border) flex justify-around items-center px-2 py-1">
         {NAV.filter(item => MOBILE_NAV_HREFS.includes(item.href)).map(item => {
           const active = pathname.startsWith(item.href);
           return (
@@ -117,13 +117,16 @@ export function Sidebar({ user }: SidebarProps) {
               href={item.href}
               data-tour={`nav-${item.href.slice(1)}`}
               className={[
-                'flex-1 flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors',
-                active ? 'text-(--accent)' : 'text-(--ink-3)',
+                'flex-1 flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-all text-[10px] font-semibold',
+                active ? 'text-brand-navy bg-brand-navy/8' : 'text-text-muted',
               ].join(' ')}
             >
               <span
-                className={`material-symbols-outlined ${active ? 'filled' : ''}`}
-                style={{ fontSize: '22px' }}
+                className="material-symbols-outlined"
+                style={{
+                  fontSize: '22px',
+                  fontVariationSettings: active ? "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24" : "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24",
+                }}
               >
                 {item.icon}
               </span>

@@ -204,16 +204,16 @@ export default function EditaisPage() {
             onChange={e => setBusca(e.target.value)}
           />
 
-          {/* Chips de área */}
-          <div className="flex flex-wrap gap-2">
+          {/* Chips de área — scroll horizontal no mobile */}
+          <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
             {FILTROS_AREA.map(a => (
               <button
                 key={a}
                 onClick={() => setArea(a)}
-                className={`px-3 py-1 rounded-full text-[12px] font-medium border transition-all ${
+                className={`flex-shrink-0 px-4 py-1.5 rounded-full text-[12px] font-semibold border transition-all ${
                   area === a
-                    ? 'bg-(--accent) text-white border-(--accent)'
-                    : 'border-(--border-strong) text-(--ink-3) hover:border-(--accent)'
+                    ? 'bg-brand-navy text-white border-brand-navy'
+                    : 'border-(--border-strong) text-text-secondary hover:border-brand-navy hover:text-brand-navy'
                 }`}
               >
                 {a}
@@ -381,26 +381,23 @@ export default function EditaisPage() {
                   )}
 
                   <div className="flex gap-2 flex-wrap">
+                    {/* Primário — ação principal */}
+                    <Link href={`/editais/${e.id}`}>
+                      <Button size="sm" variant="primary">Ver detalhes</Button>
+                    </Link>
+                    {/* Secundário — ação externa */}
                     {e.link_inscricao ? (
                       <a href={e.link_inscricao} target="_blank" rel="noopener noreferrer">
-                        <Button size="sm" variant="primary">Inscrever-se ↗</Button>
+                        <Button size="sm" variant="ghost">Inscrever ↗</Button>
                       </a>
                     ) : e.link_fonte ? (
-                      <a
-                        href={e.link_fonte}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="Link do portal de origem — procure o link oficial de inscrição"
-                      >
+                      <a href={e.link_fonte} target="_blank" rel="noopener noreferrer" title="Portal de origem">
                         <Button size="sm" variant="ghost">Ver anúncio ↗</Button>
                       </a>
                     ) : null}
-                    <Link href={`/editais/${e.id}`}>
-                      <Button size="sm" variant="ghost">Ver detalhes</Button>
-                    </Link>
                     {isSalvo && (
                       <Link href={`/simulado?edital=${e.id}`}>
-                        <Button size="sm" variant="ghost">Iniciar simulado</Button>
+                        <Button size="sm" variant="ghost">Simulado</Button>
                       </Link>
                     )}
                   </div>

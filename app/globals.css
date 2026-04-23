@@ -1,5 +1,23 @@
 @import "tailwindcss";
 
+@theme {
+  --color-brand-navy:    #17375E;
+  --color-brand-orange:  #FF8400;
+  --color-brand-cream:   #F4F1DA;
+  --color-brand-cream-2: #EDEAC8;
+
+  --color-success:    #2D9E6B;
+  --color-success-bg: #E8F7F1;
+  --color-warning-2:  #E8870A;
+  --color-warning-bg: #FEF3E2;
+  --color-danger-2:   #C93333;
+  --color-danger-bg:  #FDEAEA;
+
+  --color-text-primary:   #17375E;
+  --color-text-secondary: #4A6080;
+  --color-text-muted:     #8A9BB0;
+}
+
 /* ============================================
    DESIGN SYSTEM — PALETA E TOKENS
    ============================================ */
