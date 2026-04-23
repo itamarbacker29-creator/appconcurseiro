@@ -6,11 +6,15 @@
 :root {
   color-scheme: light;
 
-  /* Primária — Laranja O Tutor */
-  --accent: #FF8400;
-  --accent-hover: #E07500;
-  --accent-light: #FFF3E0;
-  --accent-text: #CC6A00;
+  /* Primária — Navy O Tutor */
+  --accent: #17375E;
+  --accent-hover: #0F2540;
+  --accent-light: #E8EEF5;
+  --accent-text: #17375E;
+
+  /* Secundária — Laranja (detalhes sutis) */
+  --orange: #FF8400;
+  --orange-light: #FFF3E0;
 
   /* Sucesso / Acerto */
   --teal: #0EA574;
@@ -45,10 +49,10 @@
   /* ============================================
      MATERIAL DESIGN 3 — TOKENS
      ============================================ */
-  --md-sys-color-primary:              #FF8400;
+  --md-sys-color-primary:              #17375E;
   --md-sys-color-on-primary:           #FFFFFF;
-  --md-sys-color-primary-container:    #FFF3E0;
-  --md-sys-color-on-primary-container: #CC6A00;
+  --md-sys-color-primary-container:    #E8EEF5;
+  --md-sys-color-on-primary-container: #0F2540;
 
   --md-sys-color-secondary:              #0EA574;
   --md-sys-color-on-secondary:           #FFFFFF;
@@ -79,10 +83,12 @@
 /* Landing/public — força tema claro independente do OS (Navbar usa CSS vars) */
 .public-layout {
   color-scheme: light;
-  --accent: #FF8400;
-  --accent-hover: #E07500;
-  --accent-light: #FFF3E0;
-  --accent-text: #CC6A00;
+  --accent: #17375E;
+  --accent-hover: #0F2540;
+  --accent-light: #E8EEF5;
+  --accent-text: #17375E;
+  --orange: #FF8400;
+  --orange-light: #FFF3E0;
   --teal: #0EA574;
   --teal-light: #E4F7F0;
   --danger: #E24B4A;

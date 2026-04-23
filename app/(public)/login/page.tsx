@@ -78,11 +78,7 @@ export default function LoginPage() {
       <div className="w-full max-w-[400px] flex flex-col gap-6">
         {/* Logo */}
         <div className="flex flex-col items-center gap-2">
-          <div className="w-10 h-10 rounded-xl bg-(--accent) flex items-center justify-center">
-            <svg width="20" height="20" viewBox="0 0 14 14" fill="none">
-              <path d="M7 1L13 4.5V9.5L7 13L1 9.5V4.5L7 1Z" fill="white" />
-            </svg>
-          </div>
+          <img src="/logo.png" alt="O Tutor" width={40} height={40} className="rounded-xl" />
           <h1 className="text-[20px] font-bold text-(--ink)">{IDENTIDADE.nomeCurto}</h1>
           <p className="text-[13px] text-(--ink-3)">{IDENTIDADE.slogan}</p>
         </div>

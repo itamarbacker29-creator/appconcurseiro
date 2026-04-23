@@ -8,7 +8,7 @@ const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
 // Necessário pois Navbar usa CSS vars que respondem ao prefers-color-scheme.
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="public-layout" style={{ colorScheme: 'light', background: '#ffffff', color: '#0D1117' }}>
+    <div className="public-layout" style={{ colorScheme: 'light', background: '#F4F1DA', color: '#17375E' }}>
       {PIXEL_ID && (
         <Script id="meta-pixel" strategy="afterInteractive">{`
           !function(f,b,e,v,n,t,s)

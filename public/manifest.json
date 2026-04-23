@@ -4,8 +4,8 @@
   "description": "Editais automáticos, simulados adaptativos com IA e plano de estudo para concursos públicos",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#FFFFFF",
-  "theme_color": "#2B3DE8",
+  "background_color": "#F4F1DA",
+  "theme_color": "#17375E",
   "orientation": "portrait-primary",
   "lang": "pt-BR",
   "icons": [
