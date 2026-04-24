@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "br.com.otutor.app",
+      "sha256_cert_fingerprints": [
+        "92:83:AF:41:18:D7:59:7E:D1:C0:8C:9E:3B:98:65:4F:E5:56:8B:76:D2:8B:6F:AF:ED:FC:11:78:CA:F7:49:BC"
+      ]
+    }
+  }
+]

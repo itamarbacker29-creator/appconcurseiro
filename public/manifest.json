@@ -1,6 +1,6 @@
 {
-  "name": "[NOME_APP] — Concursos com IA",
-  "short_name": "[NOME_CURTO]",
+  "name": "O Tutor — Concursos com IA",
+  "short_name": "O Tutor",
   "description": "Editais automáticos, simulados adaptativos com IA e plano de estudo para concursos públicos",
   "start_url": "/dashboard",
   "display": "standalone",
@@ -15,7 +15,7 @@
   ],
   "categories": ["education", "productivity"],
   "shortcuts": [
-    { "name": "Novo simulado", "url": "/simulado", "icons": [{ "src": "/icons/shortcut-simulado.png", "sizes": "96x96" }] },
-    { "name": "Ver editais", "url": "/editais", "icons": [{ "src": "/icons/shortcut-editais.png", "sizes": "96x96" }] }
+    { "name": "Novo simulado", "url": "/simulado", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Ver editais", "url": "/editais", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
   ]
 }
