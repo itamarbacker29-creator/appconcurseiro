@@ -528,6 +528,8 @@ function PlanoPageInner() {
   const [mostrarCheckin, setMostrarCheckin] = useState(false);
   const [editaisSalvos, setEditaisSalvos] = useState<EditalSalvo[]>([]);
   const [editalSelecionado, setEditalSelecionado] = useState<string>(editalFromUrl);
+  const [diasRestantes, setDiasRestantes] = useState<number | null>(null);
+  const [bancaPlano, setBancaPlano] = useState<string>('');
 
   useEffect(() => {
     async function carregar() {
@@ -548,6 +550,7 @@ function PlanoPageInner() {
 
       if (planoResp.status === 'fulfilled' && planoResp.value?.plano?.cronograma) {
         setPlano(planoResp.value.plano.cronograma);
+        if (planoResp.value.plano.dias_restantes) setDiasRestantes(planoResp.value.plano.dias_restantes);
       }
       if (habResp.status === 'fulfilled') {
         const r = habResp.value as { data: Habilidade[] | null };
@@ -595,6 +598,8 @@ function PlanoPageInner() {
         return;
       }
       setPlano(dados.plano);
+      if (dados.diasRestantes) setDiasRestantes(dados.diasRestantes);
+      if (dados.banca) setBancaPlano(dados.banca);
       setSemanaAtiva(1);
       toast('Seu plano de estudo foi gerado!', 'success');
     } catch {
@@ -659,6 +664,33 @@ function PlanoPageInner() {
         <h1 className="text-[22px] font-bold text-(--ink)">Plano de Estudo</h1>
         <p className="text-[13px] text-(--ink-3) mt-1">Cronograma personalizado pela nossa IA de alta tecnologia.</p>
       </div>
+
+      {/* Countdown */}
+      {diasRestantes !== null && (
+        <div className={`flex items-center gap-3 rounded-(--radius) px-4 py-3 mb-4 border ${
+          diasRestantes <= 30
+            ? 'bg-red-50 border-red-200'
+            : diasRestantes <= 60
+            ? 'bg-warning-bg border-warning-2/30'
+            : 'bg-brand-cream border-brand-navy/20'
+        }`}>
+          <span className="material-symbols-outlined text-[20px] shrink-0 text-brand-navy">timer</span>
+          <div className="flex-1">
+            <span className={`text-[13px] font-bold ${diasRestantes <= 30 ? 'text-red-700' : diasRestantes <= 60 ? 'text-warning-2' : 'text-brand-navy'}`}>
+              {diasRestantes <= 30
+                ? `⚠️ Faltam apenas ${diasRestantes} dias para a prova!`
+                : diasRestantes <= 60
+                ? `${diasRestantes} dias para a prova — mantenha o ritmo.`
+                : `${diasRestantes} dias para a prova — você está bem posicionado.`}
+            </span>
+            {bancaPlano && (
+              <span className="ml-2 text-[11px] font-bold text-brand-orange bg-brand-cream px-2 py-0.5 rounded-full">
+                {bancaPlano}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Badge de edital selecionado */}
       {editalSelecionado && (() => {
@@ -768,6 +800,14 @@ function PlanoPageInner() {
               </div>
             )}
           </Card>
+
+          {/* Dica da semana */}
+          {plano.dica_semana && (
+            <div className="flex gap-3 bg-brand-cream border border-brand-navy/15 rounded-(--radius) px-4 py-3 mb-4">
+              <span className="text-[20px] shrink-0">💡</span>
+              <p className="text-[13px] text-brand-navy leading-relaxed italic">{plano.dica_semana}</p>
+            </div>
+          )}
 
           <ComparativoAprovados comparativo={inferirComparativo()} />
           <ProjecaoEvolucao projecao={inferirProjecao()} questoesPorDia={questoesPorDia} />

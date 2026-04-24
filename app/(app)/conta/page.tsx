@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
+import { NotificacoesPush } from '@/components/ui/NotificacoesPush';
 
 const FORMACOES = [
   'Ensino Médio completo', 'Graduação em andamento', 'Direito', 'Administração',
@@ -401,6 +402,13 @@ export default function ContaPage() {
             Para cancelar ou alterar seu plano, entre em contato com o suporte.
           </p>
         )}
+      </section>
+
+      {/* Notificações push */}
+      <section className="bg-(--surface) border border-(--border) rounded-(--radius) p-5 flex flex-col gap-3">
+        <h2 className="text-[15px] font-bold text-(--ink)">Notificações</h2>
+        <p className="text-[13px] text-(--ink-3)">Receba lembretes diários de estudo e alertas de novos editais no seu interesse.</p>
+        <NotificacoesPush />
       </section>
 
       {/* Tour */}

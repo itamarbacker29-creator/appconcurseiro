@@ -1,0 +1,19 @@
+name: Push Notifications Diárias
+
+on:
+  schedule:
+    # 11h UTC = 8h de Brasília (BRT = UTC-3)
+    - cron: '0 11 * * *'
+  workflow_dispatch: # permite acionar manualmente para teste
+
+jobs:
+  enviar-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enviar notificações push diárias
+        run: |
+          curl -s -o /dev/null -w "%{http_code}" \
+            -X POST \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            "${{ secrets.APP_URL }}/api/push/diario"
