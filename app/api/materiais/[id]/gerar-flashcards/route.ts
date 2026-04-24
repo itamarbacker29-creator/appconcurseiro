@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient, createAdminClient } from '@/lib/supabase-server';
+import type { DocumentBlockParam, TextBlockParam } from '@anthropic-ai/sdk/resources/messages/messages';
 
 export const maxDuration = 60;
 
 const BUCKET = 'apostilas';
-const MAX_CHARS = 5000; // ~1250 tokens — barato e suficiente para 15 flashcards
 
-function buildPrompt(titulo: string, materia: string, texto: string): string {
+function buildPrompt(titulo: string, materia: string): string {
   return (
-    `Material: "${titulo}" — ${materia} (concurso público)\n\n` +
-    `TRECHO DO CONTEÚDO:\n${texto}\n\n` +
-    'Com base nesse conteúdo, crie até 15 flashcards de revisão.\n' +
+    `Analise este PDF de apostila "${titulo}" sobre "${materia}" para concurso público.\n` +
+    'Extraia os 15 conceitos mais importantes e crie flashcards de revisão.\n' +
     'Retorne APENAS um array JSON válido, sem markdown:\n' +
     '[\n' +
     '  {\n' +
@@ -21,30 +20,6 @@ function buildPrompt(titulo: string, materia: string, texto: string): string {
     ']\n' +
     'Foque em definições, princípios, requisitos e regras práticas.'
   );
-}
-
-async function extrairTexto(buffer: Buffer): Promise<string> {
-  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
-  pdfjs.GlobalWorkerOptions.workerSrc = ''; // desativa worker — roda na thread principal (serverless)
-
-  const pdf = await pdfjs.getDocument({
-    data: new Uint8Array(buffer),
-    useWorkerFetch: false,
-    isEvalSupported: false,
-    disableStream: true,
-  }).promise;
-
-  const numPages = Math.min(3, pdf.numPages);
-  let text = '';
-  for (let i = 1; i <= numPages; i++) {
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    for (const item of content.items) {
-      if ('str' in item) text += item.str + ' ';
-    }
-    text += '\n';
-  }
-  return text.replace(/\s+/g, ' ').trim().slice(0, MAX_CHARS);
 }
 
 export async function POST(
@@ -71,25 +46,10 @@ export async function POST(
   const adminClient = createAdminClient();
   const { data: urlData } = await adminClient.storage
     .from(BUCKET)
-    .createSignedUrl(material.url_storage, 300);
+    .createSignedUrl(material.url_storage, 600);
 
   if (!urlData?.signedUrl) {
     return NextResponse.json({ error: 'Falha ao acessar o arquivo.' }, { status: 500 });
-  }
-
-  const pdfResp = await fetch(urlData.signedUrl);
-  if (!pdfResp.ok) return NextResponse.json({ error: 'Falha ao baixar o PDF.' }, { status: 500 });
-  const pdfBuffer = Buffer.from(await pdfResp.arrayBuffer());
-
-  let textoExtraido: string;
-  try {
-    textoExtraido = await extrairTexto(pdfBuffer);
-  } catch {
-    return NextResponse.json({ error: 'Não foi possível ler o texto do PDF.' }, { status: 422 });
-  }
-
-  if (!textoExtraido || textoExtraido.length < 50) {
-    return NextResponse.json({ error: 'PDF sem texto legível (pode ser imagem escaneada).' }, { status: 422 });
   }
 
   const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
@@ -102,13 +62,20 @@ export async function POST(
     const titulo = material.titulo ?? 'Apostila';
     const materia = material.materia ?? 'Concurso Público';
 
+    const docBlock: DocumentBlockParam = {
+      type: 'document',
+      source: { type: 'url', url: urlData.signedUrl },
+    };
+
+    const textBlock: TextBlockParam = {
+      type: 'text',
+      text: buildPrompt(titulo, materia),
+    };
+
     const response = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 2048,
-      messages: [{
-        role: 'user',
-        content: buildPrompt(titulo, materia, textoExtraido),
-      }],
+      messages: [{ role: 'user', content: [docBlock, textBlock] }],
     });
 
     const raw = (response.content[0]?.type === 'text' ? response.content[0].text : '').trim();
@@ -125,6 +92,6 @@ export async function POST(
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[gerar-flashcards]', msg);
-    return NextResponse.json({ error: `Falha ao gerar flashcards: ${msg.slice(0, 120)}` }, { status: 500 });
+    return NextResponse.json({ error: `Falha: ${msg.slice(0, 200)}` }, { status: 500 });
   }
 }

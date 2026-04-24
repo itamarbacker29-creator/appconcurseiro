@@ -72,7 +72,8 @@ export function ApostilaReader({ materialId, titulo, materia, signedUrl }: Props
     const containerRect = container.getBoundingClientRect();
     setSelecao(text);
     setPopoverPos({
-      top: rect.top - containerRect.top - 52,
+      // scrollTop converts viewport coords to content-area coords for absolute positioning
+      top: rect.top - containerRect.top + container.scrollTop - 52,
       left: Math.max(8, Math.min(rect.left + rect.width / 2 - 108 - containerRect.left, containerRect.width - 224)),
     });
   }, []);
