@@ -1,13 +1,15 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { createAdminClient } from '@/lib/supabase-server';
+import { SectionPlanos } from './SectionPlanos';
 
 export const metadata: Metadata = {
   title: 'O Tutor — Estude para concursos com inteligência artificial',
-  description: 'O Tutor organiza editais, monta simulados adaptativos, cria seu plano de estudos personalizado e tira suas dúvidas 24h. Tudo que você precisa para a aprovação.',
+  description: 'O Tutor organiza editais, monta simulados adaptativos, cria seu plano de estudos personalizado e tira suas dúvidas com o Tutor IA 24/7.',
   robots: 'noindex',
 };
 
-// ── Dados ──────────────────────────────────────────────────────────────
+// ── Dados estáticos ───────────────────────────────────────────────────
 
 const FEATURES = [
   {
@@ -18,12 +20,12 @@ const FEATURES = [
   {
     icon: '🧠',
     titulo: 'Simulados adaptativos',
-    desc: 'Questões calibradas ao seu nível em tempo real com Teoria de Resposta ao Item (IRT). Quanto mais você erra, mais o sistema te desafia no ponto certo.',
+    desc: 'Questões calibradas ao seu nível em tempo real com Teoria de Resposta ao Item (IRT). O sistema avalia sua chance de aprovação e se adapta conforme você evolui.',
   },
   {
     icon: '📅',
     titulo: 'Plano de estudo por IA',
-    desc: 'A IA analisa seu desempenho e o edital do seu concurso para gerar um cronograma semanal personalizado — adaptado à sua rotina e ao seu formato favorito: podcasts, YouTube, leitura ou apostilas.',
+    desc: 'A IA analisa seu desempenho e o edital do seu concurso para gerar um cronograma semanal — adaptado à sua rotina e ao seu formato favorito: podcasts, YouTube, leitura ou apostilas.',
   },
   {
     icon: '✨',
@@ -33,12 +35,12 @@ const FEATURES = [
   {
     icon: '📚',
     titulo: 'Apostilas inteligentes',
-    desc: 'Faça upload do seu material em PDF. Use o marca-texto para realçar o que importa e baixe o PDF anotado. Gere flashcards com IA de qualquer trecho.',
+    desc: 'Faça upload do seu material em PDF. Use o marca-texto para realçar o que importa, baixe o PDF anotado e gere flashcards com IA de qualquer trecho.',
   },
   {
     icon: '📊',
-    titulo: 'Painel de desempenho e aprovação',
-    desc: 'Acompanhe sua chance de aprovação em tempo real com base nos seus simulados. Receba recomendações qualificadas por banca organizadora e saiba exatamente onde focar.',
+    titulo: 'Chance de aprovação em tempo real',
+    desc: 'Acompanhe sua probabilidade de aprovação com base nos simulados. Receba recomendações qualificadas por banca organizadora e saiba exatamente onde focar.',
   },
 ];
 
@@ -51,75 +53,12 @@ const STEPS = [
   {
     num: '02',
     titulo: 'A IA monta seu plano',
-    desc: 'Com base no edital e no seu desempenho nos primeiros simulados, O Tutor gera um cronograma semanal adaptado à sua rotina e ao seu formato de estudo preferido — podcast, YouTube, leitura ou apostilas.',
+    desc: 'Com base no edital e no seu desempenho, O Tutor gera um cronograma semanal adaptado à sua rotina e ao seu formato de estudo preferido — podcast, YouTube, leitura ou apostilas.',
   },
   {
     num: '03',
     titulo: 'Estude, revise e evolua',
-    desc: 'Faça simulados adaptativos, use o Tutor IA 24/7 para dúvidas, marque apostilas e acompanhe sua evolução no painel. O sistema avalia sua chance de aprovação e se adapta conforme você melhora.',
-  },
-];
-
-const PLANOS = [
-  {
-    id: 'free',
-    nome: 'Free',
-    preco: 'Grátis',
-    periodo: 'para sempre',
-    desc: 'Para conhecer a plataforma e dar os primeiros passos.',
-    cta: 'Começar grátis',
-    ctaHref: '/login',
-    destaque: false,
-    items: [
-      { ok: true,  txt: 'Editais ilimitados' },
-      { ok: true,  txt: '5 simulados por mês' },
-      { ok: true,  txt: 'Plano de estudo básico' },
-      { ok: true,  txt: 'Desempenho por matéria' },
-      { ok: false, txt: 'Tutor IA 24/7' },
-      { ok: false, txt: 'Marca texto em suas apostilas' },
-      { ok: false, txt: 'Flashcards com IA' },
-      { ok: false, txt: 'Plano por edital (Elite)' },
-    ],
-  },
-  {
-    id: 'premium',
-    nome: 'Premium',
-    preco: 'R$ 29',
-    periodo: 'por mês',
-    desc: 'Para o concurseiro que quer acelerar os resultados com IA.',
-    cta: 'Assinar Premium',
-    ctaHref: '/login',
-    destaque: true,
-    items: [
-      { ok: true,  txt: 'Editais ilimitados' },
-      { ok: true,  txt: '30 simulados por mês' },
-      { ok: true,  txt: 'Plano de estudo personalizado' },
-      { ok: true,  txt: 'Desempenho por matéria' },
-      { ok: true,  txt: 'Tutor IA 24/7 (50 msg/mês)' },
-      { ok: true,  txt: 'Marca texto em suas apostilas' },
-      { ok: false, txt: 'Flashcards com IA' },
-      { ok: false, txt: 'Plano por edital (Elite)' },
-    ],
-  },
-  {
-    id: 'elite',
-    nome: 'Elite',
-    preco: 'R$ 49',
-    periodo: 'por mês',
-    desc: 'Para quem quer aprovação com o máximo de recursos e sem limites.',
-    cta: 'Assinar Elite',
-    ctaHref: '/login',
-    destaque: false,
-    items: [
-      { ok: true, txt: 'Editais ilimitados' },
-      { ok: true, txt: 'Simulados ilimitados' },
-      { ok: true, txt: 'Plano de estudo personalizado' },
-      { ok: true, txt: 'Desempenho por matéria' },
-      { ok: true, txt: 'Tutor IA 24/7 ilimitado' },
-      { ok: true, txt: 'Marca texto em suas apostilas' },
-      { ok: true, txt: 'Flashcards com IA' },
-      { ok: true, txt: 'Plano por edital exclusivo' },
-    ],
+    desc: 'Faça simulados adaptativos, use o Tutor IA 24/7 para dúvidas, marque apostilas e acompanhe sua chance de aprovação no painel. O sistema se adapta conforme você melhora.',
   },
 ];
 
@@ -130,11 +69,11 @@ const FAQS = [
   },
   {
     q: 'As questões dos simulados são de provas reais?',
-    a: 'Sim. Nossa base inclui questões de provas oficiais das principais bancas (CESPE, FGV, FCC, VUNESP e outras). A IA prioriza questões reais e completa com questões geradas quando necessário.',
+    a: 'Sim. Nossa base inclui questões de provas oficiais das principais bancas (CESPE, FGV, FCC, VUNESP e outras). A IA prioriza questões reais e complementa com questões geradas quando necessário.',
   },
   {
     q: 'O plano de estudo funciona para qualquer concurso?',
-    a: 'Funciona para a maioria dos concursos federais, estaduais e municipais. No plano Elite, o cronograma é gerado a partir do edital específico do seu concurso, com os pesos de cada matéria e adaptado ao seu formato de estudo favorito.',
+    a: 'Funciona para a maioria dos concursos federais, estaduais e municipais. No plano Elite, o cronograma é gerado a partir do edital específico do seu concurso, com os pesos de cada matéria e adaptado ao seu formato preferido de estudo.',
   },
   {
     q: 'Posso usar no celular?',
@@ -146,27 +85,52 @@ const FAQS = [
   },
 ];
 
-// ── Componentes internos ───────────────────────────────────────────────
+// ── Tipos ────────────────────────────────────────────────────────────
 
-function Check({ ok }: { ok: boolean }) {
-  return ok ? (
-    <svg className="w-4 h-4 text-green-500 shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-    </svg>
-  ) : (
-    <svg className="w-4 h-4 text-gray-300 shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-    </svg>
-  );
+interface EditalTop {
+  id: string;
+  orgao: string;
+  cargo: string;
+  salario: number;
+  vagas: number | null;
+  banca: string | null;
+  data_fim_inscricao: string | null;
+  status: string;
 }
 
-// ── Page ───────────────────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────────────
 
-export default function HomePage() {
+function formatBRL(valor: number) {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    maximumFractionDigits: 2,
+  }).format(valor);
+}
+
+// ── Page ─────────────────────────────────────────────────────────────
+
+export default async function HomePage() {
+  // Busca os 6 maiores salários — falha silenciosa se DB indisponível
+  let topEditais: EditalTop[] = [];
+  try {
+    const supabase = createAdminClient();
+    const { data } = await supabase
+      .from('editais')
+      .select('id, orgao, cargo, salario, vagas, banca, data_fim_inscricao, status')
+      .in('status', ['ativo', 'previsto'])
+      .not('salario', 'is', null)
+      .order('salario', { ascending: false })
+      .limit(6);
+    topEditais = (data ?? []) as EditalTop[];
+  } catch {
+    // seção não aparece se DB falhar
+  }
+
   return (
     <div className="min-h-screen bg-white text-gray-900 font-sans">
 
-      {/* ── Nav ──────────────────────────────────────────────── */}
+      {/* ── Nav ────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
           <Link href="/home" className="flex items-center gap-2">
@@ -186,16 +150,18 @@ export default function HomePage() {
             <Link href="/login" className="text-[14px] font-semibold text-[#17375E] hover:opacity-70 transition-opacity hidden sm:block">
               Entrar
             </Link>
-            <Link href="/login"
+            <Link
+              href="/login"
               className="px-4 py-2 bg-[#17375E] text-[14px] font-bold rounded-xl hover:bg-[#0F2540] transition-colors"
-              style={{ color: '#ffffff' }}>
+              style={{ color: '#ffffff' }}
+            >
               Começar grátis
             </Link>
           </div>
         </div>
       </header>
 
-      {/* ── Hero ──────────────────────────────────────────────── */}
+      {/* ── Hero ───────────────────────────────────────────────── */}
       <section className="relative overflow-hidden bg-gradient-to-br from-[#F4F1DA] via-white to-white pt-20 pb-24 md:pt-28 md:pb-32">
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#17375E]/5 rounded-full -translate-y-1/2 translate-x-1/3 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-[#FF8400]/8 rounded-full translate-y-1/2 -translate-x-1/3 pointer-events-none" />
@@ -213,13 +179,15 @@ export default function HomePage() {
               <span className="text-[#FF8400]">inteligência artificial</span>
             </h1>
             <p className="text-[18px] md:text-[20px] text-gray-600 leading-relaxed mb-8 max-w-2xl">
-              O Tutor organiza editais, monta simulados adaptativos, cria seu plano de estudos personalizado e tira suas dúvidas com o Tutor IA 24/7.
-              Tudo que você precisa para a aprovação em um só lugar.
+              O Tutor organiza editais, monta simulados adaptativos, cria seu plano de estudos personalizado
+              e tira suas dúvidas com o Tutor IA 24/7. Tudo em um só lugar.
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
-              <Link href="/login"
+              <Link
+                href="/login"
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-[#17375E] text-[16px] font-bold rounded-2xl hover:bg-[#0F2540] transition-all hover:scale-[1.02] shadow-lg shadow-[#17375E]/20"
-                style={{ color: '#ffffff' }}>
+                style={{ color: '#ffffff' }}
+              >
                 Começar grátis — sem cartão
                 <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -227,12 +195,12 @@ export default function HomePage() {
               </Link>
               <a href="#planos"
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-[#17375E] text-[16px] font-bold rounded-2xl border-2 border-[#17375E]/20 hover:border-[#17375E]/40 transition-colors">
-                Ver planos e preços
+                Ver planos a partir de R$19,90
               </a>
             </div>
           </div>
 
-          {/* Stats row */}
+          {/* Stats */}
           <div className="flex flex-wrap gap-8 mt-14 pt-10 border-t border-gray-200">
             {[
               { n: '+500', label: 'editais monitorados' },
@@ -250,7 +218,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Features ──────────────────────────────────────────── */}
+      {/* ── Features ───────────────────────────────────────────── */}
       <section id="funcionalidades" className="py-20 md:py-28 bg-white">
         <div className="max-w-6xl mx-auto px-4 md:px-8">
           <div className="text-center mb-14">
@@ -263,11 +231,10 @@ export default function HomePage() {
               Da busca de editais até a revisão final — uma plataforma completa que aprende com você.
             </p>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {FEATURES.map(f => (
               <div key={f.titulo}
-                className="group p-6 rounded-2xl border border-gray-100 hover:border-[#17375E]/20 hover:shadow-lg transition-all duration-200 bg-white">
+                className="p-6 rounded-2xl border border-gray-100 hover:border-[#17375E]/20 hover:shadow-lg transition-all duration-200">
                 <div className="text-[36px] mb-4">{f.icon}</div>
                 <h3 className="text-[17px] font-bold text-[#17375E] mb-2">{f.titulo}</h3>
                 <p className="text-[14px] text-gray-500 leading-relaxed">{f.desc}</p>
@@ -277,7 +244,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── How it works ──────────────────────────────────────── */}
+      {/* ── How it works ───────────────────────────────────────── */}
       <section id="como-funciona" className="py-20 md:py-28 bg-[#F4F1DA]/40">
         <div className="max-w-6xl mx-auto px-4 md:px-8">
           <div className="text-center mb-14">
@@ -287,7 +254,6 @@ export default function HomePage() {
               Aprovação em 3 passos
             </h2>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {STEPS.map((s, i) => (
               <div key={s.num} className="relative">
@@ -295,8 +261,8 @@ export default function HomePage() {
                   <div className="hidden md:block absolute top-8 left-full w-full h-0.5 bg-gradient-to-r from-[#17375E]/20 to-transparent -translate-x-4 z-0" />
                 )}
                 <div className="relative z-10">
-                  <div className="w-16 h-16 rounded-2xl bg-[#17375E] text-white flex items-center justify-center text-[22px] font-black mb-5"
-                    style={{ fontFamily: 'var(--font-montserrat, Montserrat, sans-serif)' }}>
+                  <div className="w-16 h-16 rounded-2xl bg-[#17375E] flex items-center justify-center text-[22px] font-black mb-5"
+                    style={{ fontFamily: 'var(--font-montserrat, Montserrat, sans-serif)', color: '#ffffff' }}>
                     {s.num}
                   </div>
                   <h3 className="text-[18px] font-bold text-[#17375E] mb-3">{s.titulo}</h3>
@@ -308,83 +274,81 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Pricing ───────────────────────────────────────────── */}
-      <section id="planos" className="py-20 md:py-28 bg-white">
-        <div className="max-w-6xl mx-auto px-4 md:px-8">
-          <div className="text-center mb-14">
-            <p className="text-[#FF8400] text-[13px] font-bold uppercase tracking-widest mb-3">Planos e preços</p>
-            <h2 className="text-[32px] md:text-[40px] font-black text-[#17375E] leading-tight"
-              style={{ fontFamily: 'var(--font-montserrat, Montserrat, sans-serif)' }}>
-              Simples, transparente, sem surpresas
-            </h2>
-            <p className="text-[17px] text-gray-500 mt-4">
-              Cancele quando quiser. Sem fidelidade, sem taxa de cancelamento.
-            </p>
-          </div>
+      {/* ── Maiores salários ───────────────────────────────────── */}
+      {topEditais.length > 0 && (
+        <section className="py-16 md:py-20 bg-white">
+          <div className="max-w-6xl mx-auto px-4 md:px-8">
+            <div className="text-center mb-10">
+              <span className="text-[#FF8400] text-[12px] font-bold uppercase tracking-widest">
+                Oportunidades em aberto
+              </span>
+              <h2 className="text-[28px] md:text-[36px] font-black text-[#17375E] mt-2 mb-3"
+                style={{ fontFamily: 'var(--font-montserrat, Montserrat, sans-serif)' }}>
+                Os concursos com maiores salários agora
+              </h2>
+              <p className="text-[14px] text-gray-500 max-w-lg mx-auto">
+                Monitore automaticamente todos esses concursos e receba alertas assim que as inscrições abrirem.
+              </p>
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-            {PLANOS.map(p => (
-              <div key={p.id}
-                className={`relative rounded-2xl border-2 p-7 flex flex-col gap-6 transition-all ${
-                  p.destaque
-                    ? 'border-[#17375E] shadow-2xl shadow-[#17375E]/10 scale-[1.02]'
-                    : p.id === 'elite' ? 'border-brand-orange' : 'border-gray-200'
-                }`}>
-                {p.destaque && (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#17375E] text-white text-[11px] font-bold px-4 py-1 rounded-full uppercase tracking-wide whitespace-nowrap">
-                    Mais popular
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {topEditais.map((edital, i) => (
+                <div key={edital.id}
+                  className="group bg-white rounded-xl p-5 border border-gray-100 hover:border-[#17375E]/30 hover:shadow-md transition-all">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-[11px] font-black text-gray-400">#{i + 1}</span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      edital.status === 'ativo'
+                        ? 'bg-green-50 text-green-600'
+                        : 'bg-amber-50 text-amber-600'
+                    }`}>
+                      {edital.status === 'ativo' ? 'Inscrições abertas' : 'Previsto'}
+                    </span>
                   </div>
-                )}
-                {p.id === 'elite' && (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#FF8400] text-white text-[11px] font-bold px-4 py-1 rounded-full uppercase tracking-wide whitespace-nowrap">
-                    Concurseiro Profissional
-                  </div>
-                )}
 
-                <div>
-                  <p className="text-[13px] font-bold text-gray-400 uppercase tracking-widest mb-1">{p.nome}</p>
-                  <div className="flex items-end gap-1.5 mb-2">
-                    <span className="text-[40px] font-black text-[#17375E]"
-                      style={{ fontFamily: 'var(--font-montserrat, Montserrat, sans-serif)' }}>{p.preco}</span>
-                    <span className="text-[14px] text-gray-400 mb-2">{p.periodo}</span>
+                  <p className="text-[11px] font-bold text-[#FF8400] uppercase tracking-widest mb-0.5 truncate">
+                    {edital.orgao}
+                  </p>
+                  <h3 className="text-[15px] font-bold text-[#17375E] mb-3 leading-snug line-clamp-2">
+                    {edital.cargo}
+                  </h3>
+
+                  <div className="bg-[#F4F1DA]/60 rounded-lg px-3 py-2 mb-3">
+                    <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Salário</p>
+                    <p className="text-[20px] font-black text-green-600"
+                      style={{ fontFamily: 'var(--font-montserrat, Montserrat, sans-serif)' }}>
+                      {formatBRL(edital.salario)}
+                    </p>
                   </div>
-                  <p className="text-[13px] text-gray-500">{p.desc}</p>
+
+                  <div className="flex items-center justify-between text-[12px] text-gray-400">
+                    <span>{edital.vagas?.toLocaleString('pt-BR') ?? '—'} vagas</span>
+                    <span>{edital.banca ?? '—'}</span>
+                  </div>
+
+                  <Link
+                    href="/login"
+                    className="mt-4 block w-full py-2.5 text-center text-[12px] font-bold text-[#17375E] border border-[#17375E]/20 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-[#F4F1DA] transition-all"
+                  >
+                    Monitorar este concurso →
+                  </Link>
                 </div>
+              ))}
+            </div>
 
-                <Link href={p.ctaHref}
-                  className={`w-full py-3 rounded-xl text-[14px] font-bold text-center transition-all ${
-                    p.destaque
-                      ? 'bg-[#17375E] hover:bg-[#0F2540]'
-                      : p.id === 'elite'
-                        ? 'bg-brand-orange hover:opacity-90'
-                        : 'bg-gray-100 text-[#17375E] hover:bg-gray-200'
-                  }`}
-                  style={p.id !== 'free' ? { color: '#ffffff' } : undefined}>
-                  {p.cta}
-                </Link>
-
-                <ul className="flex flex-col gap-2.5">
-                  {p.items.map(item => (
-                    <li key={item.txt} className="flex items-start gap-2.5">
-                      <Check ok={item.ok} />
-                      <span className={`text-[13px] leading-snug ${item.ok ? 'text-gray-700' : 'text-gray-300'}`}>
-                        {item.txt}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+            <div className="text-center mt-8">
+              <Link href="/login" className="text-[14px] font-semibold text-[#17375E] hover:underline">
+                Ver todos os editais monitorados →
+              </Link>
+            </div>
           </div>
+        </section>
+      )}
 
-          <p className="text-center text-[13px] text-gray-400 mt-8">
-            Todos os planos incluem acesso completo ao dashboard, editais e desempenho.
-            Planos pagos com IA de alta tecnologia — mais precisa e com referências legais.
-          </p>
-        </div>
-      </section>
+      {/* ── Planos (client component com toggle) ───────────────── */}
+      <SectionPlanos />
 
-      {/* ── FAQ ───────────────────────────────────────────────── */}
+      {/* ── FAQ ────────────────────────────────────────────────── */}
       <section id="faq" className="py-20 md:py-28 bg-[#F4F1DA]/40">
         <div className="max-w-3xl mx-auto px-4 md:px-8">
           <div className="text-center mb-14">
@@ -394,7 +358,6 @@ export default function HomePage() {
               Perguntas frequentes
             </h2>
           </div>
-
           <div className="flex flex-col gap-4">
             {FAQS.map(f => (
               <div key={f.q} className="bg-white rounded-2xl border border-gray-100 p-6">
@@ -406,7 +369,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── CTA Final ─────────────────────────────────────────── */}
+      {/* ── CTA Final ──────────────────────────────────────────── */}
       <section className="py-20 md:py-28 bg-[#17375E] relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-white/5 rounded-full -translate-y-1/2" />
@@ -421,9 +384,11 @@ export default function HomePage() {
             Mais de 500 editais monitorados, simulados adaptativos e um plano de estudos feito para você.
             Comece gratuitamente — sem cartão de crédito.
           </p>
-          <Link href="/login"
-            className="inline-flex items-center gap-3 px-10 py-5 bg-[#FF8400] text-[17px] font-black rounded-2xl hover:bg-[#e67700] transition-all hover:scale-[1.02] shadow-xl shadow-brand-orange/30"
-            style={{ color: '#ffffff' }}>
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-3 px-10 py-5 bg-[#FF8400] text-[17px] font-black rounded-2xl hover:bg-[#e67700] transition-all hover:scale-[1.02] shadow-xl"
+            style={{ color: '#ffffff' }}
+          >
             Criar conta grátis agora
             <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -433,7 +398,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Footer ────────────────────────────────────────────── */}
+      {/* ── Footer ─────────────────────────────────────────────── */}
       <footer className="bg-white border-t border-gray-100 py-10">
         <div className="max-w-6xl mx-auto px-4 md:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
@@ -448,11 +413,11 @@ export default function HomePage() {
           </div>
           <p className="text-[12px] text-gray-300">© 2026 O Tutor. Todos os direitos reservados.</p>
         </div>
-        {/* Disclaimer */}
         <div className="max-w-6xl mx-auto px-4 md:px-8 mt-6 pt-6 border-t border-gray-100">
           <p className="text-[11px] text-gray-300 text-center leading-relaxed max-w-3xl mx-auto">
             O Tutor é uma plataforma de organização e inteligência de estudos. Não oferece garantia de aprovação em concursos públicos,
-            nem fornece conteúdo didático próprio, aulas, apostilas ou material de ensino. O desempenho depende exclusivamente do esforço e dedicação do candidato.
+            nem fornece conteúdo didático próprio, aulas, apostilas ou material de ensino.
+            O desempenho depende exclusivamente do esforço e dedicação do candidato.
           </p>
         </div>
       </footer>
