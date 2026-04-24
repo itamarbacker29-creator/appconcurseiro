@@ -3,7 +3,7 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "br.com.otutor.app",
+      "package_name": "br.com.otutor.twa",
       "sha256_cert_fingerprints": [
         "01:0C:22:99:F1:03:2B:01:A5:DD:A5:BF:67:65:24:09:47:D1:9D:A3:A3:47:C3:AF:6F:50:D9:FB:B0:3C:B9:4B"
       ]
