@@ -1,11 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Document, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/Page/TextLayer.css';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
+
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface Flashcard { frente: string; verso: string; materia: string }
 
@@ -18,17 +22,70 @@ interface Props {
 
 export function ApostilaReader({ materialId, titulo, materia, signedUrl }: Props) {
   const { toast } = useToast();
+  const pdfContainerRef = useRef<HTMLDivElement>(null);
+  const frenteRef = useRef<HTMLTextAreaElement>(null);
+  const sidebarRef = useRef<HTMLDivElement>(null);
 
-  // Flashcard manual
+  const [numPages, setNumPages] = useState<number>(0);
+  const [pdfWidth, setPdfWidth] = useState(600);
+
+  const [selecao, setSelecao] = useState('');
+  const [popoverPos, setPopoverPos] = useState<{ top: number; left: number } | null>(null);
+
   const [frente, setFrente] = useState('');
   const [verso, setVerso] = useState('');
   const [salvando, setSalvando] = useState(false);
 
-  // Geração IA
   const [gerando, setGerando] = useState(false);
   const [flashcardsGerados, setFlashcardsGerados] = useState<Flashcard[]>([]);
   const [selecionados, setSelecionados] = useState<Set<number>>(new Set());
   const [salvandoIA, setSalvandoIA] = useState(false);
+
+  useEffect(() => {
+    const el = pdfContainerRef.current;
+    if (!el) return;
+    const obs = new ResizeObserver(([entry]) => setPdfWidth(entry.contentRect.width));
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  useEffect(() => {
+    function onSelChange() {
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed || !sel.toString().trim()) setPopoverPos(null);
+    }
+    document.addEventListener('selectionchange', onSelChange);
+    return () => document.removeEventListener('selectionchange', onSelChange);
+  }, []);
+
+  const handleMouseUp = useCallback(() => {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || !sel.rangeCount) return;
+    const text = sel.toString().trim();
+    if (!text || text.length < 5) return;
+
+    const range = sel.getRangeAt(0);
+    const container = pdfContainerRef.current;
+    if (!container?.contains(range.commonAncestorContainer)) return;
+
+    const rect = range.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    setSelecao(text);
+    setPopoverPos({
+      top: rect.top - containerRect.top - 52,
+      left: Math.max(8, Math.min(rect.left + rect.width / 2 - 108 - containerRect.left, containerRect.width - 224)),
+    });
+  }, []);
+
+  function usarSelecao() {
+    setFrente(selecao.slice(0, 300));
+    setPopoverPos(null);
+    window.getSelection()?.removeAllRanges();
+    setTimeout(() => {
+      sidebarRef.current?.scrollTo({ top: 99999, behavior: 'smooth' });
+      frenteRef.current?.focus();
+    }, 80);
+  }
 
   async function salvarManual() {
     if (!frente.trim() || !verso.trim()) return toast('Preencha frente e verso.', 'error');
@@ -64,7 +121,7 @@ export function ApostilaReader({ materialId, titulo, materia, signedUrl }: Props
       if (!resp.ok) { toast(data.error ?? 'Erro ao gerar flashcards.', 'error'); return; }
       setFlashcardsGerados(data.flashcards ?? []);
       setSelecionados(new Set(data.flashcards.map((_: Flashcard, i: number) => i)));
-      toast(`${data.flashcards.length} flashcards gerados! Revise e salve os que quiser.`, 'success');
+      toast(`${data.flashcards.length} flashcards gerados!`, 'success');
     } catch {
       toast('Erro ao gerar flashcards.', 'error');
     } finally {
@@ -110,7 +167,7 @@ export function ApostilaReader({ materialId, titulo, materia, signedUrl }: Props
     <div className="flex flex-col md:flex-row gap-0 h-[calc(100vh-64px)] overflow-hidden">
 
       {/* PDF Viewer */}
-      <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 flex flex-col min-h-0 relative">
         <div className="px-4 py-3 border-b border-(--border) bg-(--surface) flex items-center gap-3 shrink-0">
           <Link href="/apostilas" className="text-(--ink-3) hover:text-(--ink) transition-colors">
             <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span>
@@ -119,31 +176,92 @@ export function ApostilaReader({ materialId, titulo, materia, signedUrl }: Props
             <p className="text-[14px] font-bold text-(--ink) truncate">{titulo}</p>
             {materia && <p className="text-[11px] text-(--ink-3)">{materia}</p>}
           </div>
+          <div className="hidden sm:flex items-center gap-1 text-[11px] text-(--ink-3) shrink-0">
+            <span className="material-symbols-outlined" style={{ fontSize: 13 }}>touch_app</span>
+            Selecione texto para criar flashcard
+          </div>
         </div>
-        {signedUrl ? (
-          <iframe
-            src={signedUrl}
-            className="flex-1 w-full border-0"
-            title={titulo}
-          />
-        ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <p className="text-(--ink-3) text-[14px]">Não foi possível carregar o PDF.</p>
+
+        <div
+          ref={pdfContainerRef}
+          className="flex-1 overflow-y-auto bg-[#f0f0f0] relative"
+          onMouseUp={handleMouseUp}
+        >
+          {signedUrl ? (
+            <Document
+              file={signedUrl}
+              onLoadSuccess={({ numPages: n }) => setNumPages(n)}
+              loading={
+                <div className="flex flex-col items-center justify-center gap-3 h-64 text-(--ink-3)">
+                  <span className="material-symbols-outlined animate-spin" style={{ fontSize: 32 }}>progress_activity</span>
+                  <p className="text-[13px]">Carregando PDF...</p>
+                </div>
+              }
+              error={
+                <div className="flex items-center justify-center h-64">
+                  <p className="text-(--ink-3) text-[14px]">Não foi possível carregar o PDF.</p>
+                </div>
+              }
+            >
+              {Array.from({ length: numPages }, (_, i) => (
+                <div key={i} className="flex justify-center py-2 px-4">
+                  <Page
+                    pageNumber={i + 1}
+                    width={Math.min(pdfWidth - 32, 860)}
+                    renderTextLayer={true}
+                    renderAnnotationLayer={false}
+                    className="shadow-lg"
+                  />
+                </div>
+              ))}
+            </Document>
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-(--ink-3) text-[14px]">Não foi possível carregar o PDF.</p>
+            </div>
+          )}
+
+          {/* Popover de seleção */}
+          {popoverPos && (
+            <div
+              className="absolute z-50 bg-brand-navy text-white rounded-lg shadow-xl flex items-center gap-2 px-3 py-2"
+              style={{ top: popoverPos.top, left: popoverPos.left, minWidth: 208 }}
+            >
+              <span className="material-symbols-outlined filled shrink-0" style={{ fontSize: 15 }}>style</span>
+              <button
+                className="text-[12px] font-semibold flex-1 text-left hover:text-brand-orange transition-colors"
+                onMouseDown={e => { e.preventDefault(); usarSelecao(); }}
+              >
+                Criar flashcard
+              </button>
+              <button
+                className="text-[14px] opacity-60 hover:opacity-100 shrink-0"
+                onMouseDown={e => { e.preventDefault(); setPopoverPos(null); window.getSelection()?.removeAllRanges(); }}
+              >
+                ✕
+              </button>
+            </div>
+          )}
+        </div>
+
+        {numPages > 0 && (
+          <div className="px-4 py-1.5 border-t border-(--border) bg-(--surface) text-[11px] text-(--ink-3) text-center shrink-0">
+            {numPages} {numPages === 1 ? 'página' : 'páginas'}
           </div>
         )}
       </div>
 
       {/* Painel lateral */}
-      <div className="w-full md:w-[340px] shrink-0 border-t md:border-t-0 md:border-l border-(--border) bg-(--surface) flex flex-col overflow-y-auto">
+      <div ref={sidebarRef} className="w-full md:w-[340px] shrink-0 border-t md:border-t-0 md:border-l border-(--border) bg-(--surface) flex flex-col overflow-y-auto">
 
         {/* Gerar com IA */}
         <div className="p-4 border-b border-(--border)">
           <div className="flex items-center gap-2 mb-3">
-            <span className="material-symbols-outlined text-(--accent)" style={{ fontSize: 18 }}>auto_awesome</span>
+            <span className="material-symbols-outlined filled text-(--accent)" style={{ fontSize: 18 }}>auto_awesome</span>
             <p className="text-[13px] font-bold text-(--ink)">Gerar flashcards com IA</p>
           </div>
           <p className="text-[12px] text-(--ink-3) mb-3">
-            A IA analisa o PDF e cria até 15 flashcards dos principais conceitos.
+            A IA analisa o PDF completo e cria até 15 flashcards dos principais conceitos.
           </p>
           <Button size="sm" loading={gerando} onClick={gerarComIA} className="w-full">
             {gerando ? 'Analisando PDF...' : 'Gerar flashcards'}
@@ -164,7 +282,7 @@ export function ApostilaReader({ materialId, titulo, materia, signedUrl }: Props
                   {selecionados.size === flashcardsGerados.length ? 'Desmarcar todos' : 'Marcar todos'}
                 </button>
               </div>
-              <div className="flex flex-col gap-2 max-h-48 overflow-y-auto">
+              <div className="flex flex-col gap-2 max-h-52 overflow-y-auto">
                 {flashcardsGerados.map((fc, i) => (
                   <button
                     key={i}
@@ -180,32 +298,34 @@ export function ApostilaReader({ materialId, titulo, materia, signedUrl }: Props
                   </button>
                 ))}
               </div>
-              <Button
-                size="sm"
-                loading={salvandoIA}
-                onClick={salvarSelecionados}
-                disabled={selecionados.size === 0}
-              >
+              <Button size="sm" loading={salvandoIA} onClick={salvarSelecionados} disabled={selecionados.size === 0}>
                 Salvar {selecionados.size} flashcard{selecionados.size !== 1 ? 's' : ''}
               </Button>
             </div>
           )}
         </div>
 
-        {/* Adicionar manual */}
+        {/* Flashcard manual / via seleção */}
         <div className="p-4">
           <div className="flex items-center gap-2 mb-3">
             <span className="material-symbols-outlined text-(--teal)" style={{ fontSize: 18 }}>add_card</span>
-            <p className="text-[13px] font-bold text-(--ink)">Adicionar flashcard manual</p>
+            <p className="text-[13px] font-bold text-(--ink)">Adicionar flashcard</p>
           </div>
+          {frente && (
+            <div className="mb-2.5 px-2.5 py-1.5 bg-(--accent-light) rounded-sm border border-(--accent) text-[11px] text-(--accent) font-medium flex items-center gap-1.5">
+              <span className="material-symbols-outlined" style={{ fontSize: 12 }}>touch_app</span>
+              Trecho selecionado pré-preenchido
+            </div>
+          )}
           <div className="flex flex-col gap-2">
             <div>
               <label className="text-[11px] font-medium text-(--ink-3) block mb-1">Frente (pergunta / conceito)</label>
               <textarea
+                ref={frenteRef}
                 value={frente}
                 onChange={e => setFrente(e.target.value)}
                 placeholder="Ex: O que é ato administrativo?"
-                rows={2}
+                rows={3}
                 className="w-full px-3 py-2 rounded-sm border border-(--border-strong) text-[12px] bg-(--surface) text-(--ink) outline-none focus:border-(--accent) transition-colors resize-none"
               />
             </div>
