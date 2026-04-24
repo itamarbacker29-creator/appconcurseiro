@@ -24,8 +24,9 @@ function buildPrompt(titulo: string, materia: string, texto: string): string {
 }
 
 async function extrairTexto(buffer: Buffer): Promise<string> {
+  // Usa o lib interno para evitar o bug de test-files do pdf-parse em Next.js serverless
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const pdf = require('pdf-parse') as (buf: Buffer, opts?: object) => Promise<{ text: string }>;
+  const pdf = require('pdf-parse/lib/pdf-parse.js') as (buf: Buffer, opts?: object) => Promise<{ text: string }>;
   const data = await pdf(buffer, { max: 3 }); // primeiras 3 páginas
   return data.text.replace(/\s+/g, ' ').trim().slice(0, MAX_CHARS);
 }
