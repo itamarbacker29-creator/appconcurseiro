@@ -403,6 +403,23 @@ export default function ContaPage() {
         )}
       </section>
 
+      {/* Tour */}
+      <section className="bg-(--surface) border border-(--border) rounded-(--radius) p-5 flex flex-col gap-3">
+        <h2 className="text-[15px] font-bold text-(--ink)">Tour guiado</h2>
+        <p className="text-[13px] text-(--ink-3)">Reveja o tour de onboarding a qualquer momento.</p>
+        <Button
+          variant="ghost"
+          className="self-start"
+          onClick={() => {
+            try { localStorage.removeItem('otutor_tour_v3'); } catch { /* */ }
+            window.dispatchEvent(new Event('otutor:reiniciar-tour'));
+          }}
+        >
+          <span className="material-symbols-outlined text-[16px] mr-1">tour</span>
+          Refazer tour guiado
+        </Button>
+      </section>
+
       {/* Logout */}
       <section className="bg-(--surface) border border-(--border) rounded-(--radius) p-5 flex flex-col gap-3">
         <h2 className="text-[15px] font-bold text-(--ink)">Sessão</h2>

@@ -2,41 +2,53 @@
 
 import { useEffect, useState, useCallback } from 'react';
 
-const TOUR_KEY = 'otutor_tour_v2';
+export const TOUR_KEY = 'otutor_tour_v3';
 const PAD = 8;
 const GAP = 14;
-const TOOLTIP_W = 272;
+const TOOLTIP_W = 288;
 
 interface Passo {
   target?: string;
   titulo: string;
   descricao: string;
+  emoji?: string;
 }
 
 const PASSOS: Passo[] = [
   {
+    emoji: '👋',
     titulo: 'Bem-vindo ao O Tutor!',
-    descricao: 'Deixa eu te mostrar as principais seções em menos de 1 minuto. Você pode pular a qualquer momento.',
+    descricao: 'Sua central de estudos para concursos. Deixa eu te mostrar o que tem aqui — menos de 1 minuto, prometo.',
   },
   {
     target: 'nav-editais',
+    emoji: '📋',
     titulo: 'Editais',
-    descricao: 'Explore concursos abertos, veja matérias exigidas e salve os que te interessam.',
+    descricao: 'Explore concursos abertos, filtre por área e banca. Salve os que te interessam e acompanhe os prazos.',
   },
   {
     target: 'nav-simulado',
-    titulo: 'Simulados',
-    descricao: 'Pratique com questões adaptativas ao seu nível. O sistema aprende com você e ajusta a dificuldade.',
+    emoji: '🧠',
+    titulo: 'Simulados adaptativos',
+    descricao: 'Questões que se adaptam ao seu nível em tempo real. O sistema calibra a dificuldade automaticamente.',
+  },
+  {
+    target: 'nav-plano',
+    emoji: '📅',
+    titulo: 'Plano de Estudo',
+    descricao: 'A IA gera um cronograma semanal personalizado com base no seu desempenho e no edital do seu concurso alvo.',
+  },
+  {
+    target: 'nav-tutor',
+    emoji: '✨',
+    titulo: 'Tutor IA',
+    descricao: 'Tire dúvidas sobre qualquer matéria a qualquer hora. A IA explica, exemplifica e resolve questões com você.',
   },
   {
     target: 'nav-desempenho',
+    emoji: '📊',
     titulo: 'Desempenho',
-    descricao: 'Acompanhe sua evolução por matéria e identifique onde focar para aumentar sua nota.',
-  },
-  {
-    target: 'nav-conta',
-    titulo: 'Conta & Plano',
-    descricao: 'Aqui você gerencia seu perfil, plano Elite e preferências de estudo. Tudo pronto — bons estudos!',
+    descricao: 'Evolução por matéria, ranking de prioridades e progresso rumo à meta de aprovação. Tudo pronto — bons estudos!',
   },
 ];
 
@@ -78,9 +90,16 @@ export function TourGuide() {
   useEffect(() => {
     try {
       if (!localStorage.getItem(TOUR_KEY)) {
-        setTimeout(() => setAtivo(true), 700);
+        setTimeout(() => setAtivo(true), 800);
       }
     } catch { /* localStorage indisponível */ }
+
+    function handleReiniciar() {
+      setPasso(0);
+      setAtivo(true);
+    }
+    window.addEventListener('otutor:reiniciar-tour', handleReiniciar);
+    return () => window.removeEventListener('otutor:reiniciar-tour', handleReiniciar);
   }, []);
 
   const passoAtual = PASSOS[passo];
@@ -108,10 +127,10 @@ export function TourGuide() {
 
   if (!ativo) return null;
 
-  const dots = (atual: number) => (
+  const dots = (
     <div className="flex justify-center gap-1">
       {PASSOS.map((_, i) => (
-        <div key={i} className={`rounded-full transition-all duration-200 ${i === atual ? 'w-4 h-1.5 bg-(--accent)' : 'w-1.5 h-1.5 bg-(--border-strong)'}`} />
+        <div key={i} className={`rounded-full transition-all duration-200 ${i === passo ? 'w-4 h-1.5 bg-brand-navy' : 'w-1.5 h-1.5 bg-(--border-strong)'}`} />
       ))}
     </div>
   );
@@ -126,20 +145,23 @@ export function TourGuide() {
         <div className="absolute bg-black/60" style={{ pointerEvents: 'auto', top: rect.top - PAD, left: 0, width: Math.max(0, rect.left - PAD), height: rect.height + PAD * 2 }} />
         <div className="absolute bg-black/60" style={{ pointerEvents: 'auto', top: rect.top - PAD, left: rect.left + rect.width + PAD, right: 0, height: rect.height + PAD * 2 }} />
         {/* Anel de destaque */}
-        <div className="absolute rounded-(--radius-sm) ring-2 ring-(--accent) ring-offset-0" style={{ top: rect.top - PAD, left: rect.left - PAD, width: rect.width + PAD * 2, height: rect.height + PAD * 2 }} />
+        <div className="absolute rounded-(--radius-sm) ring-2 ring-brand-orange" style={{ top: rect.top - PAD, left: rect.left - PAD, width: rect.width + PAD * 2, height: rect.height + PAD * 2 }} />
         {/* Tooltip */}
         <div
-          className="absolute bg-(--surface) rounded-(--radius) p-4 shadow-2xl border border-(--border) flex flex-col gap-3"
-          style={{ ...tooltipStyle, pointerEvents: 'auto' }}
+          className="absolute bg-white rounded-(--radius) p-4 shadow-2xl border border-(--border) flex flex-col gap-3"
+          style={{ ...tooltipStyle, pointerEvents: 'auto', width: TOOLTIP_W }}
         >
-          <div>
-            <h3 className="text-[15px] font-bold text-(--ink)">{passoAtual.titulo}</h3>
-            <p className="text-[13px] text-(--ink-2) mt-1 leading-relaxed">{passoAtual.descricao}</p>
+          <div className="flex items-start gap-2">
+            {passoAtual.emoji && <span className="text-[22px] leading-none shrink-0 mt-0.5">{passoAtual.emoji}</span>}
+            <div>
+              <h3 className="text-[15px] font-bold text-brand-navy">{passoAtual.titulo}</h3>
+              <p className="text-[13px] text-text-secondary mt-1 leading-relaxed">{passoAtual.descricao}</p>
+            </div>
           </div>
-          {dots(passo)}
+          {dots}
           <div className="flex items-center justify-between">
-            <button onClick={encerrar} className="text-[12px] text-(--ink-3) hover:text-(--ink) transition-colors">Pular</button>
-            <button onClick={avancar} className="px-3 py-1.5 bg-(--accent) text-white text-[12px] font-semibold rounded-(--radius-sm) hover:opacity-90 transition-opacity">
+            <button onClick={encerrar} className="text-[12px] text-text-muted hover:text-brand-navy transition-colors">Pular</button>
+            <button onClick={avancar} className="px-3 py-1.5 bg-brand-navy text-white text-[12px] font-semibold rounded-(--radius-sm) hover:opacity-90 transition-opacity">
               {passo < PASSOS.length - 1 ? 'Próximo →' : 'Concluir ✓'}
             </button>
           </div>
@@ -153,20 +175,23 @@ export function TourGuide() {
     <div className="fixed inset-0 z-[9999]" style={{ pointerEvents: 'none' }}>
       <div className="absolute inset-0 bg-black/60" style={{ pointerEvents: 'auto' }} onClick={encerrar} />
       <div className="absolute inset-0 flex items-center justify-center px-4" style={{ pointerEvents: 'none' }}>
-        <div className="bg-(--surface) rounded-(--radius) p-6 w-full max-w-sm shadow-2xl border border-(--border) flex flex-col gap-4" style={{ pointerEvents: 'auto' }}>
+        <div className="bg-white rounded-(--radius) p-6 w-full max-w-[320px] shadow-2xl border border-(--border) flex flex-col gap-4" style={{ pointerEvents: 'auto' }}>
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-(--accent) flex items-center justify-center shrink-0 mt-0.5">
-              <span className="material-symbols-outlined filled text-white" style={{ fontSize: 20 }}>auto_awesome</span>
+            <div className="w-10 h-10 rounded-xl bg-brand-navy flex items-center justify-center shrink-0 mt-0.5">
+              {passoAtual.emoji
+                ? <span className="text-[20px] leading-none">{passoAtual.emoji}</span>
+                : <span className="material-symbols-outlined filled text-white" style={{ fontSize: 20 }}>auto_awesome</span>
+              }
             </div>
             <div>
-              <h2 className="text-[18px] font-bold text-(--ink)">{passoAtual.titulo}</h2>
-              <p className="text-[13px] text-(--ink-2) mt-1.5 leading-relaxed">{passoAtual.descricao}</p>
+              <h2 className="text-[17px] font-bold text-brand-navy">{passoAtual.titulo}</h2>
+              <p className="text-[13px] text-text-secondary mt-1.5 leading-relaxed">{passoAtual.descricao}</p>
             </div>
           </div>
-          {dots(passo)}
+          {dots}
           <div className="flex items-center justify-between">
-            <button onClick={encerrar} className="text-[13px] text-(--ink-3) hover:text-(--ink) transition-colors">Pular tour</button>
-            <button onClick={avancar} className="px-4 py-2 bg-(--accent) text-white text-[13px] font-semibold rounded-(--radius-sm) hover:opacity-90 transition-opacity">
+            <button onClick={encerrar} className="text-[13px] text-text-muted hover:text-brand-navy transition-colors">Pular tour</button>
+            <button onClick={avancar} className="px-4 py-2 bg-brand-navy text-white text-[13px] font-semibold rounded-(--radius-sm) hover:opacity-90 transition-opacity">
               {passo < PASSOS.length - 1 ? 'Próximo →' : 'Concluir'}
             </button>
           </div>

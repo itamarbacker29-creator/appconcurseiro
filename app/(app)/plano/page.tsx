@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -498,17 +499,35 @@ function PreferenciasEstudo({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function PlanoPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-4 md:p-6 max-w-[900px] mx-auto">
+        <div className="h-8 skeleton w-1/3 mb-4 rounded" />
+        <div className="h-20 skeleton rounded-(--radius) mb-3" />
+        <div className="h-64 skeleton rounded-(--radius)" />
+      </div>
+    }>
+      <PlanoPageInner />
+    </Suspense>
+  );
+}
+
+function PlanoPageInner() {
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const editalFromUrl = searchParams.get('edital') ?? '';
+
   const [plano, setPlano] = useState<Plano | null>(null);
   const [habilidades, setHabilidades] = useState<Habilidade[]>([]);
   const [formatos, setFormatos] = useState<string[]>([]);
+  const [planoUsuario, setPlanoUsuario] = useState<string>('free');
   const [loading, setLoading] = useState(true);
   const [gerando, setGerando] = useState(false);
   const [questoesPorDia, setQuestoesPorDia] = useState(15);
   const [semanaAtiva, setSemanaAtiva] = useState(1);
   const [mostrarCheckin, setMostrarCheckin] = useState(false);
   const [editaisSalvos, setEditaisSalvos] = useState<EditalSalvo[]>([]);
-  const [editalSelecionado, setEditalSelecionado] = useState<string>('');
+  const [editalSelecionado, setEditalSelecionado] = useState<string>(editalFromUrl);
 
   useEffect(() => {
     async function carregar() {
@@ -520,7 +539,7 @@ export default function PlanoPage() {
           ? supabase.from('habilidade_usuario').select('materia, theta').eq('user_id', user.id)
           : Promise.resolve({ data: [] }),
         user
-          ? supabase.from('profiles').select('formatos_preferidos, questoes_por_dia').eq('id', user.id).single()
+          ? supabase.from('profiles').select('formatos_preferidos, questoes_por_dia, plano').eq('id', user.id).single()
           : Promise.resolve({ data: null }),
         user
           ? supabase.from('editais_salvos').select('edital_id, editais(orgao, cargo, materias)').eq('user_id', user.id).limit(10)
@@ -535,9 +554,10 @@ export default function PlanoPage() {
         setHabilidades(r.data ?? []);
       }
       if (profileResp.status === 'fulfilled') {
-        const r = profileResp.value as { data: { formatos_preferidos?: string[]; questoes_por_dia?: number } | null };
+        const r = profileResp.value as { data: { formatos_preferidos?: string[]; questoes_por_dia?: number; plano?: string } | null };
         if (r.data?.formatos_preferidos?.length) setFormatos(r.data.formatos_preferidos);
         if (r.data?.questoes_por_dia) setQuestoesPorDia(r.data.questoes_por_dia);
+        if (r.data?.plano) setPlanoUsuario(r.data.plano);
       }
       if (editaisResp.status === 'fulfilled') {
         const r = editaisResp.value as { data: EditalSalvo[] | null };
@@ -546,11 +566,18 @@ export default function PlanoPage() {
 
       setLoading(false);
       if (new Date().getHours() >= 19) setMostrarCheckin(true);
+      // Auto-select edital da URL (só define se ainda não foi alterado pelo user)
+      if (editalFromUrl) setEditalSelecionado(editalFromUrl);
     }
     carregar();
   }, []);
 
   async function gerarPlano() {
+    // Gate: plano por edital requer Elite
+    if (editalSelecionado && planoUsuario === 'free') {
+      toast('Plano personalizado por edital é exclusivo do plano Elite. Faça upgrade em Conta.', 'error');
+      return;
+    }
     setGerando(true);
     try {
       const resp = await fetch('/api/plano', {
@@ -633,7 +660,32 @@ export default function PlanoPage() {
         <p className="text-[13px] text-(--ink-3) mt-1">Cronograma personalizado pela nossa IA de alta tecnologia.</p>
       </div>
 
-      {/* Melhoria 0 — Preferências + formatos */}
+      {/* Badge de edital selecionado */}
+      {editalSelecionado && (() => {
+        const ed = editaisSalvos.find(es => es.edital_id === editalSelecionado);
+        if (!ed?.editais) return null;
+        const isElite = planoUsuario !== 'free';
+        return (
+          <div className={`flex items-start gap-3 rounded-(--radius) p-4 mb-4 border ${isElite ? 'bg-brand-cream border-brand-navy/20' : 'bg-warning-bg border-warning-2/30'}`}>
+            <span className="material-symbols-outlined shrink-0 mt-0.5 text-[20px] text-brand-navy">description</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] font-bold text-brand-orange uppercase tracking-widest">{ed.editais.orgao}</p>
+              <p className="text-[14px] font-bold text-brand-navy">{ed.editais.cargo}</p>
+              {isElite ? (
+                <p className="text-[11px] text-text-secondary mt-0.5">O plano será gerado exclusivamente com as matérias deste edital.</p>
+              ) : (
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[11px] text-warning-2 font-semibold">Plano por edital é exclusivo do Elite.</span>
+                  <Link href="/conta#plano" className="text-[11px] text-brand-navy font-bold underline">Fazer upgrade →</Link>
+                </div>
+              )}
+            </div>
+            <button onClick={() => setEditalSelecionado('')} className="text-text-muted hover:text-brand-navy text-[18px] leading-none shrink-0">×</button>
+          </div>
+        );
+      })()}
+
+      {/* Preferências + formatos */}
       <PreferenciasEstudo formatosSalvos={formatos} onAtualizar={setFormatos} />
 
       {/* Gerador */}
