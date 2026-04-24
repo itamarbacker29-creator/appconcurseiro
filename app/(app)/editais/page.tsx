@@ -59,6 +59,7 @@ export default function EditaisPage() {
   const [ordem, setOrdem] = useState('salario');
 
   const [salvos, setSalvos] = useState<string[]>([]);
+  const [inscritos, setInscritos] = useState<string[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const salvosCarregados = useRef(false);
   const buscaDeferida = useDeferredValue(busca);
@@ -67,10 +68,12 @@ export default function EditaisPage() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
       setUserId(user.id);
-      supabase.from('editais_salvos').select('edital_id').eq('user_id', user.id)
+      supabase.from('editais_salvos').select('edital_id, inscrito').eq('user_id', user.id)
         .then(({ data }) => {
           const ids = (data ?? []).map(d => d.edital_id);
+          const inscritosIds = (data ?? []).filter(d => d.inscrito).map(d => d.edital_id);
           setSalvos(ids);
+          setInscritos(inscritosIds);
           salvosCarregados.current = true;
         });
     });
@@ -324,6 +327,7 @@ export default function EditaisPage() {
                 ? urgencia(e.data_inscricao_fim)
                 : { dias: -1, urgente: false, encerrado: false };
               const isSalvo = salvos.includes(e.id);
+              const isInscrito = inscritos.includes(e.id);
               const isNovo = (Date.now() - new Date(e.coletado_em).getTime()) < 86400000 * 2;
 
               return (
@@ -344,6 +348,12 @@ export default function EditaisPage() {
                           </span>
                         )}
                         {encerrado && <Badge variant="default" className="text-[9px] opacity-60">Encerrado</Badge>}
+                        {isInscrito && (
+                          <span className="flex items-center gap-1 px-1.5 py-0.5 bg-success-bg rounded-full text-[10px] font-bold text-success">
+                            <span className="material-symbols-outlined filled" style={{ fontSize: 12 }}>how_to_reg</span>
+                            Inscrito
+                          </span>
+                        )}
                       </div>
                       <Link href={`/editais/${e.id}`}>
                         <h3 className="text-[14px] font-bold text-(--ink) hover:text-(--accent) transition-colors leading-tight">

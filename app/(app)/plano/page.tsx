@@ -37,7 +37,7 @@ interface Plano {
 }
 
 interface Habilidade { materia: string; theta: number }
-interface EditalSalvo { edital_id: string; editais: { orgao: string; cargo: string; materias: string[] | null } | null }
+interface EditalSalvo { edital_id: string; inscrito: boolean; editais: { orgao: string; cargo: string; materias: string[] | null } | null }
 
 const DIAS_PT: Record<string, string> = {
   Segunda: 'Seg', Terça: 'Ter', Quarta: 'Qua', Quinta: 'Qui',
@@ -544,7 +544,7 @@ function PlanoPageInner() {
           ? supabase.from('profiles').select('formatos_preferidos, questoes_por_dia, plano').eq('id', user.id).single()
           : Promise.resolve({ data: null }),
         user
-          ? supabase.from('editais_salvos').select('edital_id, editais(orgao, cargo, materias)').eq('user_id', user.id).limit(10)
+          ? supabase.from('editais_salvos').select('edital_id, inscrito, editais(orgao, cargo, materias)').eq('user_id', user.id).limit(10)
           : Promise.resolve({ data: [] }),
       ]);
 
@@ -665,32 +665,58 @@ function PlanoPageInner() {
         <p className="text-[13px] text-(--ink-3) mt-1">Cronograma personalizado pela nossa IA de alta tecnologia.</p>
       </div>
 
-      {/* Countdown */}
-      {diasRestantes !== null && (
-        <div className={`flex items-center gap-3 rounded-(--radius) px-4 py-3 mb-4 border ${
-          diasRestantes <= 30
-            ? 'bg-red-50 border-red-200'
-            : diasRestantes <= 60
-            ? 'bg-warning-bg border-warning-2/30'
-            : 'bg-brand-cream border-brand-navy/20'
-        }`}>
-          <span className="material-symbols-outlined text-[20px] shrink-0 text-brand-navy">timer</span>
-          <div className="flex-1">
-            <span className={`text-[13px] font-bold ${diasRestantes <= 30 ? 'text-red-700' : diasRestantes <= 60 ? 'text-warning-2' : 'text-brand-navy'}`}>
-              {diasRestantes <= 30
-                ? `⚠️ Faltam apenas ${diasRestantes} dias para a prova!`
-                : diasRestantes <= 60
-                ? `${diasRestantes} dias para a prova — mantenha o ritmo.`
-                : `${diasRestantes} dias para a prova — você está bem posicionado.`}
-            </span>
-            {bancaPlano && (
-              <span className="ml-2 text-[11px] font-bold text-brand-orange bg-brand-cream px-2 py-0.5 rounded-full">
-                {bancaPlano}
+      {/* Countdown — só urgente se inscrito no edital */}
+      {diasRestantes !== null && (() => {
+        const editalAtual = editaisSalvos.find(es => es.edital_id === editalSelecionado);
+        const isInscrito = editalAtual?.inscrito ?? false;
+
+        if (!isInscrito && editalSelecionado) {
+          // Candidato não confirmou inscrição — prompt suave
+          return (
+            <div className="flex items-center gap-3 rounded-(--radius) px-4 py-3 mb-4 border bg-(--surface-2) border-(--border-strong)">
+              <span className="material-symbols-outlined text-[20px] shrink-0 text-(--ink-3)">help</span>
+              <div className="flex-1">
+                <p className="text-[13px] font-semibold text-(--ink)">Você se inscreveu nesse concurso?</p>
+                <p className="text-[11px] text-(--ink-3) mt-0.5">
+                  Marque como inscrito para ativar o countdown e o modo urgência.
+                </p>
+              </div>
+              <Link
+                href={`/editais/${editalSelecionado}`}
+                className="shrink-0 text-[11px] font-bold text-(--accent) border border-(--accent)/30 px-3 py-1.5 rounded-sm hover:bg-(--accent-light) transition-colors"
+              >
+                Confirmar →
+              </Link>
+            </div>
+          );
+        }
+
+        return (
+          <div className={`flex items-center gap-3 rounded-(--radius) px-4 py-3 mb-4 border ${
+            diasRestantes <= 30
+              ? 'bg-red-50 border-red-200'
+              : diasRestantes <= 60
+              ? 'bg-warning-bg border-warning-2/30'
+              : 'bg-brand-cream border-brand-navy/20'
+          }`}>
+            <span className="material-symbols-outlined text-[20px] shrink-0 text-brand-navy">timer</span>
+            <div className="flex-1">
+              <span className={`text-[13px] font-bold ${diasRestantes <= 30 ? 'text-red-700' : diasRestantes <= 60 ? 'text-warning-2' : 'text-brand-navy'}`}>
+                {diasRestantes <= 30
+                  ? `⚠️ Faltam apenas ${diasRestantes} dias para a prova!`
+                  : diasRestantes <= 60
+                  ? `${diasRestantes} dias para a prova — mantenha o ritmo.`
+                  : `${diasRestantes} dias para a prova — você está bem posicionado.`}
               </span>
-            )}
+              {bancaPlano && (
+                <span className="ml-2 text-[11px] font-bold text-brand-orange bg-brand-cream px-2 py-0.5 rounded-full">
+                  {bancaPlano}
+                </span>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Badge de edital selecionado */}
       {editalSelecionado && (() => {

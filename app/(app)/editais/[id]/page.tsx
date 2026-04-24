@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { CardBanca } from '@/components/editais/CardBanca';
 import { ResumoEdital } from '@/components/editais/ResumoEdital';
 import { RecomendacaoParticipacao } from '@/components/editais/RecomendacaoParticipacao';
+import { AcoesSalvarInscrito } from '@/components/editais/AcoesSalvarInscrito';
 import Link from 'next/link';
 
 export default async function EditalPage({ params }: { params: Promise<{ id: string }> }) {
@@ -54,6 +55,7 @@ export default async function EditalPage({ params }: { params: Promise<{ id: str
           )}
         </div>
         <h1 className="text-[24px] font-bold text-(--ink)">{edital.cargo}</h1>
+        {user && <AcoesSalvarInscrito editalId={id} />}
       </div>
 
       {/* Grid de info principal */}
