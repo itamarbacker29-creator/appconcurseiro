@@ -1,14 +1,8 @@
 import { redirect } from 'next/navigation';
-import dynamic from 'next/dynamic';
 import { createServerClient, createAdminClient } from '@/lib/supabase-server';
+import { ReaderWrapper } from './ReaderWrapper';
 
 const BUCKET = 'apostilas';
-
-// react-pdf uses pdfjs-dist which optionally requires canvas — must be client-only
-const ApostilaReader = dynamic(
-  () => import('./Reader').then(m => ({ default: m.ApostilaReader })),
-  { ssr: false }
-);
 
 export default async function ApostilaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -36,7 +30,7 @@ export default async function ApostilaPage({ params }: { params: Promise<{ id: s
   }
 
   return (
-    <ApostilaReader
+    <ReaderWrapper
       materialId={material.id}
       titulo={material.titulo ?? 'Apostila'}
       materia={material.materia}
