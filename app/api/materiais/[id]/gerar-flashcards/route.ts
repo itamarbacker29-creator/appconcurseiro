@@ -24,11 +24,27 @@ function buildPrompt(titulo: string, materia: string, texto: string): string {
 }
 
 async function extrairTexto(buffer: Buffer): Promise<string> {
-  // Usa o lib interno para evitar o bug de test-files do pdf-parse em Next.js serverless
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const pdf = require('pdf-parse/lib/pdf-parse.js') as (buf: Buffer, opts?: object) => Promise<{ text: string }>;
-  const data = await pdf(buffer, { max: 3 }); // primeiras 3 páginas
-  return data.text.replace(/\s+/g, ' ').trim().slice(0, MAX_CHARS);
+  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  pdfjs.GlobalWorkerOptions.workerSrc = ''; // desativa worker — roda na thread principal (serverless)
+
+  const pdf = await pdfjs.getDocument({
+    data: new Uint8Array(buffer),
+    useWorkerFetch: false,
+    isEvalSupported: false,
+    disableStream: true,
+  }).promise;
+
+  const numPages = Math.min(3, pdf.numPages);
+  let text = '';
+  for (let i = 1; i <= numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    for (const item of content.items) {
+      if ('str' in item) text += item.str + ' ';
+    }
+    text += '\n';
+  }
+  return text.replace(/\s+/g, ' ').trim().slice(0, MAX_CHARS);
 }
 
 export async function POST(
