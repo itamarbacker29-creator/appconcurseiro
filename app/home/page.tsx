@@ -4,7 +4,7 @@ import Link from 'next/link';
 export const metadata: Metadata = {
   title: 'O Tutor — Estude para concursos com inteligência artificial',
   description: 'O Tutor organiza editais, monta simulados adaptativos, cria seu plano de estudos personalizado e tira suas dúvidas 24h. Tudo que você precisa para a aprovação.',
-  robots: 'noindex', // não indexar enquanto beta
+  robots: 'noindex',
 };
 
 // ── Dados ──────────────────────────────────────────────────────────────
@@ -23,12 +23,12 @@ const FEATURES = [
   {
     icon: '📅',
     titulo: 'Plano de estudo por IA',
-    desc: 'A IA analisa seu desempenho, o edital do seu concurso e gera um cronograma semanal personalizado. Sabe exatamente o que estudar e quando.',
+    desc: 'A IA analisa seu desempenho e o edital do seu concurso para gerar um cronograma semanal personalizado — adaptado à sua rotina e ao seu formato favorito: podcasts, YouTube, leitura ou apostilas.',
   },
   {
     icon: '✨',
-    titulo: 'Tutor IA 24 horas',
-    desc: 'Tire dúvidas sobre qualquer matéria a qualquer hora. O tutor explica conceitos, resolve questões com você e cita a legislação de referência.',
+    titulo: 'Tutor IA 24/7',
+    desc: 'Tire dúvidas sobre qualquer matéria a qualquer hora. O Tutor explica conceitos, resolve questões com você e cita a legislação de referência — disponível 24 horas por dia, 7 dias por semana.',
   },
   {
     icon: '📚',
@@ -37,8 +37,8 @@ const FEATURES = [
   },
   {
     icon: '📊',
-    titulo: 'Painel de desempenho',
-    desc: 'Evolução por matéria, ranking de prioridades e progresso rumo à meta de aprovação. Visualize exatamente onde focar esforço para passar mais rápido.',
+    titulo: 'Painel de desempenho e aprovação',
+    desc: 'Acompanhe sua chance de aprovação em tempo real com base nos seus simulados. Receba recomendações qualificadas por banca organizadora e saiba exatamente onde focar.',
   },
 ];
 
@@ -51,12 +51,12 @@ const STEPS = [
   {
     num: '02',
     titulo: 'A IA monta seu plano',
-    desc: 'Com base no edital e no seu desempenho nos primeiros simulados, o Tutor gera um cronograma semanal com horas por matéria e metas diárias.',
+    desc: 'Com base no edital e no seu desempenho nos primeiros simulados, O Tutor gera um cronograma semanal adaptado à sua rotina e ao seu formato de estudo preferido — podcast, YouTube, leitura ou apostilas.',
   },
   {
     num: '03',
     titulo: 'Estude, revise e evolua',
-    desc: 'Faça simulados adaptativos, use o tutor para dúvidas, marque apostilas e acompanhe sua evolução no painel. O sistema se adapta conforme você melhora.',
+    desc: 'Faça simulados adaptativos, use o Tutor IA 24/7 para dúvidas, marque apostilas e acompanhe sua evolução no painel. O sistema avalia sua chance de aprovação e se adapta conforme você melhora.',
   },
 ];
 
@@ -70,14 +70,13 @@ const PLANOS = [
     cta: 'Começar grátis',
     ctaHref: '/login',
     destaque: false,
-    cor: 'border-(--border)',
     items: [
       { ok: true,  txt: 'Editais ilimitados' },
       { ok: true,  txt: '5 simulados por mês' },
       { ok: true,  txt: 'Plano de estudo básico' },
       { ok: true,  txt: 'Desempenho por matéria' },
-      { ok: false, txt: 'Tutor IA' },
-      { ok: false, txt: 'Apostilas com marca-texto' },
+      { ok: false, txt: 'Tutor IA 24/7' },
+      { ok: false, txt: 'Marca texto em suas apostilas' },
       { ok: false, txt: 'Flashcards com IA' },
       { ok: false, txt: 'Plano por edital (Elite)' },
     ],
@@ -91,15 +90,14 @@ const PLANOS = [
     cta: 'Assinar Premium',
     ctaHref: '/login',
     destaque: true,
-    cor: 'border-brand-navy',
     items: [
-      { ok: true, txt: 'Editais ilimitados' },
-      { ok: true, txt: '30 simulados por mês' },
-      { ok: true, txt: 'Plano de estudo personalizado' },
-      { ok: true, txt: 'Desempenho por matéria' },
-      { ok: true, txt: 'Tutor IA (50 msg/mês)' },
-      { ok: true, txt: 'Apostilas com marca-texto' },
-      { ok: true, txt: 'Flashcards com IA' },
+      { ok: true,  txt: 'Editais ilimitados' },
+      { ok: true,  txt: '30 simulados por mês' },
+      { ok: true,  txt: 'Plano de estudo personalizado' },
+      { ok: true,  txt: 'Desempenho por matéria' },
+      { ok: true,  txt: 'Tutor IA 24/7 (50 msg/mês)' },
+      { ok: true,  txt: 'Marca texto em suas apostilas' },
+      { ok: false, txt: 'Flashcards com IA' },
       { ok: false, txt: 'Plano por edital (Elite)' },
     ],
   },
@@ -112,14 +110,13 @@ const PLANOS = [
     cta: 'Assinar Elite',
     ctaHref: '/login',
     destaque: false,
-    cor: 'border-brand-orange',
     items: [
       { ok: true, txt: 'Editais ilimitados' },
       { ok: true, txt: 'Simulados ilimitados' },
       { ok: true, txt: 'Plano de estudo personalizado' },
       { ok: true, txt: 'Desempenho por matéria' },
-      { ok: true, txt: 'Tutor IA ilimitado' },
-      { ok: true, txt: 'Apostilas com marca-texto' },
+      { ok: true, txt: 'Tutor IA 24/7 ilimitado' },
+      { ok: true, txt: 'Marca texto em suas apostilas' },
       { ok: true, txt: 'Flashcards com IA' },
       { ok: true, txt: 'Plano por edital exclusivo' },
     ],
@@ -137,15 +134,15 @@ const FAQS = [
   },
   {
     q: 'O plano de estudo funciona para qualquer concurso?',
-    a: 'Funciona para a maioria dos concursos federais, estaduais e municipais. No plano Elite, o cronograma é gerado a partir do edital específico do seu concurso, com os pesos de cada matéria.',
+    a: 'Funciona para a maioria dos concursos federais, estaduais e municipais. No plano Elite, o cronograma é gerado a partir do edital específico do seu concurso, com os pesos de cada matéria e adaptado ao seu formato de estudo favorito.',
   },
   {
     q: 'Posso usar no celular?',
     a: 'Sim. A plataforma é responsiva e funciona bem no celular, com navegação otimizada para mobile. Aplicativo nativo está em desenvolvimento.',
   },
   {
-    q: 'Como funciona o tutor IA?',
-    a: 'É um chat integrado onde você pode perguntar qualquer coisa sobre as matérias do seu concurso. O tutor explica conceitos, resolve questões passo a passo e cita as referências legais relevantes.',
+    q: 'Como funciona O Tutor?',
+    a: 'O Tutor é uma plataforma completa de preparação para concursos públicos. Ela monitora editais, gera simulados adaptativos calibrados à sua banca, monta um plano de estudos semanal personalizado, avalia sua chance de aprovação com base nos resultados e oferece um assistente de IA disponível 24/7 para tirar dúvidas sobre qualquer matéria. Tudo em um único ambiente integrado.',
   },
 ];
 
@@ -190,7 +187,8 @@ export default function HomePage() {
               Entrar
             </Link>
             <Link href="/login"
-              className="px-4 py-2 bg-[#17375E] text-white text-[14px] font-bold rounded-xl hover:bg-[#0F2540] transition-colors">
+              className="px-4 py-2 bg-[#17375E] text-[14px] font-bold rounded-xl hover:bg-[#0F2540] transition-colors"
+              style={{ color: '#ffffff' }}>
               Começar grátis
             </Link>
           </div>
@@ -199,12 +197,10 @@ export default function HomePage() {
 
       {/* ── Hero ──────────────────────────────────────────────── */}
       <section className="relative overflow-hidden bg-gradient-to-br from-[#F4F1DA] via-white to-white pt-20 pb-24 md:pt-28 md:pb-32">
-        {/* Decorative blob */}
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#17375E]/5 rounded-full -translate-y-1/2 translate-x-1/3 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-[#FF8400]/8 rounded-full translate-y-1/2 -translate-x-1/3 pointer-events-none" />
 
         <div className="relative max-w-6xl mx-auto px-4 md:px-8">
-          {/* Badge */}
           <div className="inline-flex items-center gap-2 bg-[#17375E]/8 text-[#17375E] text-[12px] font-bold px-3 py-1.5 rounded-full mb-6 tracking-wide uppercase">
             <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
             Plataforma em operação · Beta aberto
@@ -217,12 +213,13 @@ export default function HomePage() {
               <span className="text-[#FF8400]">inteligência artificial</span>
             </h1>
             <p className="text-[18px] md:text-[20px] text-gray-600 leading-relaxed mb-8 max-w-2xl">
-              O Tutor organiza editais, monta simulados adaptativos, cria seu plano de estudos personalizado e tira suas dúvidas 24h.
+              O Tutor organiza editais, monta simulados adaptativos, cria seu plano de estudos personalizado e tira suas dúvidas com o Tutor IA 24/7.
               Tudo que você precisa para a aprovação em um só lugar.
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <Link href="/login"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-[#17375E] text-white text-[16px] font-bold rounded-2xl hover:bg-[#0F2540] transition-all hover:scale-[1.02] shadow-lg shadow-[#17375E]/20">
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-[#17375E] text-[16px] font-bold rounded-2xl hover:bg-[#0F2540] transition-all hover:scale-[1.02] shadow-lg shadow-[#17375E]/20"
+                style={{ color: '#ffffff' }}>
                 Começar grátis — sem cartão
                 <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -241,7 +238,7 @@ export default function HomePage() {
               { n: '+500', label: 'editais monitorados' },
               { n: '+10k', label: 'questões na base' },
               { n: '100%', label: 'adaptativo por IA' },
-              { n: '24h', label: 'tutor disponível' },
+              { n: '24/7', label: 'tutor disponível' },
             ].map(s => (
               <div key={s.n}>
                 <p className="text-[28px] font-black text-[#17375E]"
@@ -328,9 +325,10 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
             {PLANOS.map(p => (
               <div key={p.id}
-                className={`relative rounded-2xl border-2 p-7 flex flex-col gap-6 transition-all ${p.destaque
-                  ? 'border-[#17375E] shadow-2xl shadow-[#17375E]/10 scale-[1.02]'
-                  : p.id === 'elite' ? 'border-[#FF8400]' : 'border-gray-200'
+                className={`relative rounded-2xl border-2 p-7 flex flex-col gap-6 transition-all ${
+                  p.destaque
+                    ? 'border-[#17375E] shadow-2xl shadow-[#17375E]/10 scale-[1.02]'
+                    : p.id === 'elite' ? 'border-brand-orange' : 'border-gray-200'
                 }`}>
                 {p.destaque && (
                   <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#17375E] text-white text-[11px] font-bold px-4 py-1 rounded-full uppercase tracking-wide whitespace-nowrap">
@@ -339,7 +337,7 @@ export default function HomePage() {
                 )}
                 {p.id === 'elite' && (
                   <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#FF8400] text-white text-[11px] font-bold px-4 py-1 rounded-full uppercase tracking-wide whitespace-nowrap">
-                    Aprovação garantida
+                    Concurseiro Profissional
                   </div>
                 )}
 
@@ -354,12 +352,14 @@ export default function HomePage() {
                 </div>
 
                 <Link href={p.ctaHref}
-                  className={`w-full py-3 rounded-xl text-[14px] font-bold text-center transition-all ${p.destaque
-                    ? 'bg-[#17375E] text-white hover:bg-[#0F2540]'
-                    : p.id === 'elite'
-                      ? 'bg-[#FF8400] text-white hover:opacity-90'
-                      : 'bg-gray-100 text-[#17375E] hover:bg-gray-200'
-                  }`}>
+                  className={`w-full py-3 rounded-xl text-[14px] font-bold text-center transition-all ${
+                    p.destaque
+                      ? 'bg-[#17375E] hover:bg-[#0F2540]'
+                      : p.id === 'elite'
+                        ? 'bg-brand-orange hover:opacity-90'
+                        : 'bg-gray-100 text-[#17375E] hover:bg-gray-200'
+                  }`}
+                  style={p.id !== 'free' ? { color: '#ffffff' } : undefined}>
                   {p.cta}
                 </Link>
 
@@ -379,7 +379,7 @@ export default function HomePage() {
 
           <p className="text-center text-[13px] text-gray-400 mt-8">
             Todos os planos incluem acesso completo ao dashboard, editais e desempenho.
-            Planos pagos com IA Claude Haiku — mais preciso e com referências legais.
+            Planos pagos com IA de alta tecnologia — mais precisa e com referências legais.
           </p>
         </div>
       </section>
@@ -422,7 +422,8 @@ export default function HomePage() {
             Comece gratuitamente — sem cartão de crédito.
           </p>
           <Link href="/login"
-            className="inline-flex items-center gap-3 px-10 py-5 bg-[#FF8400] text-white text-[17px] font-black rounded-2xl hover:bg-[#e67700] transition-all hover:scale-[1.02] shadow-xl shadow-[#FF8400]/30">
+            className="inline-flex items-center gap-3 px-10 py-5 bg-[#FF8400] text-[17px] font-black rounded-2xl hover:bg-[#e67700] transition-all hover:scale-[1.02] shadow-xl shadow-brand-orange/30"
+            style={{ color: '#ffffff' }}>
             Criar conta grátis agora
             <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -446,6 +447,13 @@ export default function HomePage() {
             <Link href="/login" className="hover:text-[#17375E] transition-colors">Entrar</Link>
           </div>
           <p className="text-[12px] text-gray-300">© 2026 O Tutor. Todos os direitos reservados.</p>
+        </div>
+        {/* Disclaimer */}
+        <div className="max-w-6xl mx-auto px-4 md:px-8 mt-6 pt-6 border-t border-gray-100">
+          <p className="text-[11px] text-gray-300 text-center leading-relaxed max-w-3xl mx-auto">
+            O Tutor é uma plataforma de organização e inteligência de estudos. Não oferece garantia de aprovação em concursos públicos,
+            nem fornece conteúdo didático próprio, aulas, apostilas ou material de ensino. O desempenho depende exclusivamente do esforço e dedicação do candidato.
+          </p>
         </div>
       </footer>
 
