@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { RecomendacaoIA } from '@/components/editais/RecomendacaoIA';
+import { ExtrairMaterias } from '@/components/editais/ExtrairMaterias';
 import Link from 'next/link';
 
 function matchTheta(
@@ -88,12 +89,15 @@ export default async function RaioXPage({ params }: { params: Promise<{ id: stri
       </div>
 
       {materias.length === 0 ? (
-        <div className="text-center py-16 flex flex-col items-center gap-3">
+        <div className="text-center py-16 flex flex-col items-center gap-4">
           <span className="material-symbols-outlined text-(--ink-3)" style={{ fontSize: 48 }}>radar</span>
-          <p className="text-[15px] font-semibold text-(--ink-2)">Matérias ainda não disponíveis.</p>
-          <p className="text-[13px] text-(--ink-3) max-w-xs text-center">
-            O crawler extrai as matérias do PDF do edital automaticamente. Tente novamente em breve.
-          </p>
+          <div>
+            <p className="text-[15px] font-semibold text-(--ink-2)">Matérias ainda não extraídas.</p>
+            <p className="text-[13px] text-(--ink-3) max-w-xs text-center mt-1">
+              Vamos buscar o PDF do edital e extrair as matérias agora.
+            </p>
+          </div>
+          <ExtrairMaterias editalId={id} />
           <Link href={`/editais/${id}`}>
             <Button variant="ghost" size="sm">← Voltar ao edital</Button>
           </Link>
