@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase-server';
 import Anthropic from '@anthropic-ai/sdk';
 import { encontrarPdfUrl, baixarPdf } from '@/lib/pdf-utils';
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 const AREAS = ['tributario','seguranca','saude','educacao','judiciario','tecnologia','administrativo'] as const;
 
