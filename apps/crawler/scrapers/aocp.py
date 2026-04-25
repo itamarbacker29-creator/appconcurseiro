@@ -73,7 +73,7 @@ async def scrape(client: httpx.AsyncClient) -> list[dict]:
                     h2 = href_abs(a["href"], href)
                     h2l = h2.lower()
                     tl = limpar(a.get_text()).lower()
-                    if not link_pdf and h2l.endswith(".pdf") and ("edital" in h2l or "edital" in tl):
+                    if not link_pdf and h2l.endswith(".pdf"):
                         link_pdf = h2
                     if not link_inscricao and ("inscri" in tl or "inscricao" in h2l):
                         link_inscricao = h2

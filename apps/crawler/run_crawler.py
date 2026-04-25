@@ -161,7 +161,9 @@ def normalizar(edital: dict) -> dict | None:
 DOMINIOS_NOTICIAS = {
     "estrategiaconcursos", "grancursosonline", "tecconcursos", "qconcursos",
     "concursosnobrasil", "pciconcursos", "apostilas", "g1.globo", "uol.com",
-    "facebook.com", "instagram.com", "youtube.com", "twitter.com",
+    "facebook.com", "instagram.com", "youtube.com", "twitter.com", "x.com",
+    "google.com", "bing.com", "yahoo.com", "terra.com", "r7.com", "folha.uol",
+    "diariomunicipal.com.br", "news.google", "diariooficial",
 }
 
 def _eh_blog(url: str) -> bool:
@@ -174,17 +176,22 @@ def _extrair_pdfs(soup, base_url: str) -> list[tuple[int, str]]:
         href = str(a["href"]).strip()
         if not href:
             continue
-        href_abs = href if href.startswith("http") else urljoin(base_url, href)
-        if ".pdf" not in href_abs.lower():
+        abs_url = href if href.startswith("http") else urljoin(base_url, href)
+        hl = abs_url.lower()
+        tl = a.get_text(strip=True).lower()
+        # Aceita .pdf ou links com padrões típicos de edital sem extensão
+        is_pdf = ".pdf" in hl
+        is_edital_link = re.search(r'edital|abertura|concurso.*download|baixar.*edital|arquivo', hl + " " + tl, re.I)
+        if not is_pdf and not is_edital_link:
             continue
         score = 0
-        hl = href_abs.lower()
-        tl = a.get_text(strip=True).lower()
         if "edital" in hl: score += 4
         if "abertura" in hl or "completo" in hl: score += 2
-        if "edital" in tl: score += 2
+        if "edital" in tl: score += 3
+        if "download" in tl or "baixar" in tl: score += 1
+        if is_pdf: score += 2
         score += 1
-        candidatos.append((score, href_abs))
+        candidatos.append((score, abs_url))
     return candidatos
 
 def _extrair_externos(soup, base_host: str) -> list[str]:

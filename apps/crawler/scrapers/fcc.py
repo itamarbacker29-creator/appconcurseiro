@@ -26,7 +26,7 @@ async def _detalhes(client: httpx.AsyncClient, url: str) -> dict:
             href = href_abs(a["href"], url)
             hl = href.lower()
             tl = limpar(a.get_text()).lower()
-            if not link_pdf and hl.endswith(".pdf") and ("edital" in hl or "edital" in tl):
+            if not link_pdf and hl.endswith(".pdf"):
                 link_pdf = href
             if not link_inscricao and ("inscri" in tl or "inscricao" in hl or "inscricoes" in hl):
                 if href.startswith("http") and "fcc" not in href.lower().replace("fcc.com.br", ""):

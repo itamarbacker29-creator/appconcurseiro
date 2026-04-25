@@ -27,7 +27,7 @@ async def _detalhes(client: httpx.AsyncClient, url: str, orgao: str) -> dict | N
             txt = limpar(a.get_text()).lower()
             if not link_inscricao and ("inscri" in txt or "inscri" in href.lower()):
                 link_inscricao = href
-            if not link_pdf and href.lower().endswith(".pdf") and "edital" in (href + txt).lower():
+            if not link_pdf and href.lower().endswith(".pdf"):
                 link_pdf = href
 
         # Datas — procura padrões comuns na página
