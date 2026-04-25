@@ -281,38 +281,86 @@ def normalizar(edital: dict) -> dict | None:
 # ETAPA 4 — PIPELINE DE PDF (novo)
 # ─────────────────────────────────────────────
 
+DOMINIOS_OFICIAIS = (
+    ".gov.br", ".jus.br", ".leg.br", ".mp.br", ".tc.br", ".def.br",
+    "prefeitura", "camara", "tribunal", "ministerio", "concurso", "selecao",
+)
+
+def _e_dominio_oficial(url: str) -> bool:
+    host = urlparse(url).netloc.lower()
+    return any(d in host for d in DOMINIOS_OFICIAIS)
+
+def _extrair_pdfs_de_soup(soup, base_url: str) -> list[tuple[int, str]]:
+    candidatos = []
+    for a in soup.find_all("a", href=True):
+        href = str(a["href"]).strip()
+        if not href:
+            continue
+        href_abs = href if href.startswith("http") else urljoin(base_url, href)
+        href_lower = href_abs.lower()
+        if ".pdf" not in href_lower:
+            continue
+        score = 0
+        if "edital" in href_lower: score += 4
+        if "abertura" in href_lower or "completo" in href_lower: score += 2
+        texto = a.get_text(strip=True).lower()
+        if "edital" in texto: score += 2
+        score += 1
+        candidatos.append((score, href_abs))
+    return candidatos
+
+async def _raspar_pagina(url: str, client: httpx.AsyncClient) -> BeautifulSoup | None:
+    try:
+        resp = await client.get(url)
+        if resp.status_code != 200:
+            return None
+        return BeautifulSoup(resp.text, "lxml")
+    except Exception:
+        return None
+
 async def encontrar_link_pdf(url: str) -> str | None:
-    """Raspa uma página procurando link para PDF de edital."""
+    """
+    Busca PDF em 2 níveis:
+    1. Raspa a URL fornecida procurando links .pdf
+    2. Se não achar, segue links para domínios oficiais e raspa esses também
+    """
     if not url:
         return None
-    # Se a própria URL já é um PDF
     if url.lower().endswith(".pdf"):
         return url
 
+    headers = {"User-Agent": "ConcurseiroBot/1.0"}
     try:
-        async with httpx.AsyncClient(timeout=10, follow_redirects=True,
-                                     headers={"User-Agent": "ConcurseiroBot/1.0"}) as client:
-            resp = await client.get(url)
-            if resp.status_code != 200:
+        async with httpx.AsyncClient(timeout=12, follow_redirects=True, headers=headers) as client:
+            soup1 = await _raspar_pagina(url, client)
+            if soup1 is None:
                 return None
-            soup = BeautifulSoup(resp.text, "lxml")
 
-        candidatos = []
-        for a in soup.find_all("a", href=True):
-            href = str(a["href"]).strip()
-            if not href:
-                continue
-            href_abs = href if href.startswith("http") else urljoin(url, href)
-            href_lower = href_abs.lower()
-            if ".pdf" not in href_lower:
-                continue
-            # Prioriza links com "edital" no nome
-            score = 2 if "edital" in href_lower else 1
-            candidatos.append((score, href_abs))
+            candidatos = _extrair_pdfs_de_soup(soup1, url)
+            if candidatos:
+                candidatos.sort(reverse=True)
+                return candidatos[0][1]
 
-        if candidatos:
-            candidatos.sort(reverse=True)
-            return candidatos[0][1]
+            # Nível 2 — segue links para domínios oficiais
+            links_oficiais: list[str] = []
+            for a in soup1.find_all("a", href=True):
+                href = str(a["href"]).strip()
+                if not href or not href.startswith("http"):
+                    continue
+                if href == url:
+                    continue
+                if _e_dominio_oficial(href):
+                    links_oficiais.append(href)
+
+            for link_oficial in links_oficiais[:5]:
+                print(f"  [PDF-FIND] Nível 2: {link_oficial}")
+                soup2 = await _raspar_pagina(link_oficial, client)
+                if soup2 is None:
+                    continue
+                candidatos2 = _extrair_pdfs_de_soup(soup2, link_oficial)
+                if candidatos2:
+                    candidatos2.sort(reverse=True)
+                    return candidatos2[0][1]
 
     except Exception as e:
         print(f"  [PDF-FIND] Erro ao raspar {url}: {e}")
