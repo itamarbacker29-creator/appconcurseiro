@@ -2,7 +2,7 @@
   "name": "O Tutor — Concursos com IA",
   "short_name": "O Tutor",
   "description": "Editais automáticos, simulados adaptativos com IA e plano de estudo para concursos públicos",
-  "start_url": "/dashboard",
+  "start_url": "/login",
   "display": "standalone",
   "background_color": "#F4F1DA",
   "theme_color": "#17375E",
