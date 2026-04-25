@@ -1,6 +1,6 @@
 """
 Scraper — Cesgranrio (cesgranrio.org.br)
-Cobre: Petrobras, BNDES, Banco do Brasil, LIQUIGÁS e autarquias federais
+Cobre: Petrobras, BNDES, Banco do Brasil, LIQUIGÁS, BANESE e autarquias federais
 """
 import asyncio
 import re
@@ -8,93 +8,88 @@ import httpx
 from bs4 import BeautifulSoup
 from .utils import HEADERS, limpar, parse_data_br, href_abs, encerrado, inferir_nivel, inferir_estado
 
-BASE = "http://www.cesgranrio.org.br"
-URLS_LISTA = [
-    f"{BASE}/eventos/concursos_abertos.aspx",
-    f"{BASE}/concursos",
-    BASE,
-]
+BASE = "https://www.cesgranrio.org.br"
+URL_LISTA = f"{BASE}/concursos/?ucat=25"  # categoria 25 = Em Andamento
 BANCA = "Cesgranrio"
+
+
+async def _detalhes(client: httpx.AsyncClient, url: str) -> dict:
+    det: dict = {"link_fonte": url}
+    try:
+        resp = await client.get(url)
+        if resp.status_code != 200:
+            return det
+        soup = BeautifulSoup(resp.text, "lxml")
+
+        link_pdf = None
+        link_inscricao = None
+        for a in soup.find_all("a", href=True):
+            h = href_abs(a["href"], url)
+            hl = h.lower()
+            tl = limpar(a.get_text()).lower()
+            if not link_pdf and hl.endswith(".pdf"):
+                link_pdf = h
+            if not link_inscricao and ("inscri" in tl or "inscri" in hl):
+                link_inscricao = h
+
+        texto = soup.get_text(" ")
+        datas = re.findall(r"\d{1,2}/\d{1,2}/\d{4}", texto)
+        det["data_inscricao_inicio"] = parse_data_br(datas[0]) if datas else None
+        det["data_inscricao_fim"] = parse_data_br(datas[1]) if len(datas) > 1 else None
+        det["link_edital_pdf"] = link_pdf
+        det["link_inscricao"] = link_inscricao
+    except Exception:
+        pass
+    return det
 
 
 async def scrape(client: httpx.AsyncClient) -> list[dict]:
     resultados = []
-    soup = None
+    try:
+        resp = await client.get(URL_LISTA, headers={**HEADERS, "Accept": "text/html"})
+        if resp.status_code != 200:
+            print(f"[CESGRANRIO] HTTP {resp.status_code}")
+            return []
+        soup = BeautifulSoup(resp.text, "lxml")
 
-    for url in URLS_LISTA:
-        try:
-            resp = await client.get(url)
-            if resp.status_code == 200:
-                soup = BeautifulSoup(resp.text, "lxml")
-                break
-        except Exception:
-            continue
+        vistos: set[str] = set()
+        # WordPress Uncode: cards em div.isotope-container div.tmb
+        cards = soup.select("div.isotope-container div.tmb")
+        if not cards:
+            cards = soup.find_all("a", href=lambda h: h and "/concurso/" in h)
 
-    if not soup:
-        print("[CESGRANRIO] Não foi possível acessar o site")
-        return []
+        for card in cards[:30]:
+            link_tag = card if card.name == "a" else card.find("a", href=True)
+            if not link_tag:
+                continue
+            href = href_abs(link_tag.get("href", ""), BASE)
+            if href in vistos or "/concurso/" not in href:
+                continue
+            vistos.add(href)
 
-    vistos: set[str] = set()
-    rows = (
-        soup.select("table tr")
-        or soup.select(".concurso-item")
-        or soup.select("li")
-        or soup.select("article")
-    )
+            titulo_tag = card.find(["h1", "h2", "h3", "h4"])
+            orgao = limpar(titulo_tag.get_text()) if titulo_tag else limpar(link_tag.get_text())
+            if len(orgao) < 4:
+                continue
 
-    for row in rows[:25]:
-        link_tag = row.find("a", href=True)
-        if not link_tag:
-            continue
-        href = href_abs(link_tag["href"], BASE)
-        if href in vistos:
-            continue
-        vistos.add(href)
+            # Exclui vestibulares e exames de ordem
+            if any(p in orgao.lower() for p in ["vestibular", "enade", "provão", "oab exame"]):
+                continue
 
-        cells = row.find_all(["td", "th"])
-        orgao = limpar(cells[0].get_text()) if cells else limpar(link_tag.get_text())
-        if not orgao or len(orgao) < 4 or orgao.lower() in ("evento", "concurso", "cliente"):
-            continue
+            det = await _detalhes(client, href)
+            if not encerrado(det.get("data_inscricao_fim")):
+                resultados.append({
+                    "orgao": orgao,
+                    "cargo": "Vários cargos",
+                    "banca": BANCA,
+                    "nivel": inferir_nivel(orgao),
+                    "estado": inferir_estado(orgao),
+                    **det,
+                })
+            await asyncio.sleep(0.4)
 
-        texto_row = row.get_text(" ")
-        datas = re.findall(r"\d{1,2}/\d{1,2}/\d{4}", texto_row)
-        data_fim = parse_data_br(datas[-1]) if datas else None
-        if encerrado(data_fim):
-            continue
-
-        link_pdf = None
-        link_inscricao = None
-        try:
-            resp2 = await client.get(href)
-            if resp2.status_code == 200:
-                s2 = BeautifulSoup(resp2.text, "lxml")
-                for a in s2.find_all("a", href=True):
-                    h2 = href_abs(a["href"], href)
-                    h2l = h2.lower()
-                    tl = limpar(a.get_text()).lower()
-                    if not link_pdf and h2l.endswith(".pdf"):
-                        link_pdf = h2
-                    if not link_inscricao and ("inscri" in tl or "inscricao" in h2l):
-                        link_inscricao = h2
-                if not data_fim:
-                    datas2 = re.findall(r"\d{1,2}/\d{1,2}/\d{4}", s2.get_text(" "))
-                    data_fim = parse_data_br(datas2[1]) if len(datas2) > 1 else parse_data_br(datas2[0]) if datas2 else None
-        except Exception:
-            pass
-
-        if not encerrado(data_fim):
-            resultados.append({
-                "orgao": orgao,
-                "cargo": "Vários cargos",
-                "banca": BANCA,
-                "nivel": inferir_nivel(orgao),
-                "estado": inferir_estado(orgao),
-                "link_edital_pdf": link_pdf,
-                "link_inscricao": link_inscricao,
-                "link_fonte": href,
-                "data_inscricao_fim": data_fim,
-            })
-        await asyncio.sleep(0.4)
+    except Exception as e:
+        print(f"[CESGRANRIO] Erro: {e}")
 
     print(f"[CESGRANRIO] {len(resultados)} concurso(s) encontrado(s)")
     return resultados

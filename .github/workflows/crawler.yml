@@ -2,7 +2,7 @@ name: Crawler de Editais
 
 on:
   schedule:
-    - cron: '0 6 * * *'   # todo dia às 6h UTC (3h Brasília)
+    - cron: '0 6 * * *'   # uma vez por dia às 6h UTC (3h Brasília)
   workflow_dispatch:          # permite rodar manualmente
 
 jobs:
@@ -25,6 +25,9 @@ jobs:
 
       - name: Instalar dependências
         run: pip install -r requirements.txt
+
+      - name: Instalar Playwright (Chromium)
+        run: playwright install chromium --with-deps
 
       - name: Rodar crawler
         env:

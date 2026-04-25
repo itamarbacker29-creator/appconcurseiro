@@ -1,104 +1,77 @@
 """
 Scraper — CEBRASPE (cebraspe.org.br/concursos)
-Cobre: concursos federais e estaduais de alto perfil (PF, PRF, STJ, TCU, etc.)
+React SPA — usa Playwright para renderizar JS.
+Cobre: PF, PRF, STJ, TCU, TJDFT e concursos federais de alto perfil.
 """
 import asyncio
+import re
 import httpx
 from bs4 import BeautifulSoup
 from .utils import HEADERS, limpar, parse_data_br, href_abs, encerrado, inferir_nivel, inferir_estado
+from .pw_utils import get_page_html
 
 BASE = "https://www.cebraspe.org.br"
 URL_LISTA = f"{BASE}/concursos"
 BANCA = "CEBRASPE"
 
 
-async def _detalhes(client: httpx.AsyncClient, url: str, orgao: str) -> dict | None:
+async def _detalhes(client: httpx.AsyncClient, url: str) -> dict:
+    det: dict = {"link_fonte": url}
     try:
+        # Página de detalhe também pode ser React; tenta httpx primeiro
         resp = await client.get(url)
-        if resp.status_code != 200:
-            return None
-        soup = BeautifulSoup(resp.text, "lxml")
+        html = resp.text if resp.status_code == 200 else None
+        if not html or len(html) < 500:
+            html = await get_page_html(url)
+        if not html:
+            return det
 
-        # Link inscrição
-        link_inscricao = None
+        soup = BeautifulSoup(html, "lxml")
         link_pdf = None
+        link_inscricao = None
         for a in soup.find_all("a", href=True):
-            href = href_abs(a["href"], url)
-            txt = limpar(a.get_text()).lower()
-            if not link_inscricao and ("inscri" in txt or "inscri" in href.lower()):
-                link_inscricao = href
-            if not link_pdf and href.lower().endswith(".pdf"):
-                link_pdf = href
+            h = href_abs(a["href"], url)
+            hl = h.lower()
+            tl = limpar(a.get_text()).lower()
+            if not link_pdf and hl.endswith(".pdf"):
+                link_pdf = h
+            if not link_inscricao and ("inscri" in tl or "inscri" in hl):
+                link_inscricao = h
 
-        # Datas — procura padrões comuns na página
-        texto_pagina = soup.get_text(" ")
-        import re
-        datas = re.findall(r"\d{1,2}/\d{1,2}/\d{4}", texto_pagina)
-        data_fim = parse_data_br(datas[1]) if len(datas) >= 2 else parse_data_br(datas[0]) if datas else None
-        data_ini = parse_data_br(datas[0]) if datas else None
-
-        return {
-            "link_inscricao": link_inscricao,
-            "link_edital_pdf": link_pdf,
-            "link_fonte": url,
-            "data_inscricao_inicio": data_ini,
-            "data_inscricao_fim": data_fim,
-        }
+        texto = soup.get_text(" ")
+        datas = re.findall(r"\d{1,2}/\d{1,2}/\d{4}", texto)
+        det["data_inscricao_inicio"] = parse_data_br(datas[0]) if datas else None
+        det["data_inscricao_fim"] = parse_data_br(datas[1]) if len(datas) > 1 else None
+        det["link_edital_pdf"] = link_pdf
+        det["link_inscricao"] = link_inscricao
     except Exception:
-        return None
+        pass
+    return det
 
 
 async def scrape(client: httpx.AsyncClient) -> list[dict]:
     resultados = []
     try:
-        resp = await client.get(URL_LISTA)
-        if resp.status_code != 200:
-            print(f"[CEBRASPE] HTTP {resp.status_code}")
+        # CEBRASPE é React SPA — precisa de Playwright
+        html = await get_page_html(URL_LISTA, wait_selector="a[href*='/concurso']")
+        if not html:
+            print("[CEBRASPE] Playwright falhou")
             return []
-        soup = BeautifulSoup(resp.text, "lxml")
 
-        # Cards de concurso — CEBRASPE usa divs com classe "concurso" ou similar
-        cards = (
-            soup.select(".concurso-item")
-            or soup.select(".card-concurso")
-            or soup.select("article")
-            or soup.select(".item-concurso")
-        )
+        soup = BeautifulSoup(html, "lxml")
+        vistos: set[str] = set()
 
-        if not cards:
-            # Fallback: links que contêm "/concurso/" ou "/certames/"
-            links_vistos: set[str] = set()
-            for a in soup.find_all("a", href=True):
-                href = href_abs(a["href"], BASE)
-                if "/concurso" in href.lower() and href not in links_vistos and href != URL_LISTA:
-                    links_vistos.add(href)
-                    orgao = limpar(a.get_text())
-                    if not orgao or len(orgao) < 3:
-                        continue
-                    det = await _detalhes(client, href, orgao)
-                    if det and not encerrado(det.get("data_inscricao_fim")):
-                        resultados.append({
-                            "orgao": orgao,
-                            "cargo": "Vários cargos",
-                            "banca": BANCA,
-                            "nivel": inferir_nivel(orgao),
-                            "estado": inferir_estado(orgao),
-                            **det,
-                        })
-                    await asyncio.sleep(0.3)
-            return resultados
-
-        for card in cards[:30]:
-            orgao_tag = card.find(["h2", "h3", "h4", "strong", "b"])
-            orgao = limpar(orgao_tag.get_text()) if orgao_tag else limpar(card.get_text())
-            if not orgao or len(orgao) < 3:
+        for a in soup.find_all("a", href=True):
+            href = href_abs(a["href"], BASE)
+            if href in vistos or "/concurso" not in href.lower() or href == URL_LISTA:
                 continue
-            link_card = card.find("a", href=True)
-            if not link_card:
+            vistos.add(href)
+            orgao = limpar(a.get_text())
+            if len(orgao) < 4:
                 continue
-            url_det = href_abs(link_card["href"], BASE)
-            det = await _detalhes(client, url_det, orgao)
-            if det and not encerrado(det.get("data_inscricao_fim")):
+
+            det = await _detalhes(client, href)
+            if not encerrado(det.get("data_inscricao_fim")):
                 resultados.append({
                     "orgao": orgao,
                     "cargo": "Vários cargos",
@@ -107,7 +80,7 @@ async def scrape(client: httpx.AsyncClient) -> list[dict]:
                     "estado": inferir_estado(orgao),
                     **det,
                 })
-            await asyncio.sleep(0.3)
+            await asyncio.sleep(0.5)
 
     except Exception as e:
         print(f"[CEBRASPE] Erro: {e}")

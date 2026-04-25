@@ -1,17 +1,19 @@
 """
 Scraper — Vunesp (vunesp.com.br)
-Cobre: concursos do estado de SP, TJs, prefeituras paulistas
+Retorna 403 para bots — usa Playwright para renderizar.
+Cobre: prefeituras e tribunais do estado de SP.
 """
 import asyncio
 import re
 import httpx
 from bs4 import BeautifulSoup
 from .utils import HEADERS, limpar, parse_data_br, href_abs, encerrado, inferir_nivel, inferir_estado
+from .pw_utils import get_page_html
 
 BASE = "https://www.vunesp.com.br"
-URLS = [
+URLS_LISTA = [
     f"{BASE}/home/concursos_em_aberto",
-    f"{BASE}/concursos/abertos",
+    f"{BASE}/VUNE2501/pages/home.html",
     BASE,
 ]
 BANCA = "Vunesp"
@@ -20,20 +22,22 @@ BANCA = "Vunesp"
 async def _detalhes(client: httpx.AsyncClient, url: str) -> dict:
     det: dict = {"link_fonte": url}
     try:
-        resp = await client.get(url)
-        if resp.status_code != 200:
+        html = await get_page_html(url)
+        if not html:
             return det
-        soup = BeautifulSoup(resp.text, "lxml")
+        soup = BeautifulSoup(html, "lxml")
+
         link_pdf = None
         link_inscricao = None
         for a in soup.find_all("a", href=True):
-            href = href_abs(a["href"], url)
-            hl = href.lower()
+            h = href_abs(a["href"], url)
+            hl = h.lower()
             tl = limpar(a.get_text()).lower()
             if not link_pdf and hl.endswith(".pdf"):
-                link_pdf = href
-            if not link_inscricao and ("inscri" in tl or "inscricao" in hl):
-                link_inscricao = href
+                link_pdf = h
+            if not link_inscricao and ("inscri" in tl or "inscri" in hl):
+                link_inscricao = h
+
         texto = soup.get_text(" ")
         datas = re.findall(r"\d{1,2}/\d{1,2}/\d{4}", texto)
         det["data_inscricao_inicio"] = parse_data_br(datas[0]) if datas else None
@@ -47,55 +51,50 @@ async def _detalhes(client: httpx.AsyncClient, url: str) -> dict:
 
 async def scrape(client: httpx.AsyncClient) -> list[dict]:
     resultados = []
-    soup = None
-    url_usada = ""
+    html = None
+    url_base = BASE
 
-    for url in URLS:
-        try:
-            resp = await client.get(url)
-            if resp.status_code == 200:
-                soup = BeautifulSoup(resp.text, "lxml")
-                url_usada = url
-                break
-        except Exception:
-            continue
+    for url in URLS_LISTA:
+        html = await get_page_html(url, wait_selector="a[href]")
+        if html and len(html) > 1000:
+            url_base = url
+            break
 
-    if not soup:
-        print("[VUNESP] Não foi possível acessar o site")
+    if not html:
+        print("[VUNESP] Playwright falhou em todas as URLs")
         return []
 
-    vistos: set[str] = set()
-    for a in soup.find_all("a", href=True):
-        href = href_abs(a["href"], BASE)
-        if href in vistos or BASE not in href:
-            continue
-        tl = limpar(a.get_text()).lower()
-        hl = href.lower()
-        # Filtra links que parecem ser de concursos
-        if not any(p in hl or p in tl for p in ["concurso", "processo", "edital", "certame"]):
-            continue
-        vistos.add(href)
-        orgao = limpar(a.get_text())
-        if len(orgao) < 5:
-            # Tenta pegar o texto do elemento pai
-            pai = a.find_parent(["li", "div", "tr", "td"])
-            if pai:
-                orgao = limpar(pai.get_text())[:100]
-        if len(orgao) < 5:
-            continue
-        det = await _detalhes(client, href)
-        if not encerrado(det.get("data_inscricao_fim")):
-            resultados.append({
-                "orgao": orgao,
-                "cargo": "Vários cargos",
-                "banca": BANCA,
-                "nivel": inferir_nivel(orgao),
-                "estado": inferir_estado(orgao + " SP"),
-                **det,
-            })
-        await asyncio.sleep(0.4)
-        if len(resultados) >= 20:
-            break
+    try:
+        soup = BeautifulSoup(html, "lxml")
+        vistos: set[str] = set()
+
+        for a in soup.find_all("a", href=True):
+            href = href_abs(a["href"], url_base)
+            if href in vistos or BASE not in href:
+                continue
+            tl = limpar(a.get_text()).lower()
+            hl = href.lower()
+            if not any(p in tl + hl for p in ["concurso", "processo", "edital", "inscri", "seletivo"]):
+                continue
+            vistos.add(href)
+            orgao = limpar(a.get_text())
+            if len(orgao) < 4:
+                continue
+
+            det = await _detalhes(client, href)
+            if not encerrado(det.get("data_inscricao_fim")):
+                resultados.append({
+                    "orgao": orgao,
+                    "cargo": "Vários cargos",
+                    "banca": BANCA,
+                    "nivel": inferir_nivel(orgao),
+                    "estado": inferir_estado(orgao),
+                    **det,
+                })
+            await asyncio.sleep(0.5)
+
+    except Exception as e:
+        print(f"[VUNESP] Erro: {e}")
 
     print(f"[VUNESP] {len(resultados)} concurso(s) encontrado(s)")
     return resultados
