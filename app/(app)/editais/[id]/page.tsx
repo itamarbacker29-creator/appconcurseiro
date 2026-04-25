@@ -6,6 +6,8 @@ import { CardBanca } from '@/components/editais/CardBanca';
 import { ResumoEdital } from '@/components/editais/ResumoEdital';
 import { RecomendacaoParticipacao } from '@/components/editais/RecomendacaoParticipacao';
 import { AcoesSalvarInscrito } from '@/components/editais/AcoesSalvarInscrito';
+import { ListaCargos } from '@/components/editais/ListaCargos';
+import { ExtrairCargos } from '@/components/editais/ExtrairCargos';
 import Link from 'next/link';
 
 export default async function EditalPage({ params }: { params: Promise<{ id: string }> }) {
@@ -13,10 +15,10 @@ export default async function EditalPage({ params }: { params: Promise<{ id: str
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [{ data: edital }, { data: bancaRow }] = await Promise.all([
+  const [{ data: edital }, { data: bancaRow }, { data: cargos }] = await Promise.all([
     supabase.from('editais').select('*').eq('id', id).single(),
-    // busca banca depois — só possível depois de ter o edital, mas usamos Promise.all com fallback
     supabase.from('bancas').select('nome,nome_alternativo,perfil_resumido,caracteristicas,dica_estudo,nivel_dificuldade').limit(20),
+    supabase.from('cargos').select('*').eq('edital_id', id).order('nome'),
   ]);
 
   if (!edital) notFound();
@@ -102,10 +104,32 @@ export default async function EditalPage({ params }: { params: Promise<{ id: str
         </div>
       )}
 
-      {/* Matérias */}
-      {materias.length > 0 && (
+      {/* Cargos */}
+      <div className="mb-6">
+        <h2 className="text-[14px] font-bold text-(--ink) mb-3">
+          Cargos disponíveis
+          {cargos && cargos.length > 0 && (
+            <span className="ml-2 text-[12px] font-normal text-(--ink-3)">{cargos.length} cargo{cargos.length !== 1 ? 's' : ''}</span>
+          )}
+        </h2>
+        {cargos && cargos.length > 0 ? (
+          <ListaCargos editalId={id} cargos={cargos} />
+        ) : (
+          <div className="bg-(--surface-2) border border-(--border) rounded-(--radius) p-5 flex flex-col items-center gap-3 text-center">
+            <span className="material-symbols-outlined text-(--ink-3)" style={{ fontSize: 36 }}>work_outline</span>
+            <div>
+              <p className="text-[14px] font-semibold text-(--ink-2)">Cargos ainda não extraídos</p>
+              <p className="text-[12px] text-(--ink-3) mt-0.5">Vamos ler o PDF do edital e listar todos os cargos com suas matérias.</p>
+            </div>
+            <ExtrairCargos editalId={id} />
+          </div>
+        )}
+      </div>
+
+      {/* Matérias genéricas como fallback (só mostra se sem cargos extraídos) */}
+      {(!cargos || cargos.length === 0) && materias.length > 0 && (
         <div className="mb-6">
-          <h2 className="text-[14px] font-bold text-(--ink) mb-3">Matérias cobradas</h2>
+          <h2 className="text-[14px] font-bold text-(--ink) mb-3">Matérias cobradas <span className="text-[11px] font-normal text-(--ink-3)">(genérico)</span></h2>
           <div className="flex flex-wrap gap-2">
             {materias.map((m: string) => <Badge key={m} variant="default">{m}</Badge>)}
           </div>

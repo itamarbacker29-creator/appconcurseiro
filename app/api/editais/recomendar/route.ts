@@ -5,8 +5,25 @@ import { anthropic, MODELO_PRINCIPAL } from '@/lib/anthropic';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
 
-function calcularChance(habilidades: { materia: string; theta: number }[]): number | null {
+function calcularChance(
+  habilidades: { materia: string; theta: number }[],
+  materiasCargo: string[] | null,
+): number | null {
   if (!habilidades || habilidades.length === 0) return null;
+
+  // Se temos matérias do cargo, filtra só as relevantes
+  if (materiasCargo && materiasCargo.length > 0) {
+    const relevantes = habilidades.filter(h =>
+      materiasCargo.some(m => {
+        const ml = m.toLowerCase(); const hl = h.materia.toLowerCase();
+        return ml === hl || ml.includes(hl) || hl.includes(ml);
+      })
+    );
+    if (relevantes.length === 0) return null; // sem treino nas matérias do cargo
+    const avg = relevantes.reduce((s, h) => s + h.theta, 0) / relevantes.length;
+    return Math.round(((avg + 3) / 6) * 100);
+  }
+
   const avg = habilidades.reduce((s, h) => s + h.theta, 0) / habilidades.length;
   return Math.round(((avg + 3) / 6) * 100);
 }
@@ -51,14 +68,20 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { editalId } = await req.json();
+  const { editalId, cargoId } = await req.json();
   if (!editalId) return NextResponse.json({ error: 'editalId obrigatório' }, { status: 400 });
 
-  const [{ data: edital }, { data: profile }, { data: habilidades }] = await Promise.all([
+  const [{ data: edital }, { data: cargo }, { data: profile }, { data: habilidades }] = await Promise.all([
     supabase.from('editais')
       .select('orgao,cargo,banca,materias,formacao_exigida,registro_conselho_exigido,cotas,isencao_taxa')
       .eq('id', editalId)
       .single(),
+    cargoId
+      ? supabase.from('cargos')
+          .select('nome,materias,formacao_exigida,registro_conselho_exigido,cotas')
+          .eq('id', cargoId)
+          .single()
+      : Promise.resolve({ data: null }),
     supabase.from('profiles')
       .select('formacao,registros_conselho,pcd,elegivel_cota_racial,elegivel_cota_indigena,elegivel_cota_quilombola,elegivel_isencao_taxa')
       .eq('id', user.id)
@@ -70,15 +93,20 @@ export async function POST(req: NextRequest) {
 
   if (!edital) return NextResponse.json({ error: 'Edital não encontrado' }, { status: 404 });
 
-  // Perfil incompleto — sem formação definida
   if (!profile?.formacao) {
     return NextResponse.json({ recomendacao: 'perfil_incompleto' });
   }
 
-  const chance = calcularChance(habilidades ?? []);
-  const formacaoAdequada = verificarFormacao(profile.formacao, edital.formacao_exigida);
-  const registroAdequado = verificarRegistro(profile.registros_conselho, edital.registro_conselho_exigido);
-  const cotasElegiveis = calcularCotas(profile as Record<string, unknown>, edital.cotas as Record<string, number> | null);
+  // Usa dados do cargo específico quando disponível, senão do edital genérico
+  const formacaoExigida = cargo?.formacao_exigida ?? edital.formacao_exigida;
+  const registroExigido = cargo?.registro_conselho_exigido ?? edital.registro_conselho_exigido;
+  const cotasEdital = (cargo?.cotas ?? edital.cotas) as Record<string, number> | null;
+  const materiasCargo = cargo?.materias ?? edital.materias ?? null;
+
+  const chance = calcularChance(habilidades ?? [], materiasCargo);
+  const formacaoAdequada = verificarFormacao(profile.formacao, formacaoExigida);
+  const registroAdequado = verificarRegistro(profile.registros_conselho, registroExigido);
+  const cotasElegiveis = calcularCotas(profile as Record<string, unknown>, cotasEdital);
   const elegivelIsencao = !!(profile.elegivel_isencao_taxa && (edital.isencao_taxa as { disponivel?: boolean } | null)?.disponivel);
   const recomendacao = calcularRecomendacao(chance, formacaoAdequada, registroAdequado);
 

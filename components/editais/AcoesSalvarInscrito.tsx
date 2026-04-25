@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { SelecionarCargo } from './SelecionarCargo';
 
 interface Props {
   editalId: string;
@@ -68,7 +69,8 @@ export function AcoesSalvarInscrito({ editalId }: Props) {
   if (carregando) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-3 mt-1">
+    <div className="mt-1">
+    <div className="flex flex-wrap items-center gap-3">
       {/* Botão Salvar */}
       <button
         onClick={toggleSalvo}
@@ -103,6 +105,8 @@ export function AcoesSalvarInscrito({ editalId }: Props) {
           O countdown da prova é exibido no seu Plano de Estudo.
         </span>
       )}
+    </div>
+    {salvo && <SelecionarCargo editalId={editalId} />}
     </div>
   );
 }

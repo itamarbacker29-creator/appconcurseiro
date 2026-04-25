@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { RecomendacaoIA } from '@/components/editais/RecomendacaoIA';
-import { ExtrairMaterias } from '@/components/editais/ExtrairMaterias';
+import { ExtrairCargos } from '@/components/editais/ExtrairCargos';
 import Link from 'next/link';
 
 function matchTheta(
@@ -30,13 +30,21 @@ function matchRef(
   return null;
 }
 
-export default async function RaioXPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function RaioXPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ cargo?: string }>;
+}) {
   const { id } = await params;
+  const { cargo: cargoId } = await searchParams;
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [{ data: edital }, { data: habilidades }, { data: refs }] = await Promise.all([
+  const [{ data: edital }, { data: cargos }, { data: habilidades }, { data: refs }] = await Promise.all([
     supabase.from('editais').select('id,orgao,cargo,banca,materias').eq('id', id).single(),
+    supabase.from('cargos').select('*').eq('edital_id', id).order('nome'),
     user
       ? supabase.from('habilidade_usuario').select('materia,theta,total_respondidas').eq('user_id', user.id)
       : Promise.resolve({ data: [] }),
@@ -45,7 +53,49 @@ export default async function RaioXPage({ params }: { params: Promise<{ id: stri
 
   if (!edital) notFound();
 
-  const materias: string[] = edital.materias ?? [];
+  // Se há cargos e nenhum foi selecionado → tela de seleção
+  if (cargos && cargos.length > 0 && !cargoId) {
+    return (
+      <div className="p-4 md:p-6 max-w-[800px] mx-auto">
+        <div className="flex items-center gap-2 text-[12px] text-(--ink-3) mb-4 flex-wrap">
+          <Link href="/editais" className="hover:text-(--accent)">Editais</Link>
+          <span>/</span>
+          <Link href={`/editais/${id}`} className="hover:text-(--accent) truncate max-w-[200px]">{edital.orgao}</Link>
+          <span>/</span>
+          <span className="text-(--ink) font-medium">Raio-X</span>
+        </div>
+        <div className="mb-6">
+          <h1 className="text-[22px] font-bold text-(--ink)">Para qual cargo?</h1>
+          <p className="text-[13px] text-(--ink-3) mt-1">Selecione o cargo para ver seu Raio-X personalizado.</p>
+        </div>
+        <div className="flex flex-col gap-3">
+          {cargos.map(c => (
+            <Link key={c.id} href={`/editais/${id}/raio-x?cargo=${c.id}`}>
+              <div className="bg-(--surface) border border-(--border) rounded-(--radius) p-4 hover:border-(--accent)/50 hover:bg-(--accent-light) transition-all cursor-pointer">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-[14px] font-semibold text-(--ink)">{c.nome}</p>
+                    {(c.salario || c.vagas) && (
+                      <p className="text-[12px] text-(--ink-3) mt-0.5">
+                        {c.salario ? `R$ ${c.salario.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : ''}
+                        {c.salario && c.vagas ? ' · ' : ''}
+                        {c.vagas ? `${c.vagas} vagas` : ''}
+                      </p>
+                    )}
+                  </div>
+                  <span className="material-symbols-outlined text-(--ink-3)">chevron_right</span>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Resolve matérias: do cargo selecionado ou fallback para editais.materias
+  const cargoSelecionado = cargos?.find(c => c.id === cargoId) ?? null;
+  const materias: string[] = cargoSelecionado?.materias ?? edital.materias ?? [];
 
   const chartData = materias.map(materia => {
     const theta = matchTheta(materia, habilidades ?? []);
@@ -68,7 +118,6 @@ export default async function RaioXPage({ params }: { params: Promise<{ id: stri
 
   return (
     <div className="p-4 md:p-6 max-w-[800px] mx-auto">
-
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-[12px] text-(--ink-3) mb-4 flex-wrap">
         <Link href="/editais" className="hover:text-(--accent)">Editais</Link>
@@ -83,8 +132,15 @@ export default async function RaioXPage({ params }: { params: Promise<{ id: stri
         <div className="flex items-center gap-2 flex-wrap mb-1">
           <span className="text-[12px] font-semibold text-(--ink-3) uppercase tracking-wide">{edital.orgao}</span>
           {edital.banca && <Badge variant="default">{edital.banca}</Badge>}
+          {cargos && cargos.length > 1 && (
+            <Link href={`/editais/${id}/raio-x`} className="text-[11px] text-(--accent) hover:underline">
+              Trocar cargo ↩
+            </Link>
+          )}
         </div>
-        <h1 className="text-[22px] font-bold text-(--ink)">{edital.cargo}</h1>
+        <h1 className="text-[22px] font-bold text-(--ink)">
+          {cargoSelecionado?.nome ?? edital.cargo}
+        </h1>
         <p className="text-[13px] text-(--ink-3) mt-1">Seu desempenho comparado ao perfil de aprovados — por matéria.</p>
       </div>
 
@@ -94,10 +150,10 @@ export default async function RaioXPage({ params }: { params: Promise<{ id: stri
           <div>
             <p className="text-[15px] font-semibold text-(--ink-2)">Matérias ainda não extraídas.</p>
             <p className="text-[13px] text-(--ink-3) max-w-xs text-center mt-1">
-              Vamos buscar o PDF do edital e extrair as matérias agora.
+              Vamos buscar o PDF do edital e extrair os cargos com suas matérias.
             </p>
           </div>
-          <ExtrairMaterias editalId={id} />
+          <ExtrairCargos editalId={id} />
           <Link href={`/editais/${id}`}>
             <Button variant="ghost" size="sm">← Voltar ao edital</Button>
           </Link>
@@ -141,7 +197,7 @@ export default async function RaioXPage({ params }: { params: Promise<{ id: stri
             <span className="text-[11px] text-(--ink-3) ml-auto">Ordenado por prioridade</span>
           </div>
 
-          {/* Gráfico de barras horizontais */}
+          {/* Barras horizontais */}
           <div className="bg-(--surface) border border-(--border) rounded-(--radius) p-4 mb-5 flex flex-col gap-4">
             {chartData.map(item => (
               <div key={item.materia}>
@@ -197,12 +253,12 @@ export default async function RaioXPage({ params }: { params: Promise<{ id: stri
 
           {/* CTAs */}
           <div className="flex flex-wrap gap-3 mt-5">
-            <Link href={`/simulado?edital=${id}${pioreMateria ? `&materia=${encodeURIComponent(pioreMateria.materia)}` : ''}`}>
+            <Link href={`/simulado?edital=${id}${cargoId ? `&cargo=${cargoId}` : ''}${pioreMateria ? `&materia=${encodeURIComponent(pioreMateria.materia)}` : ''}`}>
               <Button size="md" variant="primary">
                 {pioreMateria ? `Treinar ${pioreMateria.materia.split(' ')[0]}` : 'Iniciar simulado'}
               </Button>
             </Link>
-            <Link href={`/plano?edital=${id}`}>
+            <Link href={`/plano?edital=${id}${cargoId ? `&cargo=${cargoId}` : ''}`}>
               <Button size="md" variant="ghost">Adicionar ao plano</Button>
             </Link>
             <Link href={`/editais/${id}`}>

@@ -16,6 +16,7 @@ interface Analise {
 
 interface Props {
   editalId: string;
+  cargoId?: string | null;
   linkInscricao: string | null;
 }
 
@@ -39,7 +40,7 @@ function Item({ ok, label }: { ok: boolean | null; label: string }) {
   );
 }
 
-export function RecomendacaoParticipacao({ editalId, linkInscricao }: Props) {
+export function RecomendacaoParticipacao({ editalId, cargoId, linkInscricao }: Props) {
   const [analise, setAnalise] = useState<Analise | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -47,7 +48,7 @@ export function RecomendacaoParticipacao({ editalId, linkInscricao }: Props) {
     fetch('/api/editais/recomendar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ editalId }),
+      body: JSON.stringify({ editalId, cargoId }),
     })
       .then(r => r.json())
       .then(d => setAnalise(d))
