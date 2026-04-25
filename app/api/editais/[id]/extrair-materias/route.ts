@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase-server';
-import { GoogleGenAI } from '@google/genai';
+import Anthropic from '@anthropic-ai/sdk';
 
 export async function POST(
   _req: NextRequest,
@@ -20,11 +20,9 @@ export async function POST(
     return NextResponse.json({ materias: edital.materias });
   }
 
-  // Determina URL do PDF
   const pdfUrl = edital.link_edital_pdf || edital.link_inscricao || edital.link_fonte;
   if (!pdfUrl) return NextResponse.json({ error: 'sem_pdf' }, { status: 422 });
 
-  // Baixa o PDF
   let pdfBytes: ArrayBuffer;
   try {
     const resp = await fetch(pdfUrl, {
@@ -40,19 +38,23 @@ export async function POST(
     return NextResponse.json({ error: 'download_falhou' }, { status: 422 });
   }
 
-  // Extrai matérias com Gemini
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
     const b64 = Buffer.from(pdfBytes).toString('base64');
 
-    const result = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
-      contents: [
+    const msg = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1024,
+      messages: [
         {
           role: 'user',
-          parts: [
-            { inlineData: { mimeType: 'application/pdf', data: b64 } },
+          content: [
             {
+              type: 'document',
+              source: { type: 'base64', media_type: 'application/pdf', data: b64 },
+            },
+            {
+              type: 'text',
               text:
                 'Analise este edital de concurso público e retorne APENAS um JSON:\n' +
                 '{"materias": ["Português", "Direito Constitucional", "Raciocínio Lógico"]}\n' +
@@ -63,7 +65,7 @@ export async function POST(
       ],
     });
 
-    const texto = result.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+    const texto = msg.content[0].type === 'text' ? msg.content[0].text : '';
     const match = texto.match(/\{[\s\S]*\}/);
     if (!match) throw new Error('JSON não encontrado');
 

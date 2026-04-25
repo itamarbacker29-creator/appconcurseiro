@@ -1,14 +1,15 @@
 """
-Crawler v11 — RSS + Claude Haiku + extração de PDF via Gemini Flash.
+Crawler v12 — RSS + Claude Haiku + extração de PDF via Claude Haiku.
 
 Fluxo:
   1. Coleta itens de feeds RSS de portais de concursos
   2. Pré-filtra por palavras-chave (sem chamar IA)
   3. Claude Haiku classifica e extrai campos estruturados
   4. Upsert no Supabase
-  5. (Novo) Para editais recentes sem matérias: busca PDF → sobe Storage → Gemini extrai matérias
+  5. Extração inline de matérias via PDF logo após cada insert
+  6. (Fallback) processar_pdfs_pendentes para editais que falharam no passo 5
 """
-import asyncio, json, os, re, time
+import asyncio, base64, json, os, re, time
 from datetime import date, datetime, timedelta, timezone
 from urllib.parse import urljoin, urlparse
 
@@ -22,8 +23,6 @@ load_dotenv()
 
 supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_SERVICE_KEY"))
 claude   = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 RSS_FEEDS = [
     "https://www.concursosnobrasil.com.br/feed/",
@@ -372,63 +371,52 @@ def upload_pdf_storage(edital_id: str, pdf_bytes: bytes) -> str | None:
         return None
 
 
-def extrair_campos_pdf_gemini(pdf_bytes: bytes) -> dict:
+def extrair_campos_pdf_claude(pdf_bytes: bytes) -> dict:
     """
-    Usa Gemini Flash com PDF inline para extrair matérias e campos estruturados.
+    Usa Claude Haiku com PDF inline para extrair matérias e campos estruturados.
     Retorna dict com campos encontrados (vazio em caso de falha).
     """
-    if not GEMINI_API_KEY:
-        print("  [GEMINI] GEMINI_API_KEY não configurada — pulando extração de PDF")
-        return {}
     try:
-        from google import genai as google_genai
-        from google.genai import types as gtypes
-
-        client = google_genai.Client(api_key=GEMINI_API_KEY)
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=[
-                gtypes.Part.from_bytes(data=pdf_bytes, mime_type="application/pdf"),
-                (
-                    "Analise este edital de concurso público e extraia em JSON:\n"
-                    "{\n"
-                    '  "materias": ["Português", "Direito Constitucional"],\n'
-                    '  "taxa_inscricao": 80.00,\n'
-                    '  "isencao_taxa": {"disponivel": true, "criterios": ["CadÚnico"]},\n'
-                    '  "formacao_exigida": ["Direito"],\n'
-                    '  "registro_conselho_exigido": ["OAB"],\n'
-                    '  "cotas": {"pcd": 5, "racial": 20, "indigena": null, "quilombola": null},\n'
-                    '  "etapas": ["Prova objetiva", "Prova discursiva"],\n'
-                    '  "local_prova": ["São Paulo"],\n'
-                    '  "data_prova": "YYYY-MM-DD",\n'
-                    '  "data_inscricao_inicio": "YYYY-MM-DD",\n'
-                    '  "data_inscricao_fim": "YYYY-MM-DD"\n'
-                    "}\n"
-                    "Retorne APENAS o JSON, sem markdown. Use null para campos não encontrados, [] para listas vazias. "
-                    "Máximo 40 matérias."
-                ),
-            ],
+        b64 = base64.b64encode(pdf_bytes).decode()
+        msg = claude.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=1024,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {
+                        "type": "document",
+                        "source": {"type": "base64", "media_type": "application/pdf", "data": b64},
+                    },
+                    {
+                        "type": "text",
+                        "text": (
+                            "Analise este edital de concurso público e retorne APENAS um JSON:\n"
+                            '{"materias": ["Português", "Direito Constitucional", "Raciocínio Lógico"]}\n'
+                            "Liste TODAS as matérias cobradas na prova. Sem markdown, sem texto adicional. "
+                            "Máximo 40 matérias."
+                        ),
+                    },
+                ],
+            }],
         )
-        texto = response.text.strip()
-        texto = re.sub(r'^```(?:json)?\s*', '', texto, flags=re.MULTILINE)
-        texto = re.sub(r'\s*```\s*$', '', texto, flags=re.MULTILINE)
-        dados = json.loads(texto.strip())
+        texto = msg.content[0].text if msg.content[0].type == "text" else ""
+        match = re.search(r'\{[\s\S]*\}', texto)
+        if not match:
+            return {}
+        dados = json.loads(match.group())
         if not isinstance(dados, dict):
             return {}
-        # Sanitiza matérias
         if isinstance(dados.get("materias"), list):
             dados["materias"] = [str(m).strip() for m in dados["materias"] if m][:40]
         return dados
     except Exception as e:
-        print(f"  [GEMINI] Erro na extração de PDF: {e}")
+        print(f"  [CLAUDE-PDF] Erro na extração: {e}")
     return {}
 
 
 async def processar_pdfs_pendentes():
-    """Busca editais recentes sem PDF processado e extrai matérias."""
-    if not GEMINI_API_KEY:
-        print("[PDF] GEMINI_API_KEY ausente — etapa de PDF ignorada.")
-        return
+    """Fallback: busca editais recentes sem PDF processado e extrai matérias."""
 
     limite_data = (datetime.now(timezone.utc) - timedelta(days=14)).isoformat()
     try:
@@ -492,8 +480,8 @@ async def processar_pdfs_pendentes():
             if link_pdf != edital.get("link_edital_pdf"):
                 atualizacao["link_edital_pdf"] = link_pdf
 
-        # 4. Extrair campos estruturados via Gemini
-        campos = extrair_campos_pdf_gemini(pdf_bytes)
+        # 4. Extrair campos estruturados via Claude Haiku
+        campos = extrair_campos_pdf_claude(pdf_bytes)
         if campos:
             CAMPOS_PDF = [
                 "materias", "taxa_inscricao", "isencao_taxa", "formacao_exigida",
@@ -519,11 +507,58 @@ async def processar_pdfs_pendentes():
 
 
 # ─────────────────────────────────────────────
+# EXTRAÇÃO INLINE — logo após insert
+# ─────────────────────────────────────────────
+
+async def extrair_materias_inline(edital_id: str, dados: dict):
+    """Baixa o PDF e extrai matérias imediatamente após o insert de um edital."""
+    pdf_link = dados.get("link_edital_pdf")
+
+    # Se não tiver PDF direto, tenta encontrar na página de inscrição
+    if not pdf_link:
+        for candidato in [dados.get("link_inscricao"), dados.get("link_fonte")]:
+            if candidato:
+                pdf_link = await encontrar_link_pdf(candidato)
+                if pdf_link:
+                    break
+
+    if not pdf_link:
+        print(f"    [INLINE] Sem PDF disponível para extração.")
+        return
+
+    pdf_bytes = await baixar_pdf(pdf_link)
+    if not pdf_bytes:
+        print(f"    [INLINE] Falha ao baixar PDF.")
+        return
+
+    print(f"    [INLINE] PDF baixado: {len(pdf_bytes)/1024:.0f} KB — extraindo matérias...")
+    campos = extrair_campos_pdf_claude(pdf_bytes)
+    materias = campos.get("materias") or []
+
+    if not materias:
+        print(f"    [INLINE] Nenhuma matéria extraída.")
+        supabase.table("editais").update({"pdf_processado": True}).eq("id", edital_id).execute()
+        return
+
+    print(f"    [INLINE] {len(materias)} matérias: {', '.join(materias[:4])}{'…' if len(materias) > 4 else ''}")
+
+    # Upload do PDF para Storage (para uso futuro pelo leitor)
+    storage_url = upload_pdf_storage(edital_id, pdf_bytes)
+    atualizacao: dict = {"materias": materias, "pdf_processado": True}
+    if storage_url:
+        atualizacao["link_edital_pdf"] = storage_url
+    elif pdf_link != dados.get("link_edital_pdf"):
+        atualizacao["link_edital_pdf"] = pdf_link
+
+    supabase.table("editais").update(atualizacao).eq("id", edital_id).execute()
+
+
+# ─────────────────────────────────────────────
 # PIPELINE PRINCIPAL
 # ─────────────────────────────────────────────
 
 async def buscar_e_salvar():
-    print(f"[CRAWLER] v11 — RSS + Claude Haiku + PDF/Gemini | hoje={HOJE}")
+    print(f"[CRAWLER] v12 — RSS + Claude Haiku + PDF/Claude inline | hoje={HOJE}")
 
     # Etapa 1-3: coleta, classifica e salva editais
     itens = await coletar_itens_rss()
@@ -548,9 +583,13 @@ async def buscar_e_salvar():
                     r = supabase.table("editais").upsert(dados, on_conflict="orgao,cargo,data_inscricao_fim").execute()
                     if r.data:
                         salvos += 1
+                        edital_row = r.data[0]
                         vagas_str = f"{dados['vagas']} vagas" if dados['vagas'] else "vagas n/d"
                         local = f"{dados['cidade']}/{dados['estado']}" if dados['cidade'] else dados['estado']
                         print(f"  ✓ [{dados['nivel']}] {dados['orgao']} — {dados['cargo']} | {vagas_str} | {local}")
+                        # Extração inline: se edital não tem matérias ainda, extrai agora
+                        if not edital_row.get("materias"):
+                            await extrair_materias_inline(edital_row["id"], dados)
                 except Exception as e:
                     print(f"  ✗ {e}")
                     erros += 1

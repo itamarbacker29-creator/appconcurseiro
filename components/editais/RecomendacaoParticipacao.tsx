@@ -134,14 +134,9 @@ export function RecomendacaoParticipacao({ editalId, linkInscricao }: Props) {
       {/* CTAs */}
       {analise.recomendacao !== 'inelegivel' && (
         <div className="flex gap-2 flex-wrap">
-          {linkInscricao && (
-            <a href={linkInscricao} target="_blank" rel="noopener noreferrer"
-              className="px-4 py-2 bg-(--accent) text-white text-[13px] font-semibold rounded-(--radius-sm) hover:opacity-90 transition-opacity">
-              Inscrever-se ↗
-            </a>
-          )}
           <Link href={`/plano?edital=${editalId}`}
-            className="px-4 py-2 bg-(--surface) border border-(--border) text-(--ink) text-[13px] font-semibold rounded-(--radius-sm) hover:bg-(--surface-2) transition-colors">
+            className="px-4 py-2 bg-(--accent) text-[13px] font-semibold rounded-sm hover:opacity-90 transition-opacity"
+            style={{ color: '#ffffff' }}>
             Criar plano de estudo
           </Link>
         </div>
