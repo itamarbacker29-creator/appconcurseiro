@@ -45,6 +45,7 @@ export function Button({
         sizes[size],
         className,
       ].join(' ')}
+      style={variant === 'primary' || variant === 'danger' || variant === 'success' ? { color: '#ffffff', ...props.style } : props.style}
       {...props}
     >
       {loading && (
