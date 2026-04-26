@@ -6,7 +6,7 @@ import asyncio
 import re
 import httpx
 from bs4 import BeautifulSoup
-from .utils import HEADERS, limpar, parse_data_br, href_abs, encerrado, inferir_nivel, inferir_estado
+from .utils import HEADERS, limpar, parse_data_br, href_abs, encerrado, inferir_nivel, inferir_estado, extrair_cargos_html
 
 BASE = "https://www.cesgranrio.org.br"
 URL_LISTA = f"{BASE}/concursos/?ucat=25"  # categoria 25 = Em Andamento
@@ -38,6 +38,7 @@ async def _detalhes(client: httpx.AsyncClient, url: str) -> dict:
         det["data_inscricao_fim"] = parse_data_br(datas[1]) if len(datas) > 1 else None
         det["link_edital_pdf"] = link_pdf
         det["link_inscricao"] = link_inscricao
+        det["_cargos"] = extrair_cargos_html(soup)
     except Exception:
         pass
     return det
@@ -77,15 +78,17 @@ async def scrape(client: httpx.AsyncClient) -> list[dict]:
                 continue
 
             det = await _detalhes(client, href)
+            cargos_lista = det.pop("_cargos", [])
             if not encerrado(det.get("data_inscricao_fim")):
-                resultados.append({
-                    "orgao": orgao,
-                    "cargo": "Vários cargos",
-                    "banca": BANCA,
-                    "nivel": inferir_nivel(orgao),
-                    "estado": inferir_estado(orgao),
-                    **det,
-                })
+                base = {"orgao": orgao, "banca": BANCA,
+                        "nivel": inferir_nivel(orgao), "estado": inferir_estado(orgao), **det}
+                if cargos_lista:
+                    for c in cargos_lista:
+                        resultados.append({**base, "cargo": c["nome"],
+                                           "vagas": c.get("vagas"), "salario": c.get("salario"),
+                                           "escolaridade": c.get("escolaridade", "superior")})
+                else:
+                    resultados.append({**base, "cargo": "Vários cargos"})
             await asyncio.sleep(0.4)
 
     except Exception as e:

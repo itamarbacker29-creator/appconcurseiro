@@ -7,7 +7,6 @@ import { ResumoEdital } from '@/components/editais/ResumoEdital';
 import { RecomendacaoParticipacao } from '@/components/editais/RecomendacaoParticipacao';
 import { AcoesSalvarInscrito } from '@/components/editais/AcoesSalvarInscrito';
 import { ListaCargos } from '@/components/editais/ListaCargos';
-import { ExtrairCargos } from '@/components/editais/ExtrairCargos';
 import Link from 'next/link';
 
 export default async function EditalPage({ params }: { params: Promise<{ id: string }> }) {
@@ -115,13 +114,22 @@ export default async function EditalPage({ params }: { params: Promise<{ id: str
         {cargos && cargos.length > 0 ? (
           <ListaCargos editalId={id} cargos={cargos} />
         ) : (
-          <div className="bg-(--surface-2) border border-(--border) rounded-(--radius) p-5 flex flex-col items-center gap-3 text-center">
-            <span className="material-symbols-outlined text-(--ink-3)" style={{ fontSize: 36 }}>work_outline</span>
-            <div>
-              <p className="text-[14px] font-semibold text-(--ink-2)">Cargos ainda não extraídos</p>
-              <p className="text-[12px] text-(--ink-3) mt-0.5">Vamos ler o PDF do edital e listar todos os cargos com suas matérias.</p>
+          <div className="bg-(--surface-2) border border-(--border) rounded-(--radius) p-4 flex items-center gap-3">
+            <span className="material-symbols-outlined text-(--ink-3)" style={{ fontSize: 28 }}>info</span>
+            <div className="flex-1">
+              <p className="text-[13px] font-semibold text-(--ink-2)">Matérias serão carregadas automaticamente</p>
+              <p className="text-[12px] text-(--ink-3) mt-0.5">Enquanto isso, veja o edital completo no site da banca.</p>
             </div>
-            <ExtrairCargos editalId={id} />
+            {(edital.link_fonte || edital.link_edital_pdf) && (
+              <a
+                href={(edital.link_edital_pdf || edital.link_fonte)!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 px-3 py-1.5 border border-(--border-strong) rounded-sm text-[12px] font-semibold text-(--ink-2) hover:border-(--accent) hover:text-(--accent) transition-colors"
+              >
+                Ver edital ↗
+              </a>
+            )}
           </div>
         )}
       </div>
