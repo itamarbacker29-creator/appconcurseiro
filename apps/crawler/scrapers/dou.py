@@ -21,11 +21,12 @@ INLABS_BASE = "https://inlabs.in.gov.br"
 INLABS_EMAIL = os.environ.get("INLABS_EMAIL", "contato@otutor.com.br")
 INLABS_PASSWORD = os.environ.get("INLABS_PASSWORD", "Guto113*")
 
-# Seções do DOU: 2 = Executivo (autarquias, fundações), 3 = Anúncios (editais)
+# Seções do DOU: 1 = Executivo (nomeações, portarias), 2 = Executivo (autarquias), 3 = Anúncios (editais)
 SECOES = [2, 3]
 DIAS_ATRAS = 14
 
 PALAVRAS_CONCURSO = {"edital", "concurso público", "processo seletivo", "certame"}
+PALAVRAS_EXCLUIR = {"vestibular", "enade", "pregão", "licitação", "chamamento público"}
 
 PROMPT_EXTRACAO = """Analise este trecho do Diário Oficial da União (edital de concurso público) e retorne APENAS este JSON:
 {
@@ -49,7 +50,7 @@ Liste TODOS os cargos individualmente. Use null para campos ausentes, [] para li
 
 
 async def _login(client: httpx.AsyncClient) -> bool:
-    """Autentica no INLABS. Retorna True se ok."""
+    """Autentica no INLABS."""
     try:
         resp = await client.post(
             f"{INLABS_BASE}/logar.php",
@@ -57,62 +58,113 @@ async def _login(client: httpx.AsyncClient) -> bool:
             follow_redirects=True,
             timeout=20,
         )
-        # Login bem-sucedido: redireciona para página logada
         return resp.status_code == 200 and "sair" in resp.text.lower()
     except Exception as e:
         print(f"[DOU-INLABS] Erro no login: {e}")
         return False
 
 
-async def _baixar_secao(client: httpx.AsyncClient, data_str: str, secao: int) -> bytes | None:
-    """Baixa ZIP com XML do DOU para a data e seção."""
+async def _listar_zips(client: httpx.AsyncClient, data_str: str) -> dict[int, str]:
+    """Retorna dict {secao: filename} para os ZIPs do DOU naquela data."""
     try:
         resp = await client.get(
             f"{INLABS_BASE}/index.php",
-            params={"p": data_str, "tp": "dou", "sc": secao},
+            params={"p": data_str},
             follow_redirects=True,
-            timeout=60,
+            timeout=20,
         )
-        if resp.status_code == 200 and len(resp.content) > 1000:
+        if resp.status_code != 200:
+            return {}
+        hrefs = re.findall(r'href="(\?p=[^"]+)"', resp.text)
+        result: dict[int, str] = {}
+        for h in hrefs:
+            # Pega apenas os ZIPs principais (ex: 2026-04-24-DO3.zip), excluindo extras e PDFs
+            m = re.search(r'dl=([\d-]+-DO(\d)\.zip)', h)
+            if m:
+                filename, secao = m.group(1), int(m.group(2))
+                if secao in SECOES:
+                    result[secao] = filename
+        return result
+    except Exception as e:
+        print(f"[DOU-INLABS] Erro ao listar {data_str}: {e}")
+        return {}
+
+
+async def _baixar_zip(client: httpx.AsyncClient, data_str: str, filename: str) -> bytes | None:
+    """Baixa ZIP com XMLs do DOU."""
+    try:
+        resp = await client.get(
+            f"{INLABS_BASE}/index.php",
+            params={"p": data_str, "dl": filename},
+            follow_redirects=True,
+            timeout=90,
+        )
+        if resp.status_code == 200 and resp.content[:2] == b"PK":
             return resp.content
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[DOU-INLABS] Erro download {filename}: {e}")
     return None
 
 
 def _parse_xml(xml_bytes: bytes, data_pub: str) -> list[dict]:
-    """Extrai artigos de concurso do XML do DOU."""
+    """Extrai artigos de concurso de um XML do INLABS."""
     artigos = []
     try:
         soup = BeautifulSoup(xml_bytes, "lxml-xml")
-        for art in soup.find_all(["article", "ARTICLE", "artigo", "ARTIGO"]):
-            titulo_tag = art.find(["titulo", "TITULO", "title"])
-            titulo = limpar(titulo_tag.get_text()) if titulo_tag else ""
+        article = soup.find("article")
+        if not article:
+            return []
 
-            subtitulo_tag = art.find(["subtitulo", "SUBTITULO", "subtitle"])
-            subtitulo = limpar(subtitulo_tag.get_text()) if subtitulo_tag else ""
+        art_type = article.get("artType", "")
+        art_category = article.get("artCategory", "")
+        pdf_page = article.get("pdfPage", "") or ""
+        pub_date_raw = article.get("pubDate", data_pub)
 
-            texto_tag = art.find(["texto", "TEXTO", "body"])
-            texto = limpar(texto_tag.get_text(" ")) if texto_tag else art.get_text(" ")
+        # Converte "24/04/2026" → "2026-04-24"
+        data_iso = parse_data_br(pub_date_raw) or data_pub
 
-            # Filtra apenas editais de concurso público
-            conteudo = (titulo + " " + subtitulo + " " + texto[:300]).lower()
-            if not any(p in conteudo for p in PALAVRAS_CONCURSO):
-                continue
-            if any(p in conteudo for p in ["vestibular", "enade", "pregão", "licitação"]):
-                continue
+        body = article.find("body")
+        if not body:
+            return []
 
-            # Hierarquia do órgão
-            hier = art.find(["identifica", "IDENTIFICA", "hierarchy"])
-            hierarquia = limpar(hier.get_text(" ")) if hier else ""
+        identifica_tag = body.find("Identifica")
+        titulo_tag = body.find("Titulo")
+        subtitulo_tag = body.find("SubTitulo")
+        texto_tag = body.find("Texto")
 
-            artigos.append({
-                "titulo": titulo,
-                "subtitulo": subtitulo,
-                "texto": texto[:8000],  # limita para Claude
-                "hierarquia": hierarquia,
-                "data_pub": data_pub,
-            })
+        identifica = limpar(identifica_tag.get_text()) if identifica_tag else ""
+        titulo = limpar(titulo_tag.get_text()) if titulo_tag else ""
+        subtitulo = limpar(subtitulo_tag.get_text()) if subtitulo_tag else ""
+        titulo_completo = titulo or identifica
+
+        # Texto contém HTML — parseamos para extrair texto puro e tabelas
+        texto_html = texto_tag.get_text(" ") if texto_tag else ""
+        texto_soup = BeautifulSoup(texto_tag.decode_contents() if texto_tag else "", "html.parser") if texto_tag else None
+
+        conteudo_check = (identifica + " " + titulo + " " + subtitulo + " " + texto_html[:800]).lower()
+
+        # Requer "concurso público" OU ("processo seletivo" + cargo/vaga/inscriç)
+        has_concurso = "concurso público" in conteudo_check or "concurso publico" in conteudo_check
+        has_ps_cargo = "processo seletivo" in conteudo_check and any(
+            p in conteudo_check for p in {"cargo", "vaga", "inscriç", "inscricao"}
+        )
+        if not (has_concurso or has_ps_cargo):
+            return []
+
+        if any(p in conteudo_check for p in PALAVRAS_EXCLUIR):
+            return []
+
+        cargos_tabela = extrair_cargos_html(texto_soup) if texto_soup else []
+
+        artigos.append({
+            "titulo": titulo_completo,
+            "subtitulo": subtitulo,
+            "texto": texto_html[:8000],
+            "hierarquia": art_category,
+            "data_pub": data_iso,
+            "link_fonte": pdf_page,
+            "cargos_tabela": cargos_tabela,
+        })
     except Exception as e:
         print(f"[DOU-INLABS] Erro parse XML: {e}")
     return artigos
@@ -122,9 +174,9 @@ def _extrair_orgao(titulo: str, hierarquia: str) -> str:
     """Extrai nome do órgão da hierarquia ou do título."""
     if hierarquia:
         partes = re.split(r"[/,>|•\n]", hierarquia)
-        for p in reversed(partes):  # pega o órgão mais específico
+        for p in reversed(partes):
             p = limpar(p)
-            if len(p) > 5 and p.upper() not in {"UNIÃO", "BRASIL", "REPÚBLICA", "PODER EXECUTIVO", "PODER JUDICIÁRIO"}:
+            if len(p) > 5 and p.upper() not in {"UNIÃO", "BRASIL", "REPÚBLICA", "PODER EXECUTIVO", "PODER JUDICIÁRIO", "GOVERNO DO ESTADO"}:
                 return p[:120]
     return limpar(titulo.split("–")[0].split("-")[0].split("N°")[0])[:120]
 
@@ -132,11 +184,7 @@ def _extrair_orgao(titulo: str, hierarquia: str) -> str:
 def _extrair_com_regex(texto: str) -> dict:
     """Extração rápida com regex — usado quando Claude não está disponível."""
     cargos = []
-    # Tenta encontrar padrão: CARGO ... VAGAS ... SALÁRIO
-    for m in re.finditer(
-        r"cargo[:\s]+([^\n\r]{5,80})",
-        texto, re.IGNORECASE,
-    ):
+    for m in re.finditer(r"cargo[:\s]+([^\n\r]{5,80})", texto, re.IGNORECASE):
         nome = limpar(m.group(1))
         if nome:
             cargos.append({"nome": nome, "vagas": None, "salario": None, "escolaridade": "superior", "area": "administrativo", "materias": []})
@@ -180,44 +228,45 @@ AREAS_VALIDAS = {"tributario", "seguranca", "saude", "educacao", "judiciario", "
 async def scrape(client: httpx.AsyncClient) -> list[dict]:
     resultados = []
 
-    # 1. Login
     ok = await _login(client)
     if not ok:
         print("[DOU-INLABS] Login falhou — verifique credenciais")
         return []
-
     print("[DOU-INLABS] Login OK")
 
-    # 2. Coleta artigos dos últimos DIAS_ATRAS dias
     artigos_total: list[dict] = []
     hoje = date.today()
     datas = [hoje - timedelta(days=i) for i in range(DIAS_ATRAS)]
 
     for d in datas:
         data_str = d.isoformat()
-        for secao in SECOES:
-            zip_bytes = await _baixar_secao(client, data_str, secao)
+        zips = await _listar_zips(client, data_str)
+        if not zips:
+            continue
+
+        for secao, filename in zips.items():
+            zip_bytes = await _baixar_zip(client, data_str, filename)
             if not zip_bytes:
                 continue
             try:
                 with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
-                    for nome_arq in zf.namelist():
-                        if not nome_arq.lower().endswith(".xml"):
-                            continue
+                    xml_files = [n for n in zf.namelist() if n.lower().endswith(".xml")]
+                    arts_dia = 0
+                    for nome_arq in xml_files:
                         xml_bytes = zf.read(nome_arq)
                         arts = _parse_xml(xml_bytes, data_str)
                         artigos_total.extend(arts)
-                        if arts:
-                            print(f"[DOU-INLABS] {data_str} Seção {secao}: {len(arts)} edital(is)")
+                        arts_dia += len(arts)
+                    if arts_dia:
+                        print(f"[DOU-INLABS] {data_str} Seção {secao}: {arts_dia} edital(is) em {len(xml_files)} XMLs")
             except Exception as e:
                 print(f"[DOU-INLABS] Erro ZIP {data_str}/s{secao}: {e}")
             await asyncio.sleep(0.5)
 
-    print(f"[DOU-INLABS] Total de artigos de concurso: {len(artigos_total)}")
+    print(f"[DOU-INLABS] Total artigos de concurso: {len(artigos_total)}")
 
-    # 3. Extrai dados estruturados com Claude
     vistos: set[str] = set()
-    for art in artigos_total[:40]:  # limite para controlar custo
+    for art in artigos_total[:60]:
         orgao = _extrair_orgao(art["titulo"], art["hierarquia"])
         if not orgao or len(orgao) < 3:
             continue
@@ -227,12 +276,23 @@ async def scrape(client: httpx.AsyncClient) -> list[dict]:
             continue
         vistos.add(chave)
 
-        dados = _chamar_claude(art["texto"], art["titulo"])
-        cargos = dados.get("cargos") or []
-        data_fim = dados.get("data_inscricao_fim")
-        data_ini = dados.get("data_inscricao_inicio")
-        link_inscricao = dados.get("link_inscricao")
-        banca = dados.get("banca") or "Organização própria"
+        # Tenta cargos extraídos da tabela HTML primeiro
+        cargos_tabela = art.get("cargos_tabela") or []
+
+        if cargos_tabela:
+            # Dados de datas/links via Claude (sem cargos, só metadados)
+            dados = _chamar_claude(art["texto"], art["titulo"])
+            data_fim = dados.get("data_inscricao_fim")
+            data_ini = dados.get("data_inscricao_inicio")
+            link_inscricao = dados.get("link_inscricao")
+            banca = dados.get("banca") or "Organização própria"
+        else:
+            dados = _chamar_claude(art["texto"], art["titulo"])
+            cargos_tabela = dados.get("cargos") or []
+            data_fim = dados.get("data_inscricao_fim")
+            data_ini = dados.get("data_inscricao_inicio")
+            link_inscricao = dados.get("link_inscricao")
+            banca = dados.get("banca") or "Organização própria"
 
         if encerrado(data_fim):
             continue
@@ -240,8 +300,8 @@ async def scrape(client: httpx.AsyncClient) -> list[dict]:
         nivel = inferir_nivel(art["hierarquia"] + " " + orgao)
         estado = inferir_estado(art["hierarquia"] + " " + orgao)
 
-        if cargos:
-            for c in cargos:
+        if cargos_tabela:
+            for c in cargos_tabela:
                 nome = limpar(str(c.get("nome") or "")).strip()
                 if not nome or len(nome) < 3:
                     continue
@@ -261,20 +321,24 @@ async def scrape(client: httpx.AsyncClient) -> list[dict]:
                     "data_inscricao_inicio": data_ini,
                     "data_inscricao_fim": data_fim,
                     "link_inscricao": link_inscricao,
-                    "link_fonte": None,
+                    "link_fonte": art.get("link_fonte"),
                 })
         else:
-            # Sem cargos extraídos — insere o edital como um todo
             resultados.append({
                 "orgao": orgao,
                 "cargo": "Vários cargos",
                 "banca": banca,
                 "nivel": nivel,
                 "estado": estado,
+                "vagas": None,
+                "salario": None,
+                "escolaridade": "superior",
+                "area": "administrativo",
+                "materias": [],
                 "data_inscricao_inicio": data_ini,
                 "data_inscricao_fim": data_fim,
                 "link_inscricao": link_inscricao,
-                "link_fonte": None,
+                "link_fonte": art.get("link_fonte"),
             })
 
         await asyncio.sleep(0.2)
