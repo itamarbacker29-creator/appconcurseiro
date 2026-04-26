@@ -1,11 +1,9 @@
 """
-Crawler v13 — Fontes primárias (bancas + DOU) + Claude Haiku extração de PDF.
-
-Fluxo:
-  1. Coleta editais diretamente dos sites das bancas organizadoras e do DOU
-  2. Upsert no Supabase (sem classificação Claude — dados já estruturados)
-  3. Extração inline de cargos via PDF (Claude Haiku) logo após cada insert
-  4. (Fallback) processar_pdfs_pendentes para editais que falharam no passo 3
+Crawler v14 — Um row por cargo em editais. Fluxo:
+  1. Scrapers coletam editais das bancas e do DOU
+  2. Upsert inicial em editais (uma linha por item coletado)
+  3. extrair_cargos_inline(): baixa PDF → Claude → N rows em editais (um por cargo)
+  4. processar_pdfs_pendentes(): fallback para editais sem PDF processado
 """
 import asyncio, base64, json, os, re, time
 from datetime import date, datetime, timedelta, timezone
@@ -24,7 +22,7 @@ claude   = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 HOJE = date.today().isoformat()
 MAX_PDFS_POR_EXECUCAO = 10
-MAX_PDF_BYTES = 3_000_000   # 3 MB — suficiente para extrair matérias
+MAX_PDF_BYTES = 3_000_000   # 3 MB
 
 
 # ─────────────────────────────────────────────
@@ -32,7 +30,6 @@ MAX_PDF_BYTES = 3_000_000   # 3 MB — suficiente para extrair matérias
 # ─────────────────────────────────────────────
 
 async def coletar_fontes_primarias() -> list[dict]:
-    """Coleta editais diretamente dos sites das bancas e do DOU em paralelo."""
     import sys, os
     sys.path.insert(0, os.path.dirname(__file__))
 
@@ -49,15 +46,9 @@ async def coletar_fontes_primarias() -> list[dict]:
     headers = {"User-Agent": "ConcurseiroBot/1.0"}
     async with httpx.AsyncClient(timeout=20, follow_redirects=True, headers=headers) as client:
         tarefas = [
-            scrape_cebraspe(client),
-            scrape_fcc(client),
-            scrape_fgv(client),
-            scrape_vunesp(client),
-            scrape_ibfc(client),
-            scrape_quadrix(client),
-            scrape_aocp(client),
-            scrape_cesgranrio(client),
-            scrape_dou(client),
+            scrape_cebraspe(client), scrape_fcc(client), scrape_fgv(client),
+            scrape_vunesp(client), scrape_ibfc(client), scrape_quadrix(client),
+            scrape_aocp(client), scrape_cesgranrio(client), scrape_dou(client),
         ]
         resultados = await asyncio.gather(*tarefas, return_exceptions=True)
 
@@ -68,7 +59,7 @@ async def coletar_fontes_primarias() -> list[dict]:
         elif isinstance(r, list):
             editais.extend(r)
 
-    print(f"[FONTES] Total bruto: {len(editais)} edital(is) coletado(s)")
+    print(f"[FONTES] Total bruto: {len(editais)} edital(is)")
     return editais
 
 
@@ -88,8 +79,8 @@ def edital_encerrado(edital: dict) -> bool:
 
 def normalizar(edital: dict) -> dict | None:
     orgao = str(edital.get("orgao") or "").strip()[:100]
-    cargo = str(edital.get("cargo") or "Vários cargos").strip()[:200]
-    if not orgao:
+    cargo = str(edital.get("cargo") or "").strip()[:200]
+    if not orgao or not cargo:
         return None
 
     def parse_float(v):
@@ -100,6 +91,12 @@ def normalizar(edital: dict) -> dict | None:
         try: return int(v)
         except: return None
 
+    def safe_list(v):
+        return v if isinstance(v, list) else []
+
+    def safe_jsonb(v):
+        return v if isinstance(v, dict) else None
+
     escolaridade = edital.get("escolaridade") or "medio"
     if escolaridade not in ("fundamental", "medio", "superior"):
         escolaridade = "medio"
@@ -109,7 +106,7 @@ def normalizar(edital: dict) -> dict | None:
         nivel = "federal"
 
     area = edital.get("area") or "administrativo"
-    if area not in ("tributario","seguranca","saude","educacao","judiciario","tecnologia","administrativo"):
+    if area not in ("tributario", "seguranca", "saude", "educacao", "judiciario", "tecnologia", "administrativo"):
         area = "administrativo"
 
     link_inscricao = str(edital.get("link_inscricao") or "").strip() or None
@@ -117,12 +114,6 @@ def normalizar(edital: dict) -> dict | None:
     link_pdf = str(edital.get("link_edital_pdf") or "").strip() or None
     if link_pdf and not link_pdf.lower().endswith(".pdf") and "edital" not in link_pdf.lower():
         link_pdf = None
-
-    def safe_list(v):
-        return v if isinstance(v, list) else []
-
-    def safe_jsonb(v):
-        return v if isinstance(v, dict) else None
 
     return {
         "orgao":                      orgao,
@@ -148,14 +139,14 @@ def normalizar(edital: dict) -> dict | None:
         "cotas":                      safe_jsonb(edital.get("cotas")),
         "etapas":                     safe_list(edital.get("etapas")),
         "local_prova":                safe_list(edital.get("local_prova")),
-        "materias":                   [],
+        "materias":                   safe_list(edital.get("materias")),
         "status":                     "ativo",
         "pdf_processado":             False,
     }
 
 
 # ─────────────────────────────────────────────
-# ETAPA 4 — PIPELINE DE PDF
+# ETAPA 3 — PIPELINE DE PDF
 # ─────────────────────────────────────────────
 
 DOMINIOS_NOTICIAS = {
@@ -179,7 +170,6 @@ def _extrair_pdfs(soup, base_url: str) -> list[tuple[int, str]]:
         abs_url = href if href.startswith("http") else urljoin(base_url, href)
         hl = abs_url.lower()
         tl = a.get_text(strip=True).lower()
-        # Aceita .pdf ou links com padrões típicos de edital sem extensão
         is_pdf = ".pdf" in hl
         is_edital_link = re.search(r'edital|abertura|concurso.*download|baixar.*edital|arquivo', hl + " " + tl, re.I)
         if not is_pdf and not is_edital_link:
@@ -217,11 +207,6 @@ async def _raspar(url: str, client: httpx.AsyncClient) -> BeautifulSoup | None:
         return None
 
 async def encontrar_link_pdf(url: str) -> str | None:
-    """
-    Busca PDF em 2 níveis:
-    1. Raspa a URL procurando .pdf direto
-    2. Segue links externos (bancas, portais, prefeituras — qualquer domínio não-blog)
-    """
     if not url:
         return None
     if url.lower().endswith(".pdf"):
@@ -242,7 +227,6 @@ async def encontrar_link_pdf(url: str) -> str | None:
             base_host = urlparse(url).netloc.lower()
             externos = _extrair_externos(soup1, base_host)
 
-            # Prioriza bancas conhecidas e domínios oficiais
             priorizados = (
                 [h for h in externos if re.search(r'concurso|edital|selec|inscri|fcc|cebraspe|vunesp|ibfc|aocp|quadrix|iades|ibam|cesgranrio|esaf|fgv|funrio', h, re.I)]
                 + [h for h in externos if re.search(r'\.gov\.br|\.org\.br|\.jus\.br|\.mp\.br', h)]
@@ -254,7 +238,6 @@ async def encontrar_link_pdf(url: str) -> str | None:
                 if externo in vistos:
                     continue
                 vistos.add(externo)
-                print(f"  [PDF-FIND] Nível 2: {externo}")
                 soup2 = await _raspar(externo, client)
                 if not soup2:
                     continue
@@ -262,15 +245,12 @@ async def encontrar_link_pdf(url: str) -> str | None:
                 if pdfs2:
                     pdfs2.sort(reverse=True)
                     return pdfs2[0][1]
-
     except Exception as e:
         print(f"  [PDF-FIND] Erro: {e}")
-
     return None
 
 
 async def baixar_pdf(url: str) -> bytes | None:
-    """Baixa PDF e retorna bytes (limitado a MAX_PDF_BYTES)."""
     try:
         async with httpx.AsyncClient(timeout=30, follow_redirects=True,
                                      headers={"User-Agent": "ConcurseiroBot/1.0"}) as client:
@@ -289,28 +269,24 @@ async def baixar_pdf(url: str) -> bytes | None:
                         break
                 return b"".join(chunks)
     except Exception as e:
-        print(f"  [PDF-DL] Erro ao baixar {url}: {e}")
+        print(f"  [PDF-DL] Erro: {e}")
         return None
 
 
 def upload_pdf_storage(edital_id: str, pdf_bytes: bytes) -> str | None:
-    """Sobe PDF para Supabase Storage e retorna URL pública."""
     try:
         bucket = "editais-pdfs"
         try:
             supabase.storage.create_bucket(bucket, options={"public": True})
         except Exception:
             pass
-
         path = f"{edital_id}.pdf"
         try:
             supabase.storage.from_(bucket).remove([path])
         except Exception:
             pass
-
         supabase.storage.from_(bucket).upload(
-            path=path,
-            file=pdf_bytes,
+            path=path, file=pdf_bytes,
             file_options={"content-type": "application/pdf"},
         )
         return supabase.storage.from_(bucket).get_public_url(path)
@@ -319,7 +295,9 @@ def upload_pdf_storage(edital_id: str, pdf_bytes: bytes) -> str | None:
         return None
 
 
-PROMPT_CARGOS = """Analise este edital de concurso público e retorne APENAS este JSON:
+AREAS_VALIDAS = {"tributario", "seguranca", "saude", "educacao", "judiciario", "tecnologia", "administrativo"}
+
+PROMPT_CARGOS = """Analise este edital de concurso público e retorne APENAS este JSON (sem markdown):
 {
   "banca": "nome da banca organizadora ou null",
   "link_inscricao": "URL oficial de inscrição (portal do órgão, não blog) ou null",
@@ -327,27 +305,27 @@ PROMPT_CARGOS = """Analise este edital de concurso público e retorne APENAS est
   "data_inscricao_fim": "YYYY-MM-DD ou null",
   "cargos": [
     {
-      "nome": "nome exato do cargo conforme edital",
+      "nome": "nome exato do cargo conforme o edital",
+      "cidade": "cidade da vaga ou null se nacional/estadual",
       "materias": ["Matéria 1", "Matéria 2"],
       "salario": 0000.00,
       "vagas": 0,
-      "formacao_exigida": ["Direito"],
-      "registro_conselho_exigido": ["OAB"],
-      "local_prova": ["Cidade"],
+      "formacao_exigida": ["Direito", "Medicina"],
+      "registro_conselho_exigido": ["OAB", "CRM"],
+      "local_prova": ["Cidade 1", "Cidade 2"],
       "data_prova": "YYYY-MM-DD ou null",
       "escolaridade": "fundamental|medio|superior",
       "area": "tributario|seguranca|saude|educacao|judiciario|tecnologia|administrativo",
       "cotas": {"pcd": 5, "racial": 20, "indigena": null, "quilombola": null},
-      "etapas": ["Prova objetiva", "Prova discursiva"]
+      "etapas": ["Prova objetiva", "Prova discursiva", "Prova de títulos"]
     }
   ]
 }
-Liste TODOS os cargos individualmente com suas materias especificas. Use null para campos ausentes, [] para listas vazias. Sem markdown."""
+IMPORTANTE: Liste TODOS os cargos individualmente. Cada cargo tem suas próprias matérias. Use null para campos ausentes, [] para listas vazias."""
 
-AREAS_VALIDAS = {"tributario","seguranca","saude","educacao","judiciario","tecnologia","administrativo"}
 
 def extrair_campos_pdf_claude(pdf_bytes: bytes) -> dict:
-    """Usa Claude Haiku para extrair todos os cargos do edital com campos individuais."""
+    """Claude lê o PDF e retorna todos os cargos com dados individuais."""
     try:
         b64 = base64.b64encode(pdf_bytes).decode()
         msg = claude.messages.create(
@@ -361,189 +339,238 @@ def extrair_campos_pdf_claude(pdf_bytes: bytes) -> dict:
                 ],
             }],
         )
-        texto = msg.content[0].text if msg.content[0].type == "text" else ""
+        texto = msg.content[0].text if msg.content and msg.content[0].type == "text" else ""
         match = re.search(r'\{[\s\S]*\}', texto)
         if not match:
             return {}
         dados = json.loads(match.group())
         if not isinstance(dados, dict):
             return {}
-        # Sanitiza cargos
-        cargos_brutos = dados.get("cargos") or []
-        cargos = []
-        for c in cargos_brutos:
+
+        cargos_sanitizados = []
+        for c in (dados.get("cargos") or []):
             if not isinstance(c, dict) or not c.get("nome"):
                 continue
-            cargos.append({
-                "nome": str(c["nome"]).strip()[:200],
-                "materias": [str(m).strip() for m in (c.get("materias") or []) if m][:40],
-                "salario": float(c["salario"]) if isinstance(c.get("salario"), (int, float)) else None,
-                "vagas": int(c["vagas"]) if isinstance(c.get("vagas"), (int, float)) else None,
-                "formacao_exigida": c.get("formacao_exigida") if isinstance(c.get("formacao_exigida"), list) else [],
+            area = c.get("area") if c.get("area") in AREAS_VALIDAS else "administrativo"
+            escol = c.get("escolaridade") if c.get("escolaridade") in ("fundamental", "medio", "superior") else "superior"
+            cargos_sanitizados.append({
+                "nome":                      str(c["nome"]).strip()[:200],
+                "cidade":                    str(c["cidade"]).strip()[:100] if c.get("cidade") else None,
+                "materias":                  [str(m).strip() for m in (c.get("materias") or []) if m][:40],
+                "salario":                   float(c["salario"]) if isinstance(c.get("salario"), (int, float)) else None,
+                "vagas":                     int(c["vagas"]) if isinstance(c.get("vagas"), (int, float)) else None,
+                "formacao_exigida":          c.get("formacao_exigida") if isinstance(c.get("formacao_exigida"), list) else [],
                 "registro_conselho_exigido": c.get("registro_conselho_exigido") if isinstance(c.get("registro_conselho_exigido"), list) else [],
-                "local_prova": c.get("local_prova") if isinstance(c.get("local_prova"), list) else [],
-                "data_prova": c.get("data_prova"),
-                "escolaridade": c.get("escolaridade") if c.get("escolaridade") in ("fundamental","medio","superior") else "superior",
-                "area": c.get("area") if c.get("area") in AREAS_VALIDAS else "administrativo",
-                "cotas": c.get("cotas") if isinstance(c.get("cotas"), dict) else None,
-                "etapas": c.get("etapas") if isinstance(c.get("etapas"), list) else [],
+                "local_prova":               c.get("local_prova") if isinstance(c.get("local_prova"), list) else [],
+                "data_prova":                c.get("data_prova") or None,
+                "escolaridade":              escol,
+                "area":                      area,
+                "cotas":                     c.get("cotas") if isinstance(c.get("cotas"), dict) else None,
+                "etapas":                    c.get("etapas") if isinstance(c.get("etapas"), list) else [],
             })
-        dados["cargos"] = cargos
-        # Mantém materias do primeiro cargo para compatibilidade
-        if cargos and cargos[0].get("materias"):
-            dados["materias"] = cargos[0]["materias"]
+
+        dados["cargos"] = cargos_sanitizados
         return dados
     except Exception as e:
-        print(f"  [CLAUDE-PDF] Erro na extração: {e}")
+        print(f"  [CLAUDE-PDF] Erro: {e}")
     return {}
 
 
+def _campos_cargo(c: dict) -> dict:
+    """Campos específicos de um cargo para upsert em editais."""
+    area = c.get("area") if c.get("area") in AREAS_VALIDAS else "administrativo"
+    escol = c.get("escolaridade") if c.get("escolaridade") in ("fundamental", "medio", "superior") else "superior"
+    return {
+        "cargo":                      str(c["nome"]).strip()[:200],
+        "cidade":                     str(c["cidade"]).strip()[:100] if c.get("cidade") else None,
+        "materias":                   c.get("materias") or [],
+        "salario":                    float(c["salario"]) if isinstance(c.get("salario"), (int, float)) else None,
+        "vagas":                      int(c["vagas"]) if isinstance(c.get("vagas"), (int, float)) else None,
+        "escolaridade":               escol,
+        "area":                       area,
+        "formacao_exigida":           c.get("formacao_exigida") if isinstance(c.get("formacao_exigida"), list) else [],
+        "registro_conselho_exigido":  c.get("registro_conselho_exigido") if isinstance(c.get("registro_conselho_exigido"), list) else [],
+        "local_prova":                c.get("local_prova") if isinstance(c.get("local_prova"), list) else [],
+        "data_prova":                 c.get("data_prova") or None,
+        "cotas":                      c.get("cotas") if isinstance(c.get("cotas"), dict) else None,
+        "etapas":                     c.get("etapas") if isinstance(c.get("etapas"), list) else [],
+    }
+
+
 # ─────────────────────────────────────────────
-# EXTRAÇÃO INLINE — logo após insert
+# EXTRAÇÃO INLINE — logo após upsert
 # ─────────────────────────────────────────────
 
 async def extrair_cargos_inline(edital_id: str, dados: dict):
-    """Baixa o PDF e extrai todos os cargos imediatamente após o insert de um edital."""
+    """
+    Baixa o PDF do edital e expande em N rows em editais (um por cargo).
+    O row inicial é atualizado com dados do primeiro cargo.
+    Cargos adicionais são inseridos como novos rows com os mesmos metadados globais.
+    """
     pdf_link = dados.get("link_edital_pdf")
 
     if not pdf_link:
         for candidato in [dados.get("link_inscricao"), dados.get("link_fonte")]:
             if candidato:
-                pdf_link = await encontrar_link_pdf(candidato)
-                if pdf_link:
+                found = await encontrar_link_pdf(candidato)
+                if found:
+                    pdf_link = found
+                    print(f"    [INLINE] PDF encontrado: {pdf_link}")
                     break
 
     if not pdf_link:
-        print(f"    [INLINE] Sem PDF disponível para extração.")
+        print(f"    [INLINE] Sem PDF — marcando como processado.")
+        supabase.table("editais").update({"pdf_processado": True}).eq("id", edital_id).execute()
         return
 
     pdf_bytes = await baixar_pdf(pdf_link)
     if not pdf_bytes:
         print(f"    [INLINE] Falha ao baixar PDF.")
+        supabase.table("editais").update({"pdf_processado": True}).eq("id", edital_id).execute()
         return
 
-    print(f"    [INLINE] PDF baixado: {len(pdf_bytes)/1024:.0f} KB — extraindo cargos...")
+    print(f"    [INLINE] PDF {len(pdf_bytes)/1024:.0f} KB — extraindo cargos com Claude...")
     campos = extrair_campos_pdf_claude(pdf_bytes)
     cargos = campos.get("cargos") or []
 
     if not cargos:
-        print(f"    [INLINE] Nenhum cargo extraído.")
+        print(f"    [INLINE] Nenhum cargo extraído do PDF.")
         supabase.table("editais").update({"pdf_processado": True}).eq("id", edital_id).execute()
         return
 
-    print(f"    [INLINE] {len(cargos)} cargo(s): {', '.join(c['nome'] for c in cargos[:3])}{'…' if len(cargos) > 3 else ''}")
+    nomes = ", ".join(c["nome"] for c in cargos[:3])
+    mais = f" +{len(cargos)-3} mais" if len(cargos) > 3 else ""
+    print(f"    [INLINE] {len(cargos)} cargo(s): {nomes}{mais}")
 
-    # Insere cargos na tabela
-    cargos_para_inserir = [{"edital_id": edital_id, **c} for c in cargos]
-    try:
-        supabase.table("cargos").insert(cargos_para_inserir).execute()
-    except Exception as e:
-        print(f"    [INLINE] Erro ao inserir cargos: {e}")
-
-    # Atualiza edital com campos globais + materias do primeiro cargo (compat)
+    # Sobe PDF ao Supabase Storage
     storage_url = upload_pdf_storage(edital_id, pdf_bytes)
-    atualizacao: dict = {"pdf_processado": True}
-    if campos.get("materias"):
-        atualizacao["materias"] = campos["materias"]
-    if campos.get("banca"):
-        atualizacao["banca"] = campos["banca"]
-    if campos.get("link_inscricao"):
-        atualizacao["link_inscricao"] = campos["link_inscricao"]
-    if campos.get("data_inscricao_inicio"):
-        atualizacao["data_inscricao_inicio"] = campos["data_inscricao_inicio"]
-    if campos.get("data_inscricao_fim"):
-        atualizacao["data_inscricao_fim"] = campos["data_inscricao_fim"]
-    if storage_url:
-        atualizacao["link_edital_pdf"] = storage_url
-    elif pdf_link != dados.get("link_edital_pdf"):
-        atualizacao["link_edital_pdf"] = pdf_link
+    link_pdf_final = storage_url or pdf_link
 
-    supabase.table("editais").update(atualizacao).eq("id", edital_id).execute()
+    # Metadados globais do edital (vindos do PDF)
+    meta_global: dict = {"pdf_processado": True, "link_edital_pdf": link_pdf_final}
+    for campo in ("banca", "link_inscricao", "data_inscricao_inicio", "data_inscricao_fim"):
+        val = campos.get(campo)
+        if val:
+            meta_global[campo] = val
+
+    # Atualiza o row existente com dados do cargo[0] + metadados
+    supabase.table("editais").update({**meta_global, **_campos_cargo(cargos[0])}).eq("id", edital_id).execute()
+
+    if len(cargos) == 1:
+        return
+
+    # Campos base do edital para os rows adicionais (sem campos cargo-específicos)
+    CAMPOS_CARGO = {"cargo", "cidade", "materias", "salario", "vagas", "escolaridade", "area",
+                    "formacao_exigida", "registro_conselho_exigido", "local_prova",
+                    "data_prova", "cotas", "etapas", "id", "pdf_processado"}
+    base = {k: v for k, v in dados.items() if k not in CAMPOS_CARGO}
+    base.update(meta_global)
+    base["status"] = "ativo"
+
+    inseridos = 0
+    for cargo in cargos[1:]:
+        novo = {**base, **_campos_cargo(cargo)}
+        try:
+            supabase.table("editais").upsert(novo, on_conflict="orgao,cargo,data_inscricao_fim").execute()
+            inseridos += 1
+        except Exception as e:
+            print(f"    [INLINE] ✗ '{cargo['nome']}': {e}")
+
+    print(f"    [INLINE] {inseridos} cargo(s) adicional(is) inserido(s)")
 
 
 # ─────────────────────────────────────────────
-# FALLBACK — editais que ficaram sem matérias
+# FALLBACK — editais pendentes de PDF
 # ─────────────────────────────────────────────
 
 async def processar_pdfs_pendentes():
-    """Fallback: busca editais recentes sem PDF processado e extrai matérias."""
+    """Busca editais recentes sem PDF processado e extrai cargos."""
     limite_data = (datetime.now(timezone.utc) - timedelta(days=14)).isoformat()
     try:
         resp = supabase.table("editais") \
-            .select("id, orgao, cargo, link_edital_pdf, link_inscricao, link_fonte, materias") \
+            .select("id, orgao, cargo, link_edital_pdf, link_inscricao, link_fonte, materias, estado, nivel, banca, data_inscricao_fim") \
             .eq("status", "ativo") \
             .eq("pdf_processado", False) \
             .gte("coletado_em", limite_data) \
             .limit(MAX_PDFS_POR_EXECUCAO) \
             .execute()
     except Exception as e:
-        print(f"[PDF] Erro ao buscar editais pendentes: {e}")
+        print(f"[PDF] Erro ao buscar pendentes: {e}")
         return
 
     pendentes = resp.data or []
     if not pendentes:
-        print("[PDF] Nenhum edital pendente de processamento de PDF.")
+        print("[PDF] Nenhum edital pendente.")
         return
 
-    print(f"\n[PDF] Fallback: processando {len(pendentes)} edital(is) pendentes...")
+    print(f"\n[PDF] Fallback: {len(pendentes)} edital(is) pendentes...")
 
     for edital in pendentes:
         eid = edital["id"]
         print(f"\n  → {edital['orgao']} — {edital['cargo']}")
 
-        atualizacao: dict = {"pdf_processado": True}
-
         link_pdf = edital.get("link_edital_pdf")
         if not link_pdf:
-            for link_candidato in [edital.get("link_inscricao"), edital.get("link_fonte")]:
-                if link_candidato:
-                    link_pdf = await encontrar_link_pdf(link_candidato)
+            for candidato in [edital.get("link_inscricao"), edital.get("link_fonte")]:
+                if candidato:
+                    link_pdf = await encontrar_link_pdf(candidato)
                     if link_pdf:
-                        print(f"    PDF encontrado: {link_pdf}")
+                        print(f"    PDF: {link_pdf}")
                         break
 
         if not link_pdf:
-            print("    Sem PDF disponível.")
-            supabase.table("editais").update(atualizacao).eq("id", eid).execute()
+            print("    Sem PDF.")
+            supabase.table("editais").update({"pdf_processado": True}).eq("id", eid).execute()
             continue
 
         pdf_bytes = await baixar_pdf(link_pdf)
         if not pdf_bytes:
-            print(f"    Falha ao baixar PDF ({link_pdf})")
-            supabase.table("editais").update(atualizacao).eq("id", eid).execute()
+            print(f"    Falha ao baixar.")
+            supabase.table("editais").update({"pdf_processado": True}).eq("id", eid).execute()
             continue
 
-        print(f"    PDF baixado: {len(pdf_bytes)/1024:.0f} KB")
-
+        print(f"    PDF {len(pdf_bytes)/1024:.0f} KB — extraindo...")
         storage_url = upload_pdf_storage(eid, pdf_bytes)
-        if storage_url:
-            atualizacao["link_edital_pdf"] = storage_url
-            print(f"    Storage: OK")
-        elif link_pdf != edital.get("link_edital_pdf"):
-            atualizacao["link_edital_pdf"] = link_pdf
-
         campos = extrair_campos_pdf_claude(pdf_bytes)
-        if campos:
-            # Insere cargos na tabela
-            cargos = campos.get("cargos") or []
-            if cargos:
-                try:
-                    supabase.table("cargos").insert([{"edital_id": eid, **c} for c in cargos]).execute()
-                    print(f"    {len(cargos)} cargo(s) inserido(s)")
-                except Exception as e:
-                    print(f"    Erro ao inserir cargos: {e}")
+        cargos = campos.get("cargos") or []
 
-            CAMPOS_GLOBAIS = ["materias", "banca", "link_inscricao", "data_inscricao_inicio", "data_inscricao_fim"]
-            for campo in CAMPOS_GLOBAIS:
-                val = campos.get(campo)
-                if val is not None and not edital.get(campo):
-                    atualizacao[campo] = val
-        else:
-            print("    Sem campos extraídos do PDF.")
+        meta_global: dict = {
+            "pdf_processado": True,
+            "link_edital_pdf": storage_url or link_pdf,
+        }
+        for campo in ("banca", "link_inscricao", "data_inscricao_inicio", "data_inscricao_fim"):
+            val = campos.get(campo)
+            if val:
+                meta_global[campo] = val
 
-        supabase.table("editais").update(atualizacao).eq("id", eid).execute()
+        if not cargos:
+            print("    Sem cargos extraídos.")
+            supabase.table("editais").update(meta_global).eq("id", eid).execute()
+            continue
 
-    print(f"\n[PDF] Processamento concluído.")
+        nomes = ", ".join(c["nome"] for c in cargos[:3])
+        mais = f" +{len(cargos)-3}" if len(cargos) > 3 else ""
+        print(f"    {len(cargos)} cargo(s): {nomes}{mais}")
+
+        # Atualiza row existente com cargo[0]
+        supabase.table("editais").update({**meta_global, **_campos_cargo(cargos[0])}).eq("id", eid).execute()
+
+        # Insere rows para demais cargos
+        base = {
+            "orgao": edital["orgao"],
+            "nivel": edital.get("nivel", "federal"),
+            "estado": edital.get("estado", "Nacional"),
+            "status": "ativo",
+        }
+        base.update(meta_global)
+
+        for cargo in cargos[1:]:
+            try:
+                supabase.table("editais").upsert({**base, **_campos_cargo(cargo)}, on_conflict="orgao,cargo,data_inscricao_fim").execute()
+            except Exception as e:
+                print(f"    ✗ '{cargo['nome']}': {e}")
+
+    print("[PDF] Processamento concluído.")
 
 
 # ─────────────────────────────────────────────
@@ -551,12 +578,10 @@ async def processar_pdfs_pendentes():
 # ─────────────────────────────────────────────
 
 async def buscar_e_salvar():
-    print(f"[CRAWLER] v13 — Fontes primárias (bancas + DOU) + Claude Haiku PDF | hoje={HOJE}")
+    print(f"[CRAWLER] v14 — um row por cargo | hoje={HOJE}")
 
     editais_brutos = await coletar_fontes_primarias()
-    if not editais_brutos:
-        print("[CRAWLER] Nenhum edital coletado das fontes primárias.")
-    else:
+    if editais_brutos:
         salvos = ignorados = erros = 0
         for edital in editais_brutos:
             if edital_encerrado(edital):
@@ -572,19 +597,22 @@ async def buscar_e_salvar():
                     salvos += 1
                     edital_row = r.data[0]
                     vagas_str = f"{dados['vagas']} vagas" if dados['vagas'] else "vagas n/d"
-                    local = f"{dados['cidade']}/{dados['estado']}" if dados['cidade'] else dados['estado']
+                    local = f"{dados['cidade']}/{dados['estado']}" if dados.get('cidade') else dados['estado']
                     print(f"  ✓ [{dados['nivel']}] {dados['orgao']} — {dados['cargo']} | {vagas_str} | {local}")
+                    # Extrai cargos do PDF se ainda não tem matérias
                     if not edital_row.get("materias"):
                         await extrair_cargos_inline(edital_row["id"], dados)
             except Exception as e:
                 print(f"  ✗ {e}")
                 erros += 1
         print(f"\n[CRAWLER] {salvos} salvos | {ignorados} ignorados | {erros} erros")
+    else:
+        print("[CRAWLER] Nenhum edital coletado.")
 
     try:
         await processar_pdfs_pendentes()
     except Exception as e:
-        print(f"[PDF] Erro inesperado (não bloqueia): {e}")
+        print(f"[PDF] Erro inesperado: {e}")
 
 
 if __name__ == "__main__":

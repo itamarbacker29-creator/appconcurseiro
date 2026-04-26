@@ -156,13 +156,27 @@ def _parse_xml(xml_bytes: bytes, data_pub: str) -> list[dict]:
 
         cargos_tabela = extrair_cargos_html(texto_soup) if texto_soup else []
 
+        # Extrai URLs externas do Texto (link da banca/órgão com edital completo)
+        # Prioriza sobre pdfPage (DOU viewer) para encontrar o PDF real
+        link_externo = None
+        if texto_soup:
+            for a in texto_soup.find_all("a", href=True):
+                href = str(a["href"]).strip()
+                if (href.startswith("http")
+                        and "in.gov.br" not in href
+                        and "imprensa" not in href):
+                    link_externo = href
+                    break
+
         artigos.append({
             "titulo": titulo_completo,
             "subtitulo": subtitulo,
             "texto": texto_html[:8000],
             "hierarquia": art_category,
             "data_pub": data_iso,
-            "link_fonte": pdf_page,
+            # Prioriza URL externa (site do órgão/banca); fallback = DOU viewer
+            "link_fonte": link_externo or pdf_page,
+            "link_dou": pdf_page,
             "cargos_tabela": cargos_tabela,
         })
     except Exception as e:

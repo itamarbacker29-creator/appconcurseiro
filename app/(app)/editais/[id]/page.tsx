@@ -34,6 +34,9 @@ export default async function EditalPage({ params }: { params: Promise<{ id: str
   }) ?? null;
 
   const materias: string[] = edital.materias ?? [];
+  const formacaoExigida: string[] = edital.formacao_exigida ?? [];
+  const registroConselho: string[] = edital.registro_conselho_exigido ?? [];
+  const requisitos = [...formacaoExigida, ...registroConselho];
   const diasFim = edital.data_inscricao_fim
     ? Math.ceil((new Date(edital.data_inscricao_fim).getTime() - Date.now()) / 86400000)
     : null;
@@ -129,6 +132,21 @@ export default async function EditalPage({ params }: { params: Promise<{ id: str
             dicaEstudo={banca.dica_estudo}
             nivelDificuldade={banca.nivel_dificuldade ?? 'médio'}
           />
+        </div>
+      )}
+
+      {/* Requisitos da vaga */}
+      {requisitos.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-[14px] font-bold text-(--ink) mb-3">Requisitos</h2>
+          <div className="flex flex-wrap gap-2">
+            {requisitos.map((r: string) => (
+              <span key={r} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-(--border) bg-(--surface-2) text-[12px] font-medium text-(--ink-2)">
+                <span className="material-symbols-outlined" style={{ fontSize: 14 }}>school</span>
+                {r}
+              </span>
+            ))}
+          </div>
         </div>
       )}
 
