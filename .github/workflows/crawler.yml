@@ -34,4 +34,6 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          INLABS_EMAIL: ${{ secrets.INLABS_EMAIL }}
+          INLABS_PASSWORD: ${{ secrets.INLABS_PASSWORD }}
         run: python run_crawler.py
