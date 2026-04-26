@@ -6,23 +6,26 @@ import { CardBanca } from '@/components/editais/CardBanca';
 import { ResumoEdital } from '@/components/editais/ResumoEdital';
 import { RecomendacaoParticipacao } from '@/components/editais/RecomendacaoParticipacao';
 import { AcoesSalvarInscrito } from '@/components/editais/AcoesSalvarInscrito';
-import { ListaCargos } from '@/components/editais/ListaCargos';
 import Link from 'next/link';
+
+const CARGOS_GENERICOS = new Set(['diversos', 'vários cargos', 'varios cargos', 'vários', 'varios']);
+
+function isCargoGenerico(cargo: string) {
+  return CARGOS_GENERICOS.has(cargo.toLowerCase().trim());
+}
 
 export default async function EditalPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [{ data: edital }, { data: bancaRow }, { data: cargos }] = await Promise.all([
+  const [{ data: edital }, { data: bancaRow }] = await Promise.all([
     supabase.from('editais').select('*').eq('id', id).single(),
     supabase.from('bancas').select('nome,nome_alternativo,perfil_resumido,caracteristicas,dica_estudo,nivel_dificuldade').limit(20),
-    supabase.from('cargos').select('*').eq('edital_id', id).order('nome'),
   ]);
 
   if (!edital) notFound();
 
-  // Match banca por nome (ilike) no array retornado
   const bancaNome = edital.banca ?? '';
   const banca = (bancaRow ?? []).find(b => {
     const n = bancaNome.toLowerCase();
@@ -34,6 +37,9 @@ export default async function EditalPage({ params }: { params: Promise<{ id: str
   const diasFim = edital.data_inscricao_fim
     ? Math.ceil((new Date(edital.data_inscricao_fim).getTime() - Date.now()) / 86400000)
     : null;
+
+  const cargoGenerico = isCargoGenerico(edital.cargo ?? '');
+  const linkFonte = edital.link_edital_pdf || edital.link_fonte || edital.link_inscricao;
 
   return (
     <div className="p-4 md:p-6 max-w-[800px] mx-auto">
@@ -55,8 +61,31 @@ export default async function EditalPage({ params }: { params: Promise<{ id: str
             <Badge variant="danger">⚡ Urgente — {diasFim} dia{diasFim !== 1 ? 's' : ''}</Badge>
           )}
         </div>
-        <h1 className="text-[24px] font-bold text-(--ink)">{edital.cargo}</h1>
-        {user && <AcoesSalvarInscrito editalId={id} />}
+
+        {cargoGenerico ? (
+          /* Cargo genérico — exibe aviso prominente */
+          <div>
+            <div className="bg-amber-50 border border-amber-200 rounded-(--radius) p-4 flex items-start gap-3">
+              <span className="material-symbols-outlined text-amber-500 shrink-0" style={{ fontSize: 22 }}>warning</span>
+              <div className="flex-1">
+                <p className="text-[13px] font-semibold text-(--ink-2)">Cargos ainda não discriminados</p>
+                <p className="text-[12px] text-(--ink-3) mt-0.5">
+                  Este edital possui múltiplos cargos. Acesse o edital oficial para ver a lista completa.
+                </p>
+              </div>
+              {linkFonte && (
+                <a href={linkFonte} target="_blank" rel="noopener noreferrer"
+                  className="shrink-0 px-3 py-1.5 border border-(--border-strong) rounded-sm text-[12px] font-semibold text-(--ink-2) hover:border-(--accent) hover:text-(--accent) transition-colors">
+                  Ver edital ↗
+                </a>
+              )}
+            </div>
+          </div>
+        ) : (
+          <h1 className="text-[24px] font-bold text-(--ink)">{edital.cargo}</h1>
+        )}
+
+        {user && !cargoGenerico && <AcoesSalvarInscrito editalId={id} />}
       </div>
 
       {/* Grid de info principal */}
@@ -76,7 +105,7 @@ export default async function EditalPage({ params }: { params: Promise<{ id: str
         ))}
       </div>
 
-      {/* Feature 2B — Resumo estruturado (datas, taxa, isenção, cotas, etapas) */}
+      {/* Resumo datas, taxa, etapas */}
       <div className="mb-6">
         <ResumoEdital
           taxa_inscricao={edital.taxa_inscricao ?? null}
@@ -90,7 +119,7 @@ export default async function EditalPage({ params }: { params: Promise<{ id: str
         />
       </div>
 
-      {/* Feature 1 — Análise da banca */}
+      {/* Análise da banca */}
       {banca && bancaNome && (
         <div className="mb-6">
           <CardBanca
@@ -103,49 +132,34 @@ export default async function EditalPage({ params }: { params: Promise<{ id: str
         </div>
       )}
 
-      {/* Cargos */}
+      {/* Matérias cobradas — clicáveis → simulado */}
       <div className="mb-6">
-        <h2 className="text-[14px] font-bold text-(--ink) mb-3">
-          Cargos disponíveis
-          {cargos && cargos.length > 0 && (
-            <span className="ml-2 text-[12px] font-normal text-(--ink-3)">{cargos.length} cargo{cargos.length !== 1 ? 's' : ''}</span>
-          )}
-        </h2>
-        {cargos && cargos.length > 0 ? (
-          <ListaCargos editalId={id} cargos={cargos} />
+        <h2 className="text-[14px] font-bold text-(--ink) mb-3">Matérias cobradas</h2>
+        {materias.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {materias.map((m: string) => (
+              <Link
+                key={m}
+                href={`/simulado?materia=${encodeURIComponent(m)}`}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-(--border) bg-(--surface-2) text-[12px] font-medium text-(--ink-2) hover:border-(--accent) hover:text-(--accent) hover:bg-(--accent)/5 transition-colors cursor-pointer"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 14 }}>quiz</span>
+                {m}
+              </Link>
+            ))}
+          </div>
         ) : (
           <div className="bg-(--surface-2) border border-(--border) rounded-(--radius) p-4 flex items-center gap-3">
-            <span className="material-symbols-outlined text-(--ink-3)" style={{ fontSize: 28 }}>info</span>
-            <div className="flex-1">
-              <p className="text-[13px] font-semibold text-(--ink-2)">Matérias serão carregadas automaticamente</p>
-              <p className="text-[12px] text-(--ink-3) mt-0.5">Enquanto isso, veja o edital completo no site da banca.</p>
-            </div>
-            {(edital.link_fonte || edital.link_edital_pdf) && (
-              <a
-                href={(edital.link_edital_pdf || edital.link_fonte)!}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="shrink-0 px-3 py-1.5 border border-(--border-strong) rounded-sm text-[12px] font-semibold text-(--ink-2) hover:border-(--accent) hover:text-(--accent) transition-colors"
-              >
-                Ver edital ↗
-              </a>
-            )}
+            <span className="material-symbols-outlined text-(--ink-3)" style={{ fontSize: 22 }}>schedule</span>
+            <p className="text-[13px] text-(--ink-3)">
+              Matérias serão extraídas automaticamente do edital em breve.
+            </p>
           </div>
         )}
       </div>
 
-      {/* Matérias genéricas como fallback (só mostra se sem cargos extraídos) */}
-      {(!cargos || cargos.length === 0) && materias.length > 0 && (
-        <div className="mb-6">
-          <h2 className="text-[14px] font-bold text-(--ink) mb-3">Matérias cobradas <span className="text-[11px] font-normal text-(--ink-3)">(genérico)</span></h2>
-          <div className="flex flex-wrap gap-2">
-            {materias.map((m: string) => <Badge key={m} variant="default">{m}</Badge>)}
-          </div>
-        </div>
-      )}
-
-      {/* Feature 2C — Recomendação personalizada */}
-      {user && (
+      {/* Recomendação personalizada */}
+      {user && !cargoGenerico && (
         <div className="mb-6">
           <h2 className="text-[14px] font-bold text-(--ink) mb-3">Análise de participação</h2>
           <RecomendacaoParticipacao
@@ -161,27 +175,26 @@ export default async function EditalPage({ params }: { params: Promise<{ id: str
           <a href={edital.link_inscricao} target="_blank" rel="noopener noreferrer">
             <Button size="md">Ir para inscrição oficial ↗</Button>
           </a>
-        ) : (
-          <div className="flex flex-col gap-1">
-            {edital.link_fonte && (
-              <a href={edital.link_fonte} target="_blank" rel="noopener noreferrer">
-                <Button size="md" variant="ghost">Ver anúncio do edital ↗</Button>
-              </a>
-            )}
-            <p className="text-[12px] text-(--ink-3) max-w-sm">
-              ⚠️ Link oficial de inscrição não disponível. Localize o portal oficial do órgão pelo anúncio acima.
-            </p>
-          </div>
+        ) : linkFonte ? (
+          <a href={linkFonte} target="_blank" rel="noopener noreferrer">
+            <Button size="md" variant="ghost">Ver edital oficial ↗</Button>
+          </a>
+        ) : null}
+
+        {!cargoGenerico && (
+          <>
+            <Link href={`/editais/${id}/raio-x`}>
+              <Button size="md" variant="ghost">Ver Raio-X</Button>
+            </Link>
+            <Link href={`/simulado?edital=${id}`}>
+              <Button size="md" variant="ghost">Iniciar simulado</Button>
+            </Link>
+            <Link href={`/plano?edital=${id}`}>
+              <Button size="md" variant="ghost">Adicionar ao plano</Button>
+            </Link>
+          </>
         )}
-        <Link href={`/editais/${id}/raio-x`}>
-          <Button size="md" variant="ghost">Ver Raio-X</Button>
-        </Link>
-        <Link href={`/simulado?edital=${id}`}>
-          <Button size="md" variant="ghost">Iniciar simulado</Button>
-        </Link>
-        <Link href={`/plano?edital=${id}`}>
-          <Button size="md" variant="ghost">Adicionar ao plano</Button>
-        </Link>
+
         {edital.link_edital_pdf && (
           <a href={edital.link_edital_pdf} target="_blank" rel="noopener noreferrer">
             <Button size="md" variant="ghost">

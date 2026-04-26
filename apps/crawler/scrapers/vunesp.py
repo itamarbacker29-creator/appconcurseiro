@@ -93,7 +93,7 @@ async def scrape(client: httpx.AsyncClient) -> list[dict]:
                                            "vagas": c.get("vagas"), "salario": c.get("salario"),
                                            "escolaridade": c.get("escolaridade", "superior")})
                 else:
-                    resultados.append({**base, "cargo": "Vários cargos"})
+                    pass  # sem cargos extraídos — não insere linha genérica
             await asyncio.sleep(0.5)
 
     except Exception as e:

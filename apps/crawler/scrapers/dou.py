@@ -324,22 +324,8 @@ async def scrape(client: httpx.AsyncClient) -> list[dict]:
                     "link_fonte": art.get("link_fonte"),
                 })
         else:
-            resultados.append({
-                "orgao": orgao,
-                "cargo": "Vários cargos",
-                "banca": banca,
-                "nivel": nivel,
-                "estado": estado,
-                "vagas": None,
-                "salario": None,
-                "escolaridade": "superior",
-                "area": "administrativo",
-                "materias": [],
-                "data_inscricao_inicio": data_ini,
-                "data_inscricao_fim": data_fim,
-                "link_inscricao": link_inscricao,
-                "link_fonte": art.get("link_fonte"),
-            })
+            # Sem cargos extraídos — não insere linha genérica, aguarda próxima passagem do crawler
+            print(f"[DOU-INLABS] Sem cargos extraídos para: {orgao} ({art['data_pub']})")
 
         await asyncio.sleep(0.2)
 
