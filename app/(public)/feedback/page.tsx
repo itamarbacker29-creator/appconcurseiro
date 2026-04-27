@@ -23,7 +23,7 @@ const PERGUNTAS = [
   { id: 18, tipo: 'texto',  texto: 'Você encontrou algum erro ou bug? Descreva o que aconteceu.' },
   { id: 19, tipo: 'texto',  texto: 'Alguma sugestão de melhoria para o plano de estudos ou simulados?' },
   { id: 20, tipo: 'texto',  texto: 'Algum comentário livre que queira compartilhar com a equipe?' },
-  { id: 21, tipo: 'contato', texto: 'Seus dados de contato (para receber 6 meses de Elite grátis caso selecionado)' },
+  { id: 21, tipo: 'contato', texto: 'Seus dados de contato (para receber até 6 meses de plano premium grátis caso selecionado)' },
 ];
 
 type Respostas = Record<number, string>;
@@ -93,7 +93,7 @@ export default function FeedbackPage() {
           </div>
           <h2 className="text-[22px] font-bold text-(--ink)">Obrigado pelo feedback!</h2>
           <p className="text-[14px] text-(--ink-3) leading-relaxed">
-            Sua opinião é fundamental para melhorarmos o O Tutor. Caso você seja selecionado para os <strong>6 meses de Elite grátis</strong>, entraremos em contato pelo e-mail informado.
+            Sua opinião é fundamental para melhorarmos o O Tutor. Caso você seja selecionado, entraremos em contato pelo e-mail informado com até <strong>6 meses de plano premium grátis</strong>.
           </p>
         </div>
       </div>
@@ -106,7 +106,7 @@ export default function FeedbackPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <p className="text-[12px] font-bold text-(--accent) uppercase tracking-widest mb-2">Beta Testers</p>
-          <h1 className="text-[28px] font-black text-(--ink) leading-tight">Seu feedback vale 6 meses de Elite</h1>
+          <h1 className="text-[28px] font-black text-(--ink) leading-tight">Seu feedback vale até 6 meses de premium grátis</h1>
           <p className="text-[14px] text-(--ink-3) mt-2 max-w-md mx-auto">
             Leva menos de 5 minutos. Responda com honestidade — cada crítica nos ajuda a construir o melhor app de concursos do Brasil.
           </p>
@@ -149,7 +149,7 @@ export default function FeedbackPage() {
               <div>
                 <p className="text-[15px] font-semibold text-(--ink)">Dados de contato</p>
                 <p className="text-[12px] text-(--ink-3) mt-0.5">
-                  Quem fornecer o feedback mais completo recebe <strong>6 meses de Elite grátis</strong>.
+                  Quem fornecer o feedback mais completo recebe até <strong>6 meses de plano premium grátis</strong>.
                 </p>
               </div>
             </div>
