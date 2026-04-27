@@ -55,7 +55,7 @@ export default async function DashboardPage() {
 
   const habilidadesFiltradas = materiasConcursoAlvo && materiasConcursoAlvo.length > 0
     ? (habilidades ?? []).filter(h =>
-        materiasConcursoAlvo!.some(m => m.toLowerCase() === h.materia.toLowerCase() || m.toLowerCase().includes(h.materia.toLowerCase()) || h.materia.toLowerCase().includes(m.toLowerCase()))
+        materiasConcursoAlvo!.some(m => m.toLowerCase() === h.materia.toLowerCase() || m.toLowerCase().includes(h.materia.toLowerCase()))
       )
     : (habilidades ?? []);
   const pioreMateria = (habilidadesFiltradas.length > 0 ? habilidadesFiltradas : (habilidades ?? [])).sort((a, b) => a.theta - b.theta)[0];

@@ -31,7 +31,8 @@ function filtrarHabilidadesCargo(
     materiasCargo.some(m => {
       const ml = m.toLowerCase();
       const hl = h.materia.toLowerCase();
-      return ml === hl || ml.includes(hl) || hl.includes(ml);
+      // hl.includes(ml) removido: "matemática financeira" NÃO deve casar com "matemática"
+      return ml === hl || ml.includes(hl);
     })
   );
 }

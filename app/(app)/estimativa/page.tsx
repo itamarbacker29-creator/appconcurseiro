@@ -41,7 +41,7 @@ export default async function EstimativaPage({ searchParams }: { searchParams: P
     const materias = (edital?.materias as string[] | null) ?? [];
     if (materias.length > 0) {
       habilidadesFiltradas = habilidadesFiltradas.filter(h =>
-        materias.some(m => m.toLowerCase() === h.materia.toLowerCase() || m.toLowerCase().includes(h.materia.toLowerCase()) || h.materia.toLowerCase().includes(m.toLowerCase()))
+        materias.some(m => m.toLowerCase() === h.materia.toLowerCase() || m.toLowerCase().includes(h.materia.toLowerCase()))
       );
     }
   }
