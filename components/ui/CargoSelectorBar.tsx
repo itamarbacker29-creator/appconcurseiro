@@ -29,7 +29,15 @@ export function CargoSelectorBar({ basePath, selectedId }: Props) {
         .limit(20)
         .then(({ data }) => {
           const list: Edital[] = (data ?? [])
-            .map((d: { editais: Edital | null }) => d.editais)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .map((d: any) => {
+              const e = d.editais;
+              if (!e) return null;
+              // Supabase pode retornar array ou objeto dependendo do tipo de join
+              const edital = Array.isArray(e) ? e[0] : e;
+              if (!edital?.id) return null;
+              return { id: edital.id, orgao: edital.orgao, cargo: edital.cargo } as Edital;
+            })
             .filter((e): e is Edital => !!e);
           setEditais(list);
         });
