@@ -17,12 +17,26 @@ function criarLimitador(limiter: Ratelimit['limiter'], prefix: string): Ratelimi
 }
 
 export const limitadores = {
-  gerarQuestao: criarLimitador(Ratelimit.slidingWindow(10, '1 h'), 'rl:questao'),
-  gerarPlano:   criarLimitador(Ratelimit.slidingWindow(5, '24 h'),  'rl:plano'),
-  buscarEditais: criarLimitador(Ratelimit.slidingWindow(30, '1 m'), 'rl:editais'),
-  tutorMensagem: criarLimitador(Ratelimit.slidingWindow(150, '30 d'), 'rl:tutor'),
-  uploadPdf:    criarLimitador(Ratelimit.slidingWindow(10, '30 d'), 'rl:pdf'),
-  global:       criarLimitador(Ratelimit.slidingWindow(60, '1 m'),  'rl:global'),
+  // Simulados: free = 5 sessões/mês
+  simuladoFree:  criarLimitador(Ratelimit.slidingWindow(5,   '30 d'), 'rl:simulado:free'),
+  gerarQuestao:  criarLimitador(Ratelimit.slidingWindow(200, '1 h'),  'rl:questao'),
+
+  // Tutor IA: free = 1/dia, premium = 30/mês, elite = ilimitado
+  tutorFree:     criarLimitador(Ratelimit.slidingWindow(1,   '24 h'), 'rl:tutor:free'),
+  tutorPremium:  criarLimitador(Ratelimit.slidingWindow(30,  '30 d'), 'rl:tutor:premium'),
+  tutorMensagem: criarLimitador(Ratelimit.slidingWindow(30,  '30 d'), 'rl:tutor'),
+
+  // Upload PDF: free = 1/mês, premium = 5/mês
+  uploadFree:    criarLimitador(Ratelimit.slidingWindow(1,   '30 d'), 'rl:pdf:free'),
+  uploadPremium: criarLimitador(Ratelimit.slidingWindow(5,   '30 d'), 'rl:pdf:premium'),
+  uploadPdf:     criarLimitador(Ratelimit.slidingWindow(5,   '30 d'), 'rl:pdf'),
+
+  // Raio-X: free = 1/mês
+  raioxFree:     criarLimitador(Ratelimit.slidingWindow(1,   '30 d'), 'rl:raiox:free'),
+
+  gerarPlano:    criarLimitador(Ratelimit.slidingWindow(5,   '24 h'), 'rl:plano'),
+  buscarEditais: criarLimitador(Ratelimit.slidingWindow(30,  '1 m'),  'rl:editais'),
+  global:        criarLimitador(Ratelimit.slidingWindow(60,  '1 m'),  'rl:global'),
 };
 
 export async function verificarLimite(

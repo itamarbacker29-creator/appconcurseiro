@@ -12,10 +12,17 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
 
-  const { permitido } = await verificarLimite(limitadores.uploadPdf, user.id);
-  if (!permitido) {
-    return NextResponse.json({ error: 'Limite de uploads atingido (10/mês). Tente novamente no próximo mês.' }, { status: 429 });
+  const { data: profile } = await supabase.from('profiles').select('plano').eq('id', user.id).single();
+  const plano = profile?.plano ?? 'free';
+
+  if (plano === 'free') {
+    const { permitido } = await verificarLimite(limitadores.uploadFree, user.id);
+    if (!permitido) return NextResponse.json({ error: 'Limite de 1 PDF/mês no plano gratuito. Faça upgrade para Premium.' }, { status: 429 });
+  } else if (plano === 'premium') {
+    const { permitido } = await verificarLimite(limitadores.uploadPremium, user.id);
+    if (!permitido) return NextResponse.json({ error: 'Limite de 5 PDFs/mês no plano Premium atingido. Faça upgrade para Elite.' }, { status: 429 });
   }
+  // elite: sem limite
 
   let formData: FormData;
   try {

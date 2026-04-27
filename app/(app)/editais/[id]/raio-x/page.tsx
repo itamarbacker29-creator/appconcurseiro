@@ -1,9 +1,10 @@
 import { createServerClient } from '@/lib/supabase-server';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { RecomendacaoIA } from '@/components/editais/RecomendacaoIA';
 import { ExtrairCargos } from '@/components/editais/ExtrairCargos';
+import { verificarLimite, limitadores } from '@/lib/ratelimit';
 import Link from 'next/link';
 
 function matchTheta(
@@ -41,6 +42,15 @@ export default async function RaioXPage({
   const { cargo: cargoId } = await searchParams;
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
+
+  // Limite de Raio-X para free: 1/mês
+  if (user) {
+    const { data: profile } = await supabase.from('profiles').select('plano').eq('id', user.id).single();
+    if ((profile?.plano ?? 'free') === 'free') {
+      const { permitido } = await verificarLimite(limitadores.raioxFree, user.id);
+      if (!permitido) redirect(`/editais/${id}?limite=raiox`);
+    }
+  }
 
   const [{ data: edital }, { data: cargos }, { data: habilidades }, { data: refs }] = await Promise.all([
     supabase.from('editais').select('id,orgao,cargo,banca,materias').eq('id', id).single(),

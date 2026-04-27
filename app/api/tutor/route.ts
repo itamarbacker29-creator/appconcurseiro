@@ -31,23 +31,26 @@ export async function POST(req: NextRequest) {
     .single();
 
   const plano = profile?.plano ?? 'free';
-  if (plano === 'free') {
-    return NextResponse.json(
-      { error: 'O Tutor IA está disponível nos planos Premium e Elite.' },
-      { status: 403 }
-    );
-  }
 
-  // Rate limit por plano (premium=50/mês via Redis, elite=ilimitado)
-  if (plano === 'premium') {
-    const { permitido } = await verificarLimite(limitadores.tutorMensagem, user.id);
+  // Rate limit por plano
+  if (plano === 'free') {
+    const { permitido } = await verificarLimite(limitadores.tutorFree, user.id);
     if (!permitido) {
       return NextResponse.json(
-        { error: 'Limite de 50 mensagens/mês atingido. Faça upgrade para Elite para acesso ilimitado.' },
+        { error: 'Você atingiu o limite de 1 pergunta por dia no plano gratuito. Faça upgrade para Premium para 30 perguntas/mês.' },
+        { status: 429 }
+      );
+    }
+  } else if (plano === 'premium') {
+    const { permitido } = await verificarLimite(limitadores.tutorPremium, user.id);
+    if (!permitido) {
+      return NextResponse.json(
+        { error: 'Limite de 30 mensagens/mês atingido. Faça upgrade para Elite para acesso ilimitado.' },
         { status: 429 }
       );
     }
   }
+  // elite: sem limite
 
   const { mensagens } = await req.json() as {
     mensagens: Array<{ role: 'user' | 'assistant'; content: string }>;

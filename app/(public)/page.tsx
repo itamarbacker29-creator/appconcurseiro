@@ -236,6 +236,102 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── PLANOS E PREÇOS ──────────────────────── */}
+      <section style={{ background: '#F7F8FC', padding: '80px 20px' }} id="planos">
+        <div className="max-w-[900px] mx-auto">
+          <p style={{ fontSize: 11, fontWeight: 700, color: '#F97316', letterSpacing: 3, textTransform: 'uppercase', textAlign: 'center', marginBottom: 12 }}>Planos e Preços</p>
+          <h2 style={{ fontSize: 'clamp(22px, 4vw, 30px)', fontWeight: 900, color: '#17375E', textAlign: 'center', marginBottom: 8 }}>Escolha o plano ideal para sua aprovação</h2>
+          <p style={{ fontSize: 14, color: '#6B7280', textAlign: 'center', marginBottom: 48 }}>Todos os planos com acesso aos editais. Sem contrato, cancele quando quiser.</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+            {/* Free */}
+            <div style={{ background: '#FFFFFF', borderRadius: 16, border: '1px solid #E5E7EB', padding: '28px 24px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Grátis</p>
+              <p style={{ fontSize: 36, fontWeight: 900, color: '#17375E', marginBottom: 4, lineHeight: 1 }}>R$ 0</p>
+              <p style={{ fontSize: 13, color: '#9CA3AF', marginBottom: 20 }}>Para começar</p>
+              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {[
+                  'Todos os editais, sem limite',
+                  '5 simulados completos por mês',
+                  '1 pergunta ao Tutor IA por dia',
+                  'Diagnóstico de desempenho por matéria',
+                  '1 Raio-X de edital por mês',
+                  '1 PDF → até 5 flashcards por mês',
+                ].map(f => (
+                  <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: '#374151' }}>
+                    <span style={{ color: '#10B981', fontWeight: 700, flexShrink: 0 }}>✓</span> {f}
+                  </li>
+                ))}
+              </ul>
+              <a href="#cadastro" style={{ display: 'block', textAlign: 'center', background: '#F3F4F6', color: '#374151', fontWeight: 700, fontSize: 14, padding: '12px 0', borderRadius: 10, textDecoration: 'none' }}>
+                Começar grátis
+              </a>
+            </div>
+
+            {/* Premium */}
+            <div style={{ background: '#17375E', borderRadius: 16, border: '2px solid #17375E', padding: '28px 24px', display: 'flex', flexDirection: 'column', gap: 4, position: 'relative' }}>
+              <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', background: '#F97316', color: '#fff', fontSize: 11, fontWeight: 800, padding: '4px 14px', borderRadius: 20, whiteSpace: 'nowrap', letterSpacing: 0.5 }}>
+                MAIS POPULAR
+              </div>
+              <p style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Premium</p>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, marginBottom: 4 }}>
+                <p style={{ fontSize: 36, fontWeight: 900, color: '#FFFFFF', lineHeight: 1 }}>R$ 19,90</p>
+                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>/mês</p>
+              </div>
+              <p style={{ fontSize: 12, color: '#F97316', fontWeight: 700, marginBottom: 20 }}>Anual com 25% de desconto</p>
+              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {[
+                  'Todos os editais, sem limite',
+                  'Simulados ilimitados',
+                  'Tutor IA 24/7 — 30 mensagens/mês',
+                  'Plano de estudo personalizado',
+                  'Raio-X do edital ilimitado',
+                  'Upload de 5 PDFs/mês → flashcards',
+                  'Marca-texto em apostilas',
+                ].map(f => (
+                  <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>
+                    <span style={{ color: '#34D399', fontWeight: 700, flexShrink: 0 }}>✓</span> {f}
+                  </li>
+                ))}
+              </ul>
+              <a href="#cadastro" style={{ display: 'block', textAlign: 'center', background: '#F97316', color: '#fff', fontWeight: 800, fontSize: 14, padding: '12px 0', borderRadius: 10, textDecoration: 'none' }}>
+                Assinar Premium
+              </a>
+            </div>
+
+            {/* Elite */}
+            <div style={{ background: '#FFFFFF', borderRadius: 16, border: '1px solid #E5E7EB', padding: '28px 24px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: '#0D9488', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Elite</p>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, marginBottom: 4 }}>
+                <p style={{ fontSize: 36, fontWeight: 900, color: '#17375E', lineHeight: 1 }}>R$ 29,90</p>
+                <p style={{ fontSize: 13, color: '#9CA3AF', marginBottom: 4 }}>/mês</p>
+              </div>
+              <p style={{ fontSize: 12, color: '#0D9488', fontWeight: 700, marginBottom: 20 }}>Anual com 25% de desconto</p>
+              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {[
+                  'Tudo do Premium',
+                  'Tutor IA 24/7 ilimitado',
+                  'Plano de estudo por edital específico',
+                  'Recomendação personalizada de concursos',
+                  'Upload ilimitado de PDFs → flashcards',
+                  'Análise de chance de aprovação em tempo real',
+                  'Alertas prioritários de editais',
+                ].map(f => (
+                  <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: '#374151' }}>
+                    <span style={{ color: '#0D9488', fontWeight: 700, flexShrink: 0 }}>✓</span> {f}
+                  </li>
+                ))}
+              </ul>
+              <a href="#cadastro" style={{ display: 'block', textAlign: 'center', background: '#0D9488', color: '#fff', fontWeight: 700, fontSize: 14, padding: '12px 0', borderRadius: 10, textDecoration: 'none' }}>
+                Assinar Elite
+              </a>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
       {/* ── SEGUNDO FORMULÁRIO (FUNDO ESCURO) ────── */}
       <section style={{ background: '#0D1117', padding: '80px 20px' }} id="cadastro-final">
         <div className="max-w-[520px] mx-auto text-center">
