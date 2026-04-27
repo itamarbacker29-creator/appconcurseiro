@@ -5,50 +5,89 @@ import { anthropic, MODELO_PRINCIPAL } from '@/lib/anthropic';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
 
+// Fator de dificuldade por banca: quanto mais difícil, mais penaliza a chance bruta
+const BANCA_FATOR: Record<string, number> = {
+  'CESPE': 0.72, 'CEBRASPE': 0.72,
+  'FGV': 0.75,
+  'QUADRIX': 0.78,
+  'FCC': 0.82, 'CESGRANRIO': 0.82, 'IADES': 0.84,
+  'VUNESP': 0.87,
+  'IBFC': 0.90, 'CONSULPLAN': 0.92,
+};
+
+function fatorBanca(bancaNome: string | null): number {
+  if (!bancaNome) return 0.85; // padrão moderado
+  const nome = bancaNome.toUpperCase();
+  const key = Object.keys(BANCA_FATOR).find(k => nome.includes(k));
+  return key ? BANCA_FATOR[key] : 0.85;
+}
+
+function filtrarHabilidadesCargo(
+  habilidades: { materia: string; theta: number }[],
+  materiasCargo: string[] | null,
+): { materia: string; theta: number }[] {
+  if (!materiasCargo || materiasCargo.length === 0) return habilidades;
+  return habilidades.filter(h =>
+    materiasCargo.some(m => {
+      const ml = m.toLowerCase();
+      const hl = h.materia.toLowerCase();
+      return ml === hl || ml.includes(hl) || hl.includes(ml);
+    })
+  );
+}
+
 function calcularChance(
   habilidades: { materia: string; theta: number }[],
   materiasCargo: string[] | null,
+  bancaNome: string | null,
+  formacaoOk: boolean | null,
+  registroOk: boolean | null,
 ): number | null {
+  // Inelegível por requisito = chance zero
+  if (formacaoOk === false || registroOk === false) return 0;
+
   if (!habilidades || habilidades.length === 0) return null;
 
-  // Se temos matérias do cargo, filtra só as relevantes
+  const relevantes = filtrarHabilidadesCargo(habilidades, materiasCargo);
+  if (relevantes.length === 0) return null; // sem treino nas matérias deste cargo
+
+  // Média do theta nas matérias relevantes (theta ∈ [-3, +3])
+  const avg = relevantes.reduce((s, h) => s + h.theta, 0) / relevantes.length;
+  let chance = Math.round(((avg + 3) / 6) * 100);
+
+  // Penalidade por baixa cobertura: se só tem dados p/ 2 de 10 matérias, penaliza
   if (materiasCargo && materiasCargo.length > 0) {
-    const relevantes = habilidades.filter(h =>
-      materiasCargo.some(m => {
-        const ml = m.toLowerCase(); const hl = h.materia.toLowerCase();
-        return ml === hl || ml.includes(hl) || hl.includes(ml);
-      })
-    );
-    if (relevantes.length === 0) return null; // sem treino nas matérias do cargo
-    const avg = relevantes.reduce((s, h) => s + h.theta, 0) / relevantes.length;
-    return Math.round(((avg + 3) / 6) * 100);
+    const cobertura = relevantes.length / materiasCargo.length;
+    chance = Math.round(chance * (0.5 + 0.5 * cobertura));
   }
 
-  const avg = habilidades.reduce((s, h) => s + h.theta, 0) / habilidades.length;
-  return Math.round(((avg + 3) / 6) * 100);
+  // Penalidade por dificuldade da banca
+  chance = Math.round(chance * fatorBanca(bancaNome));
+
+  return Math.max(0, Math.min(99, chance));
 }
 
 function verificarFormacao(userFormacao: string | null, exigida: string[] | null): boolean | null {
-  if (!exigida || exigida.length === 0) return null; // não aplicável
+  if (!exigida || exigida.length === 0) return null; // requisito não especificado
   if (!userFormacao) return false;
   const u = userFormacao.toLowerCase();
   return exigida.some(f => u.includes(f.toLowerCase()) || f.toLowerCase().includes(u));
 }
 
 function verificarRegistro(userRegistros: string[] | null, exigido: string[] | null): boolean | null {
-  if (!exigido || exigido.length === 0) return null; // não aplicável
+  if (!exigido || exigido.length === 0) return null;
   if (!userRegistros || userRegistros.length === 0) return false;
   return exigido.some(r => userRegistros.map(u => u.toLowerCase()).includes(r.toLowerCase()));
 }
 
 function calcularCotas(profile: Record<string, unknown>, cotasEdital: Record<string, number> | null): string[] {
   if (!cotasEdital) return [];
-  const elegiveis: string[] = [];
-  if (profile.pcd && cotasEdital.pcd) elegiveis.push('PcD');
-  if (profile.elegivel_cota_racial && cotasEdital.racial) elegiveis.push('racial');
-  if (profile.elegivel_cota_indigena && cotasEdital.indigena) elegiveis.push('indígena');
-  if (profile.elegivel_cota_quilombola && cotasEdital.quilombola) elegiveis.push('quilombola');
-  return elegiveis;
+  const e: string[] = [];
+  if (profile.pcd && cotasEdital.pcd) e.push('PcD');
+  if (profile.elegivel_cota_racial && cotasEdital.racial) e.push('racial');
+  if (profile.elegivel_cota_indigena && cotasEdital.indigena) e.push('indígena');
+  if (profile.elegivel_cota_quilombola && cotasEdital.quilombola) e.push('quilombola');
+  return e;
 }
 
 function calcularRecomendacao(
@@ -57,9 +96,9 @@ function calcularRecomendacao(
   registroOk: boolean | null,
 ): 'forte' | 'moderada' | 'nao_recomendado' | 'inelegivel' {
   if (formacaoOk === false || registroOk === false) return 'inelegivel';
-  if (chance === null) return 'moderada'; // sem dados suficientes
-  if (chance >= 60) return 'forte';
-  if (chance >= 35) return 'moderada';
+  if (chance === null) return 'moderada'; // sem dados suficientes para calcular
+  if (chance >= 58) return 'forte';
+  if (chance >= 32) return 'moderada';
   return 'nao_recomendado';
 }
 
@@ -97,37 +136,47 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ recomendacao: 'perfil_incompleto' });
   }
 
-  // Usa dados do cargo específico quando disponível, senão do edital genérico
   const formacaoExigida = cargo?.formacao_exigida ?? edital.formacao_exigida;
   const registroExigido = cargo?.registro_conselho_exigido ?? edital.registro_conselho_exigido;
   const cotasEdital = (cargo?.cotas ?? edital.cotas) as Record<string, number> | null;
-  const materiasCargo = cargo?.materias ?? edital.materias ?? null;
+  const materiasCargo: string[] | null = cargo?.materias ?? edital.materias ?? null;
+  const bancaNome = edital.banca ?? null;
 
-  const chance = calcularChance(habilidades ?? [], materiasCargo);
   const formacaoAdequada = verificarFormacao(profile.formacao, formacaoExigida);
   const registroAdequado = verificarRegistro(profile.registros_conselho, registroExigido);
   const cotasElegiveis = calcularCotas(profile as Record<string, unknown>, cotasEdital);
   const elegivelIsencao = !!(profile.elegivel_isencao_taxa && (edital.isencao_taxa as { disponivel?: boolean } | null)?.disponivel);
+
+  const chance = calcularChance(habilidades ?? [], materiasCargo, bancaNome, formacaoAdequada, registroAdequado);
   const recomendacao = calcularRecomendacao(chance, formacaoAdequada, registroAdequado);
 
-  // Texto IA
+  // Habilidades filtradas APENAS às matérias do cargo, para o contexto da IA
+  const habRelevantes = filtrarHabilidadesCargo(habilidades ?? [], materiasCargo)
+    .sort((a, b) => a.theta - b.theta);
+
+  const habCtx = habRelevantes.length > 0
+    ? habRelevantes
+        .map(h => `${h.materia}: ${Math.round(((h.theta + 3) / 6) * 100)}%`)
+        .join(', ')
+    : 'sem histórico nas matérias deste cargo';
+
+  const materiasStr = materiasCargo?.join(', ') || 'não especificadas';
+  const requisitoStr = [
+    ...(formacaoExigida ?? []),
+    ...(registroExigido ?? []),
+  ].join(', ') || 'nenhum especificado';
+
   let textoIA: string | null = null;
   try {
-    const habCtx = habilidades && habilidades.length > 0
-      ? habilidades.sort((a, b) => a.theta - b.theta).slice(0, 5)
-          .map(h => `${h.materia}: ${Math.round(((h.theta + 3) / 6) * 100)}%`)
-          .join(', ')
-      : 'sem histórico';
-
-    const prompt = `Edital: ${edital.orgao} — ${edital.cargo}${edital.banca ? ` (${edital.banca})` : ''}
-Formação do candidato: ${profile.formacao}
-Registros: ${(profile.registros_conselho as string[] || []).join(', ') || 'nenhum'}
-Cotas elegíveis: ${cotasElegiveis.join(', ') || 'nenhuma'}
-Chance de aprovação estimada: ${chance ?? 'sem dados'}%
-Desempenho por matéria (mais fraco → mais forte): ${habCtx}
+    const prompt = `Concurso: ${edital.orgao} — ${edital.cargo}${bancaNome ? ` | Banca: ${bancaNome}` : ''}
+Requisitos do cargo: ${requisitoStr}
+Formação do candidato: ${profile.formacao} → ${formacaoAdequada === false ? 'NÃO atende' : formacaoAdequada === true ? 'atende' : 'não verificado'}
+Matérias cobradas no edital: ${materiasStr}
+Desempenho do candidato nessas matérias (fraco → forte): ${habCtx}
+Chance estimada de aprovação: ${chance !== null ? `${chance}%` : 'sem dados suficientes'}
 Status: ${recomendacao}
 
-Escreva 2 frases diretas e honestas de recomendação. Mencione dados concretos. Máximo 55 palavras.`;
+Escreva 2 frases diretas e honestas de recomendação. Mencione APENAS matérias do edital. Se o candidato não atende requisitos, diga claramente. Máximo 55 palavras.`;
 
     const resp = await anthropic.messages.create({
       model: MODELO_PRINCIPAL,
@@ -136,7 +185,7 @@ Escreva 2 frases diretas e honestas de recomendação. Mencione dados concretos.
     });
     textoIA = (resp.content[0] as { text: string }).text.trim();
   } catch {
-    // falha silenciosa — componente usa fallback
+    // fallback silencioso
   }
 
   return NextResponse.json({

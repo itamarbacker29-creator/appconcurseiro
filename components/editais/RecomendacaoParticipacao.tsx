@@ -101,8 +101,12 @@ export function RecomendacaoParticipacao({ editalId, cargoId, linkInscricao }: P
         </div>
         {analise.chanceAprovacao !== null && (
           <div className="text-right shrink-0">
-            <p className="text-[10px] text-(--ink-3) uppercase tracking-wide">Sua chance</p>
-            <p className={`text-[24px] font-black leading-none ${cfg.texto}`}>{analise.chanceAprovacao}%</p>
+            <p className="text-[10px] text-(--ink-3) uppercase tracking-wide">
+              {analise.recomendacao === 'inelegivel' ? 'Requisito' : 'Sua chance'}
+            </p>
+            <p className={`text-[24px] font-black leading-none ${cfg.texto}`}>
+              {analise.recomendacao === 'inelegivel' ? '✗' : `${analise.chanceAprovacao}%`}
+            </p>
           </div>
         )}
       </div>
