@@ -17,25 +17,35 @@ export default async function DesempenhoPage({ searchParams }: { searchParams: P
       .limit(200),
   ]);
 
-  // Filter habilidades to selected edital's matérias
-  let habilidadesFiltradas = habilidades ?? [];
+  // Busca matérias do edital selecionado e filtra tudo
+  let materiasFiltro: string[] = [];
   if (editalId) {
     const { data: edital } = await supabase.from('editais').select('materias').eq('id', editalId).single();
-    const materias = (edital?.materias as string[] | null) ?? [];
-    if (materias.length > 0) {
-      habilidadesFiltradas = habilidadesFiltradas.filter(h =>
-        materias.some(m => m.toLowerCase() === h.materia.toLowerCase() || m.toLowerCase().includes(h.materia.toLowerCase()))
-      );
-    }
+    materiasFiltro = (edital?.materias as string[] | null) ?? [];
   }
 
-  const totalRespondidas = respostas?.length ?? 0;
-  const totalAcertos = respostas?.filter(r => r.correta).length ?? 0;
+  function matchMateria(habilidade: string, lista: string[]) {
+    if (lista.length === 0) return true;
+    const hl = habilidade.toLowerCase();
+    return lista.some(m => {
+      const ml = m.toLowerCase();
+      return ml === hl || ml.includes(hl);
+    });
+  }
+
+  const habilidadesFiltradas = (habilidades ?? []).filter(h => matchMateria(h.materia, materiasFiltro));
+
+  // Filtra respostas pelas matérias do edital
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const respostasFiltradas = (respostas ?? []).filter(r => matchMateria((r.questoes as any)?.materia ?? '', materiasFiltro));
+
+  const totalRespondidas = respostasFiltradas.length;
+  const totalAcertos = respostasFiltradas.filter(r => r.correta).length;
   const taxaGeral = totalRespondidas > 0 ? Math.round((totalAcertos / totalRespondidas) * 100) : 0;
 
-  // Dados do gráfico
+  // Dados do gráfico — também filtrados
   const porDia: Record<string, { total: number; acertos: number }> = {};
-  respostas?.forEach(r => {
+  respostasFiltradas.forEach(r => {
     const dia = r.respondida_em.split('T')[0];
     if (!porDia[dia]) porDia[dia] = { total: 0, acertos: 0 };
     porDia[dia].total++;
@@ -74,7 +84,7 @@ export default async function DesempenhoPage({ searchParams }: { searchParams: P
       {/* Hero — taxa de acerto dominante */}
       <div className={`rounded-(--radius) p-6 border ${taxaBg}`}>
         <p className="text-[11px] font-bold text-text-muted uppercase tracking-widest mb-1">
-          Taxa de acerto geral
+          {editalId ? 'Taxa de acerto — cargo selecionado' : 'Taxa de acerto geral'}
         </p>
         <div className="flex items-end gap-4">
           <p className={`font-black leading-none text-[72px] ${taxaColor}`}>{taxaGeral}%</p>
