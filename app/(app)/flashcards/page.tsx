@@ -28,6 +28,13 @@ export default function FlashcardsPage() {
   const [filtroMateria, setFiltroMateria] = useState('');
   const [virados, setVirados] = useState<Set<string>>(new Set());
 
+  // Modal adicionar
+  const [modalAberto, setModalAberto] = useState(false);
+  const [novaFrente, setNovaFrente] = useState('');
+  const [novaVerso, setNovaVerso] = useState('');
+  const [novaMateria, setNovaMateria] = useState('');
+  const [salvandoNovo, setSalvandoNovo] = useState(false);
+
   // Modo revisão
   const [revisao, setRevisao] = useState(false);
   const [indice, setIndice] = useState(0);
@@ -108,6 +115,32 @@ export default function FlashcardsPage() {
       toast('Revisão concluída!', 'success');
       carregar();
     }
+  }
+
+  async function salvarNovoFlashcard() {
+    if (!novaFrente.trim() || !novaVerso.trim()) {
+      toast('Preencha a pergunta e a resposta.', 'error');
+      return;
+    }
+    setSalvandoNovo(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setSalvandoNovo(false); return; }
+    const { error } = await supabase.from('flashcards').insert({
+      user_id: user.id,
+      frente: novaFrente.trim(),
+      verso: novaVerso.trim(),
+      materia: novaMateria.trim() || null,
+      origem: 'manual',
+      proxima_revisao: new Date().toISOString().split('T')[0],
+    });
+    if (error) { toast('Erro ao salvar flashcard.', 'error'); }
+    else {
+      toast('Flashcard criado!', 'success');
+      setNovaFrente(''); setNovaVerso(''); setNovaMateria('');
+      setModalAberto(false);
+      carregar();
+    }
+    setSalvandoNovo(false);
   }
 
   const materias = Array.from(new Set(flashcards.map(f => f.materia).filter(Boolean))) as string[];
@@ -207,15 +240,25 @@ export default function FlashcardsPage() {
             )}
           </p>
         </div>
-        {filt.length > 0 && (
+        <div className="flex items-center gap-2 shrink-0">
           <button
-            onClick={() => { setIndice(0); setMostrarVerso(false); setRevisao(true); }}
-            className="flex items-center gap-2 px-4 py-2 bg-brand-navy text-white text-[13px] font-semibold rounded-(--radius-sm) hover:opacity-90 transition-opacity shrink-0"
+            onClick={() => setModalAberto(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-(--accent) text-[13px] font-semibold rounded-sm hover:opacity-90 transition-opacity"
+            style={{ color: '#ffffff' }}
           >
-            <span className="material-symbols-outlined filled" style={{ fontSize: 18 }}>play_arrow</span>
-            Revisar {filtroMateria ? 'filtro' : 'todos'}
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
+            Adicionar
           </button>
-        )}
+          {filt.length > 0 && (
+            <button
+              onClick={() => { setIndice(0); setMostrarVerso(false); setRevisao(true); }}
+              className="flex items-center gap-2 px-4 py-2 bg-brand-navy text-white text-[13px] font-semibold rounded-sm hover:opacity-90 transition-opacity"
+            >
+              <span className="material-symbols-outlined filled" style={{ fontSize: 18 }}>play_arrow</span>
+              Revisar {filtroMateria ? 'filtro' : 'todos'}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filtro por matéria */}
@@ -247,6 +290,71 @@ export default function FlashcardsPage() {
         </div>
       )}
 
+      {/* Modal adicionar flashcard */}
+      {modalAberto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" onClick={() => setModalAberto(false)}>
+          <div className="absolute inset-0 bg-black/50" />
+          <div
+            className="relative bg-(--surface) rounded-(--radius) border border-(--border) shadow-2xl w-full max-w-[420px] p-6 flex flex-col gap-4"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="text-[16px] font-bold text-(--ink)">Novo Flashcard</h2>
+              <button onClick={() => setModalAberto(false)} className="text-(--ink-3) hover:text-(--ink) transition-colors">
+                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>close</span>
+              </button>
+            </div>
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-[12px] font-medium text-(--ink-3)">Pergunta (frente)</label>
+                <textarea
+                  value={novaFrente}
+                  onChange={e => setNovaFrente(e.target.value)}
+                  placeholder="Ex: O que é habeas corpus?"
+                  rows={3}
+                  className="w-full rounded-sm border border-(--border-strong) px-3 py-2 text-[13px] bg-(--surface) text-(--ink) outline-none focus:border-(--accent) transition-colors resize-none"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[12px] font-medium text-(--ink-3)">Resposta (verso)</label>
+                <textarea
+                  value={novaVerso}
+                  onChange={e => setNovaVerso(e.target.value)}
+                  placeholder="Ex: Instrumento constitucional que protege a liberdade de locomoção..."
+                  rows={3}
+                  className="w-full rounded-sm border border-(--border-strong) px-3 py-2 text-[13px] bg-(--surface) text-(--ink) outline-none focus:border-(--accent) transition-colors resize-none"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[12px] font-medium text-(--ink-3)">Matéria (opcional)</label>
+                <input
+                  value={novaMateria}
+                  onChange={e => setNovaMateria(e.target.value)}
+                  placeholder="Ex: Direito Constitucional"
+                  className="h-9 rounded-sm border border-(--border-strong) px-3 text-[13px] bg-(--surface) text-(--ink) outline-none focus:border-(--accent) transition-colors"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setModalAberto(false)}
+                className="px-4 py-2 text-[13px] font-semibold text-(--ink-2) border border-(--border) rounded-sm hover:bg-(--surface-2) transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={salvarNovoFlashcard}
+                disabled={salvandoNovo}
+                className="px-4 py-2 text-[13px] font-semibold rounded-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+                style={{ backgroundColor: 'var(--accent)', color: '#ffffff' }}
+              >
+                {salvandoNovo ? 'Salvando...' : 'Salvar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Cards list */}
       {loading ? (
         Array.from({ length: 4 }).map((_, i) => (
@@ -261,7 +369,8 @@ export default function FlashcardsPage() {
           </p>
           <Link
             href="/apostilas"
-            className="px-4 py-2 bg-brand-navy text-white text-[13px] font-semibold rounded-(--radius-sm) hover:opacity-90 transition-opacity"
+            className="px-4 py-2 bg-brand-navy text-[13px] font-semibold rounded-(--radius-sm) hover:opacity-90 transition-opacity"
+            style={{ color: '#ffffff' }}
           >
             Ir para Apostilas
           </Link>

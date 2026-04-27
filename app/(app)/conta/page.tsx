@@ -34,34 +34,34 @@ const PLANOS = [
     preco: 'Grátis',
     cor: 'text-(--ink-3)',
     destaques: [
-      '5 editais por busca',
+      'Acesso a editais e cargos públicos',
       '5 simulados por mês',
-      'IA: Gemini Flash',
+      'Flashcards básicos',
       'Sem tutor de dúvidas',
     ],
   },
   {
     id: 'premium',
     nome: 'Premium',
-    preco: 'R$ 29/mês',
+    preco: 'R$ 19,90/mês',
     cor: 'text-(--accent)',
     destaques: [
-      'Editais ilimitados',
-      '30 simulados por mês',
-      'IA de alta tecnologia (mais preciso)',
-      'Tutor de dúvidas: 50 msgs/mês',
+      'Simulados ilimitados',
+      'Tutor IA: 50 perguntas/mês',
+      'Plano de estudo personalizado',
+      'Análise de desempenho por edital',
     ],
   },
   {
     id: 'elite',
     nome: 'Elite',
-    preco: 'R$ 49/mês',
+    preco: 'R$ 29,90/mês',
     cor: 'text-(--teal)',
     destaques: [
-      'Tudo ilimitado',
-      'IA de alta tecnologia em tudo',
-      'Tutor de dúvidas ilimitado',
-      'Plano de estudo por IA',
+      'Tudo do Premium, ilimitado',
+      'Tutor IA ilimitado',
+      'Leitura de editais em PDF',
+      'Flashcards gerados por IA',
     ],
   },
 ];
@@ -419,7 +419,7 @@ export default function ContaPage() {
           variant="ghost"
           className="self-start"
           onClick={() => {
-            try { localStorage.removeItem('otutor_tour_v3'); } catch { /* */ }
+            try { localStorage.removeItem('otutor_tour_v4'); } catch { /* */ }
             window.dispatchEvent(new Event('otutor:reiniciar-tour'));
           }}
         >

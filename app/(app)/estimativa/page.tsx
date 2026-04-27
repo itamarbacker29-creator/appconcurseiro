@@ -2,6 +2,7 @@ import { createServerClient } from '@/lib/supabase-server';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { ProgressBar } from '@/components/ui/ProgressBar';
+import { CargoSelectorBar } from '@/components/ui/CargoSelectorBar';
 import { thetaParaPercentual } from '@/lib/irt';
 import Link from 'next/link';
 
@@ -22,7 +23,8 @@ function semanasParaMeta(pctAtual: number, meta = 70): number | null {
   return Math.ceil((meta - pctAtual) / 2);
 }
 
-export default async function EstimativaPage() {
+export default async function EstimativaPage({ searchParams }: { searchParams: Promise<{ edital?: string }> }) {
+  const { edital: editalId } = await searchParams;
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -32,12 +34,24 @@ export default async function EstimativaPage() {
     supabase.from('respostas').select('correta, respondida_em').eq('user_id', user!.id).order('respondida_em', { ascending: false }).limit(200),
   ]);
 
+  // Filter habilidades to selected edital's matérias
+  let habilidadesFiltradas = habilidades ?? [];
+  if (editalId) {
+    const { data: edital } = await supabase.from('editais').select('materias').eq('id', editalId).single();
+    const materias = (edital?.materias as string[] | null) ?? [];
+    if (materias.length > 0) {
+      habilidadesFiltradas = habilidadesFiltradas.filter(h =>
+        materias.some(m => m.toLowerCase() === h.materia.toLowerCase() || m.toLowerCase().includes(h.materia.toLowerCase()) || h.materia.toLowerCase().includes(m.toLowerCase()))
+      );
+    }
+  }
+
   const META_APROVACAO = 70; // typical passing threshold
 
   const totalRespondidas = respostas?.length ?? 0;
 
   // Compute per-matéria pct from theta
-  const materiasPct = (habilidades ?? []).map(h => ({
+  const materiasPct = habilidadesFiltradas.map(h => ({
     materia: h.materia,
     pct: thetaParaPercentual(h.theta),
     totalRespondidas: h.total_respondidas,
@@ -77,9 +91,10 @@ export default async function EstimativaPage() {
     return (
       <div className="p-4 md:p-6 max-w-[700px] mx-auto">
         <div className="mb-6">
-          <h1 className="text-[22px] font-bold text-(--ink)">Estimativa de Sucesso</h1>
+          <h1 className="text-[22px] font-bold text-(--ink)">Estimativas</h1>
           <p className="text-[13px] text-(--ink-3) mt-1">Previsão de aprovação com base no seu desempenho.</p>
         </div>
+        <CargoSelectorBar basePath="/estimativa" selectedId={editalId} />
         <Card padding="lg" className="text-center flex flex-col items-center gap-4 py-12">
           <span className="material-symbols-outlined text-(--ink-3)" style={{ fontSize: 48 }}>insights</span>
           <div>
@@ -101,9 +116,10 @@ export default async function EstimativaPage() {
   return (
     <div className="p-4 md:p-6 max-w-[700px] mx-auto space-y-4">
       <div className="mb-2">
-        <h1 className="text-[22px] font-bold text-(--ink)">Estimativa de Sucesso</h1>
+        <h1 className="text-[22px] font-bold text-(--ink)">Estimativas</h1>
         <p className="text-[13px] text-(--ink-3) mt-1">Previsão de aprovação com base no seu desempenho.</p>
       </div>
+      <CargoSelectorBar basePath="/estimativa" selectedId={editalId} />
 
       {/* Hero — probabilidade */}
       <Card padding="md" className="flex flex-col md:flex-row items-center gap-6">

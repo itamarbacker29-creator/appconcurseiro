@@ -179,7 +179,7 @@ export default function EditaisPage() {
   return (
     <div className="p-4 md:p-6 max-w-[900px] mx-auto">
       <div className="mb-5">
-        <h1 className="text-[22px] font-bold text-(--ink)">Editais</h1>
+        <h1 className="text-[22px] font-bold text-(--ink)">Cargos Públicos</h1>
         <p className="text-[13px] text-(--ink-3) mt-1">Monitoramento automático de concursos públicos.</p>
       </div>
 

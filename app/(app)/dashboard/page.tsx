@@ -20,6 +20,14 @@ export default async function DashboardPage() {
     supabase.from('editais_salvos').select('edital_id, editais(orgao, cargo, data_inscricao_fim, data_prova)').eq('user_id', user!.id).limit(3),
   ]);
 
+  // Busca matérias do edital alvo para filtrar o "foco da semana"
+  let materiasConcursoAlvo: string[] | null = null;
+  if (profile?.concurso_alvo_id) {
+    const { data: editalAlvo } = await supabase
+      .from('editais').select('materias').eq('id', profile.concurso_alvo_id).single();
+    materiasConcursoAlvo = (editalAlvo?.materias as string[] | null) ?? null;
+  }
+
   const nome = profile?.nome ?? user?.email?.split('@')[0] ?? 'Candidato';
   const totalQuestoes = respostas?.length ?? 0;
   const acertos = respostas?.filter(r => r.correta).length ?? 0;
@@ -45,7 +53,12 @@ export default async function DashboardPage() {
     }
   }
 
-  const pioreMateria = habilidades?.sort((a, b) => a.theta - b.theta)[0];
+  const habilidadesFiltradas = materiasConcursoAlvo && materiasConcursoAlvo.length > 0
+    ? (habilidades ?? []).filter(h =>
+        materiasConcursoAlvo!.some(m => m.toLowerCase() === h.materia.toLowerCase() || m.toLowerCase().includes(h.materia.toLowerCase()) || h.materia.toLowerCase().includes(m.toLowerCase()))
+      )
+    : (habilidades ?? []);
+  const pioreMateria = (habilidadesFiltradas.length > 0 ? habilidadesFiltradas : (habilidades ?? [])).sort((a, b) => a.theta - b.theta)[0];
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const dataProvaEdital = (editaisSalvos as any[])

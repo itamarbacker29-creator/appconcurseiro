@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 
-export const TOUR_KEY = 'otutor_tour_v3';
+export const TOUR_KEY = 'otutor_tour_v4';
 const PAD = 8;
 const GAP = 14;
 const TOOLTIP_W = 288;
@@ -18,37 +18,37 @@ const PASSOS: Passo[] = [
   {
     emoji: '👋',
     titulo: 'Bem-vindo ao O Tutor!',
-    descricao: 'Sua central de estudos para concursos. Deixa eu te mostrar o que tem aqui — menos de 1 minuto, prometo.',
+    descricao: 'Sua central inteligente para concursos públicos. Vou te mostrar o que tem aqui — menos de 1 minuto, prometo.',
   },
   {
     target: 'nav-editais',
-    emoji: '📋',
-    titulo: 'Editais',
-    descricao: 'Explore concursos abertos, filtre por área e banca. Salve os que te interessam e acompanhe os prazos.',
-  },
-  {
-    target: 'nav-simulado',
-    emoji: '🧠',
-    titulo: 'Simulados adaptativos',
-    descricao: 'Questões que se adaptam ao seu nível em tempo real. O sistema calibra a dificuldade automaticamente.',
+    emoji: '🏛️',
+    titulo: 'Cargos Públicos',
+    descricao: 'Explore editais abertos, veja matérias cobradas e receba uma análise personalizada da sua chance de aprovação em cada cargo.',
   },
   {
     target: 'nav-plano',
     emoji: '📅',
     titulo: 'Plano de Estudo',
-    descricao: 'A IA gera um cronograma semanal personalizado com base no seu desempenho e no edital do seu concurso alvo.',
+    descricao: 'A IA monta um cronograma semanal com base no edital do seu cargo alvo e no seu histórico de desempenho.',
+  },
+  {
+    target: 'nav-simulado',
+    emoji: '🧠',
+    titulo: 'Simulados adaptativos',
+    descricao: 'Questões que calibram a dificuldade em tempo real. Clique em qualquer matéria nos editais para treinar só ela.',
   },
   {
     target: 'nav-tutor',
     emoji: '✨',
     titulo: 'Tutor IA',
-    descricao: 'Tire dúvidas sobre qualquer matéria a qualquer hora. A IA explica, exemplifica e resolve questões com você.',
+    descricao: 'Tire dúvidas sobre qualquer matéria a qualquer hora. A IA explica, exemplifica e lê editais em PDF com você.',
   },
   {
     target: 'nav-desempenho',
     emoji: '📊',
     titulo: 'Desempenho',
-    descricao: 'Evolução por matéria, ranking de prioridades e progresso rumo à meta de aprovação. Tudo pronto — bons estudos!',
+    descricao: 'Acompanhe sua evolução por matéria e veja onde focar. Tudo pronto — bons estudos!',
   },
 ];
 

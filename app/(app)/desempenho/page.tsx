@@ -1,8 +1,10 @@
 import { createServerClient } from '@/lib/supabase-server';
 import { thetaParaPercentual } from '@/lib/irt';
 import { DesempenhoChart } from './DesempenhoChart';
+import { CargoSelectorBar } from '@/components/ui/CargoSelectorBar';
 
-export default async function DesempenhoPage() {
+export default async function DesempenhoPage({ searchParams }: { searchParams: Promise<{ edital?: string }> }) {
+  const { edital: editalId } = await searchParams;
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -14,6 +16,18 @@ export default async function DesempenhoPage() {
       .order('respondida_em', { ascending: false })
       .limit(200),
   ]);
+
+  // Filter habilidades to selected edital's matérias
+  let habilidadesFiltradas = habilidades ?? [];
+  if (editalId) {
+    const { data: edital } = await supabase.from('editais').select('materias').eq('id', editalId).single();
+    const materias = (edital?.materias as string[] | null) ?? [];
+    if (materias.length > 0) {
+      habilidadesFiltradas = habilidadesFiltradas.filter(h =>
+        materias.some(m => m.toLowerCase() === h.materia.toLowerCase() || m.toLowerCase().includes(h.materia.toLowerCase()) || h.materia.toLowerCase().includes(m.toLowerCase()))
+      );
+    }
+  }
 
   const totalRespondidas = respostas?.length ?? 0;
   const totalAcertos = respostas?.filter(r => r.correta).length ?? 0;
@@ -37,7 +51,7 @@ export default async function DesempenhoPage() {
     }));
 
   // Matérias priorizadas: baixo acerto = foco
-  const materiasPriorizadas = (habilidades ?? [])
+  const materiasPriorizadas = habilidadesFiltradas
     .map(h => ({
       ...h,
       taxa: h.total_respondidas > 0 ? Math.round((h.total_acertos / h.total_respondidas) * 100) : 0,
@@ -55,6 +69,7 @@ export default async function DesempenhoPage() {
         <h1 className="text-[22px] font-bold text-brand-navy">Desempenho</h1>
         <p className="text-[13px] text-text-muted mt-1">Análise completa do seu progresso nos simulados.</p>
       </div>
+      <CargoSelectorBar basePath="/desempenho" selectedId={editalId} />
 
       {/* Hero — taxa de acerto dominante */}
       <div className={`rounded-(--radius) p-6 border ${taxaBg}`}>
@@ -97,7 +112,7 @@ export default async function DesempenhoPage() {
         </div>
         <div className="bg-(--surface) rounded-(--radius) p-4 border border-(--border)">
           <p className="text-[11px] text-text-muted uppercase tracking-widest">Matérias</p>
-          <p className="font-black text-[32px] leading-none text-brand-navy mt-1">{habilidades?.length ?? 0}</p>
+          <p className="font-black text-[32px] leading-none text-brand-navy mt-1">{habilidadesFiltradas.length}</p>
         </div>
       </div>
 

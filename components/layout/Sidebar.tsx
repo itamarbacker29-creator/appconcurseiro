@@ -15,16 +15,16 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { href: '/dashboard',   label: 'Dashboard',      icon: 'home' },
-  { href: '/editais',     label: 'Editais',         icon: 'description' },
-  { href: '/simulado',    label: 'Simulados',       icon: 'quiz' },
-  { href: '/desempenho',  label: 'Desempenho',      icon: 'bar_chart' },
-  { href: '/estimativa',  label: 'Estimativa',      icon: 'emoji_events' },
-  { href: '/plano',       label: 'Plano de Estudo', icon: 'calendar_month' },
-  { href: '/flashcards',  label: 'Flashcards',      icon: 'style' },
-  { href: '/apostilas',   label: 'Apostilas',       icon: 'menu_book' },
-  { href: '/tutor',       label: 'Tutor IA',        icon: 'auto_awesome' },
-  { href: '/conta',       label: 'Conta',           icon: 'manage_accounts' },
+  { href: '/dashboard',   label: 'Dashboard',        icon: 'home' },
+  { href: '/editais',     label: 'Cargos Públicos',  icon: 'description' },
+  { href: '/plano',       label: 'Plano de Estudo',  icon: 'calendar_month' },
+  { href: '/simulado',    label: 'Simulados',        icon: 'quiz' },
+  { href: '/tutor',       label: 'Tutor IA',         icon: 'auto_awesome' },
+  { href: '/desempenho',  label: 'Desempenho',       icon: 'bar_chart' },
+  { href: '/apostilas',   label: 'Apostilas',        icon: 'menu_book' },
+  { href: '/flashcards',  label: 'Flashcards',       icon: 'style' },
+  { href: '/estimativa',  label: 'Estimativas',      icon: 'emoji_events' },
+  { href: '/conta',       label: 'Conta',            icon: 'manage_accounts' },
 ];
 
 // Items shown directly in the bottom bar
