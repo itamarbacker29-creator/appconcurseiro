@@ -75,7 +75,16 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-[calc(100vh-56px)] flex items-center justify-center p-4">
-      <div className="w-full max-w-[400px] flex flex-col gap-6">
+      {/* Banner discreto — baixe o app */}
+      <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-2 py-1.5 px-4 bg-(--ink) text-white text-[12px]">
+        <span className="material-symbols-outlined text-[14px]">smartphone</span>
+        <span>Disponível no Android —</span>
+        <a href="https://bit.ly/4cPVVck" target="_blank" rel="noopener noreferrer"
+          className="font-bold underline underline-offset-2 hover:text-(--warning) transition-colors">
+          Baixe o app agora
+        </a>
+      </div>
+      <div className="w-full max-w-[400px] flex flex-col gap-6 mt-8">
         {/* Logo */}
         <div className="flex flex-col items-center gap-2">
           <img src="/logo.png" alt="O Tutor" width={40} height={40} className="rounded-xl" />

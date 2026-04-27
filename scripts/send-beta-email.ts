@@ -250,7 +250,7 @@ function gerarHtml(opts: {
                         <td valign="top">
                           <p style="margin: 0 0 2px 0; font-size: 14px; font-weight: 700; color: #17375E;">Via navegador (Web)</p>
                           <p style="margin: 0; font-size: 13px; color: #4B5563;">
-                            <a href="https://bit.ly/3QxTnIo" style="color: #17375E; font-weight: 600;">Clique aqui para acessar a plataforma</a>
+                            <a href="https://bit.ly/4danheg" style="color: #17375E; font-weight: 600;">Clique aqui para acessar a plataforma</a>
                           </p>
                         </td>
                       </tr>
@@ -266,7 +266,7 @@ function gerarHtml(opts: {
               <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 24px 0;">
                 <tr>
                   <td align="center">
-                    <a href="https://bit.ly/3QxTnIo"
+                    <a href="https://bit.ly/4danheg"
                       style="display: inline-block; background-color: #17375E; color: #FFFFFF; font-size: 15px; font-weight: 800; padding: 14px 36px; border-radius: 10px; text-decoration: none; letter-spacing: 0.3px;">
                       Começar a testar agora →
                     </a>
