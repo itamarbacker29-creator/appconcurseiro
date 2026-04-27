@@ -22,9 +22,21 @@ export function Navbar() {
           <Link href="#precos" className="text-[14px] text-(--ink-2) hover:text-(--ink) transition-colors">Planos</Link>
         </div>
 
-        <Link href="/login">
-          <Button size="sm">Entrar grátis</Button>
-        </Link>
+        <div className="flex items-center gap-3">
+          <a
+            href="https://play.google.com/store/apps/details?id=br.com.otutor.twa"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Baixar app Android"
+            className="flex items-center gap-1 text-[12px] text-(--ink-3) hover:text-(--accent) transition-colors"
+          >
+            <span className="material-symbols-outlined text-[18px]">android</span>
+            <span className="hidden md:inline">Android</span>
+          </a>
+          <Link href="/login">
+            <Button size="sm">Entrar grátis</Button>
+          </Link>
+        </div>
       </div>
     </nav>
   );
