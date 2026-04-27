@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
     const questao = questoesReais[Math.floor(Math.random() * questoesReais.length)];
     const { explicacao, gabarito, ...questaoSemGabarito } = questao;
     void explicacao; void gabarito;
-    return NextResponse.json({ questao: questaoSemGabarito, restante });
+    return NextResponse.json({ questao: questaoSemGabarito });
   }
 
   const { data: questoesCache } = await baseQuery().limit(20);
@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
     const questao = questoesCache[Math.floor(Math.random() * questoesCache.length)];
     const { explicacao, gabarito, ...questaoSemGabarito } = questao;
     void explicacao; void gabarito;
-    return NextResponse.json({ questao: questaoSemGabarito, restante });
+    return NextResponse.json({ questao: questaoSemGabarito });
   }
 
   // Buscar dados do edital
@@ -175,7 +175,7 @@ export async function POST(req: NextRequest) {
 
     const { explicacao, gabarito, ...questaoSemGabarito } = salva;
     void explicacao; void gabarito;
-    return NextResponse.json({ questao: questaoSemGabarito, restante });
+    return NextResponse.json({ questao: questaoSemGabarito });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[simulado/gerar] Erro:', msg);

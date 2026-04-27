@@ -15,22 +15,20 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY!;
 const SUPABASE_URL   = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_KEY   = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-const resend    = new Resend(RESEND_API_KEY);
-const supabase  = createClient(SUPABASE_URL, SUPABASE_KEY);
+const resend   = new Resend(RESEND_API_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const FROM = 'O Tutor <contato@otutor.com.br>';
-const SUBJECT = '🎓 Você foi convidado para testar o O Tutor — acesso exclusivo beta';
+const FROM    = 'O Tutor <contato@otutor.com.br>';
+const SUBJECT = 'Seu acesso beta ao O Tutor está liberado';
 
 // ── Listas de destinatários ───────────────────────────────────────────────────
 
-/** Endereços de aprovação — envia primeiro para o Itamar revisar */
 const APROVACAO = [
   'itamar.backer29@gmail.com',
   'vanessa.clg22@gmail.com',
   'eupeladeiroapp@gmail.com',
 ];
 
-/** Usuários que NÃO têm conta Google → sem link da Play Store */
 const SEM_PLAYSTORE = new Set([
   'analuciadavo@hotmail.com',
   'churchsagui@yahoo.com',
@@ -40,7 +38,6 @@ const SEM_PLAYSTORE = new Set([
   'thiagosilva376@yahoo.com.br',
 ]);
 
-/** Lista completa de produção */
 const PRODUCAO = [
   'adam.evelyn@yahoo.com.br',
   'agnaldomarttins@gmail.com',
@@ -110,233 +107,135 @@ function gerarHtml(opts: {
 }): string {
   const { nome, referralCode, comPlayStore } = opts;
   const primeiroNome = nome.split(' ')[0] || 'Candidato';
-  const linkIndicacao = referralCode ? `https://otutor.com.br?ref=${referralCode}` : 'https://otutor.com.br';
+  const linkIndicacao = referralCode
+    ? `https://www.otutor.com.br?ref=${referralCode}`
+    : 'https://www.otutor.com.br';
   const codigoIndicacao = referralCode ?? '—';
 
-  const blocoPlayStore = comPlayStore ? `
-    <tr>
-      <td style="padding: 0 0 12px 0;">
-        <table cellpadding="0" cellspacing="0" border="0" width="100%">
-          <tr>
-            <td width="40" valign="top" style="padding-top: 3px;">
-              <span style="font-size: 22px;">📱</span>
-            </td>
-            <td valign="top">
-              <p style="margin: 0 0 2px 0; font-size: 14px; font-weight: 700; color: #17375E;">Via Android (Play Store)</p>
-              <p style="margin: 0; font-size: 13px; color: #4B5563;">
-                <a href="https://bit.ly/4cPVVck" style="color: #17375E; font-weight: 600;">Clique aqui para baixar o app</a>
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>` : '';
+  const linhaPlayStore = comPlayStore
+    ? `<p style="margin: 0 0 8px 0; font-size: 15px; color: #1F2937; line-height: 1.6;">
+        Prefere no celular? Baixe o app Android:
+        <a href="https://play.google.com/store/apps/details?id=br.com.otutor.twa"
+          style="color: #17375E; font-weight: 600;">Play Store — O Tutor</a>
+      </p>`
+    : '';
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Convite Beta — O Tutor</title>
+  <title>Acesso beta — O Tutor</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #F4F1DA; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
-
-  <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #F4F1DA;">
+<body style="margin: 0; padding: 0; background-color: #ffffff; font-family: Georgia, 'Times New Roman', serif;">
+  <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #ffffff;">
     <tr>
-      <td align="center" style="padding: 32px 16px;">
+      <td align="center" style="padding: 40px 16px;">
+        <table cellpadding="0" cellspacing="0" border="0" width="560" style="max-width: 560px;">
 
-        <!-- Card principal -->
-        <table cellpadding="0" cellspacing="0" border="0" width="600" style="max-width: 600px; background-color: #FFFFFF; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08);">
-
-          <!-- Header -->
+          <!-- Logo discreta -->
           <tr>
-            <td style="background-color: #17375E; padding: 28px 32px; text-align: center;">
-              <table cellpadding="0" cellspacing="0" border="0" width="100%">
-                <tr>
-                  <td align="center">
-                    <img src="https://otutor.com.br/logo.png" alt="O Tutor" width="48" height="48"
-                      style="display: inline-block; vertical-align: middle; border-radius: 10px;" />
-                    <span style="display: inline-block; vertical-align: middle; margin-left: 12px;
-                      font-size: 24px; font-weight: 900; color: #FFFFFF; letter-spacing: -0.5px;">
-                      O Tutor
-                    </span>
-                  </td>
-                </tr>
-                <tr>
-                  <td align="center" style="padding-top: 8px;">
-                    <span style="font-size: 12px; color: rgba(255,255,255,0.6); letter-spacing: 1px; text-transform: uppercase;">
-                      Acesso Exclusivo Beta
-                    </span>
-                  </td>
-                </tr>
-              </table>
+            <td style="padding-bottom: 32px; border-bottom: 1px solid #E5E7EB;">
+              <span style="font-size: 16px; font-weight: 700; color: #17375E; font-family: Arial, sans-serif;">
+                O Tutor
+              </span>
             </td>
           </tr>
 
-          <!-- Destaque laranja -->
+          <!-- Corpo do email -->
           <tr>
-            <td style="background-color: #F97316; padding: 14px 32px; text-align: center;">
-              <p style="margin: 0; font-size: 14px; font-weight: 700; color: #FFFFFF; letter-spacing: 0.3px;">
-                🎓 Você faz parte do grupo seleto de beta testers do O Tutor!
-              </p>
-            </td>
-          </tr>
+            <td style="padding-top: 32px;">
 
-          <!-- Corpo -->
-          <tr>
-            <td style="padding: 36px 32px;">
-
-              <!-- Saudação -->
-              <p style="margin: 0 0 20px 0; font-size: 20px; font-weight: 800; color: #17375E;">
-                Olá, ${primeiroNome}! 👋
+              <p style="margin: 0 0 20px 0; font-size: 15px; color: #1F2937; line-height: 1.7;">
+                Olá, ${primeiroNome},
               </p>
 
-              <!-- Agradecimento -->
-              <p style="margin: 0 0 16px 0; font-size: 15px; color: #374151; line-height: 1.7;">
-                Muito obrigado por aceitar participar dos testes do <strong>O Tutor</strong>! Sua participação é fundamental para construirmos a melhor plataforma de preparação para concursos públicos do Brasil.
-              </p>
-              <p style="margin: 0 0 24px 0; font-size: 15px; color: #374151; line-height: 1.7;">
-                O O Tutor foi desenvolvido <strong>por e para concurseiros</strong> — com simulados adaptativos, plano de estudos por IA, tutor de dúvidas disponível 24h e análise personalizada de editais. Cada feedback que você nos enviar será lido e usado diretamente para aprimorar a plataforma.
+              <p style="margin: 0 0 16px 0; font-size: 15px; color: #1F2937; line-height: 1.7;">
+                Obrigado por ter se cadastrado como beta tester do <strong>O Tutor</strong>. Seu acesso já está liberado — você pode começar a usar agora mesmo.
               </p>
 
-              <!-- Divisor -->
-              <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 0 0 24px 0;" />
-
-              <!-- Seu link de indicação -->
-              <table cellpadding="0" cellspacing="0" border="0" width="100%"
-                style="background-color: #F0F4FF; border-radius: 12px; border: 1px solid #C7D2FE; margin-bottom: 24px;">
-                <tr>
-                  <td style="padding: 20px 24px;">
-                    <p style="margin: 0 0 4px 0; font-size: 11px; font-weight: 700; color: #6366F1; letter-spacing: 1px; text-transform: uppercase;">
-                      Seu link de indicação exclusivo
-                    </p>
-                    <p style="margin: 0 0 12px 0; font-size: 13px; color: #4B5563; line-height: 1.5;">
-                      Compartilhe com amigos que também estão estudando para concursos. Cada pessoa que se cadastrar pelo seu link garante benefícios para você e para eles.
-                    </p>
-                    <table cellpadding="0" cellspacing="0" border="0">
-                      <tr>
-                        <td style="background-color: #EEF2FF; border-radius: 8px; padding: 8px 16px; border: 1px dashed #A5B4FC;">
-                          <span style="font-size: 13px; font-weight: 700; color: #4338CA; font-family: monospace; letter-spacing: 1px;">
-                            Código: ${codigoIndicacao}
-                          </span>
-                        </td>
-                        <td style="padding-left: 12px;">
-                          <a href="${linkIndicacao}"
-                            style="display: inline-block; background-color: #4338CA; color: #FFFFFF; font-size: 13px; font-weight: 700; padding: 8px 16px; border-radius: 8px; text-decoration: none;">
-                            Copiar link →
-                          </a>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-              </table>
-
-              <!-- Como testar -->
-              <p style="margin: 0 0 16px 0; font-size: 16px; font-weight: 800; color: #17375E;">
-                Como testar o O Tutor:
+              <p style="margin: 0 0 16px 0; font-size: 15px; color: #1F2937; line-height: 1.7;">
+                O Tutor é uma plataforma de preparação para concursos públicos com simulados adaptativos, tutor de dúvidas por IA disponível 24h, plano de estudo personalizado e análise detalhada de editais por cargo.
               </p>
 
-              <table cellpadding="0" cellspacing="0" border="0" width="100%">
-
-                <!-- Web -->
-                <tr>
-                  <td style="padding: 0 0 12px 0;">
-                    <table cellpadding="0" cellspacing="0" border="0" width="100%">
-                      <tr>
-                        <td width="40" valign="top" style="padding-top: 3px;">
-                          <span style="font-size: 22px;">🌐</span>
-                        </td>
-                        <td valign="top">
-                          <p style="margin: 0 0 2px 0; font-size: 14px; font-weight: 700; color: #17375E;">Via navegador (Web)</p>
-                          <p style="margin: 0; font-size: 13px; color: #4B5563;">
-                            <a href="https://bit.ly/4danheg" style="color: #17375E; font-weight: 600;">Clique aqui para acessar a plataforma</a>
-                          </p>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-
-                ${blocoPlayStore}
-
-              </table>
-
-              <!-- CTA principal -->
-              <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 24px 0;">
-                <tr>
-                  <td align="center">
-                    <a href="https://bit.ly/4danheg"
-                      style="display: inline-block; background-color: #17375E; color: #FFFFFF; font-size: 15px; font-weight: 800; padding: 14px 36px; border-radius: 10px; text-decoration: none; letter-spacing: 0.3px;">
-                      Começar a testar agora →
-                    </a>
-                  </td>
-                </tr>
-              </table>
-
-              <!-- Divisor -->
-              <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 0 0 24px 0;" />
-
-              <!-- Feedback -->
-              <table cellpadding="0" cellspacing="0" border="0" width="100%"
-                style="background-color: #FFF7ED; border-radius: 12px; border: 1px solid #FED7AA; margin-bottom: 24px;">
-                <tr>
-                  <td style="padding: 20px 24px;">
-                    <p style="margin: 0 0 8px 0; font-size: 14px; font-weight: 700; color: #C2410C;">
-                      📝 Compartilhe sua opinião
-                    </p>
-                    <p style="margin: 0 0 12px 0; font-size: 13px; color: #4B5563; line-height: 1.6;">
-                      Após explorar a plataforma, conte o que achou. Seu feedback é o combustível que impulsiona a nossa evolução — e <strong>quem fornecer o feedback mais completo recebe até 6 meses de plano premium grátis</strong>.
-                    </p>
-                    <a href="https://bit.ly/4d87FYP"
-                      style="display: inline-block; background-color: #F97316; color: #FFFFFF; font-size: 13px; font-weight: 700; padding: 10px 20px; border-radius: 8px; text-decoration: none;">
-                      Enviar feedback →
-                    </a>
-                  </td>
-                </tr>
-              </table>
-
-              <!-- Redes sociais -->
-              <p style="margin: 0 0 14px 0; font-size: 14px; color: #6B7280; text-align: center;">
-                Acompanhe as novidades do O Tutor nas redes sociais:
+              <p style="margin: 0 0 8px 0; font-size: 15px; color: #1F2937; line-height: 1.6;">
+                Acesse pelo navegador:
+                <a href="https://www.otutor.com.br/login"
+                  style="color: #17375E; font-weight: 600;">www.otutor.com.br/login</a>
               </p>
-              <table cellpadding="0" cellspacing="0" border="0" width="100%">
-                <tr>
-                  <td align="center">
-                    <a href="https://bit.ly/49b32uy"
-                      style="display: inline-block; background-color: #17375E; color: #FFFFFF; font-size: 13px; font-weight: 700; padding: 10px 24px; border-radius: 8px; text-decoration: none; margin-right: 8px;">
-                      📸 Instagram
-                    </a>
-                    <a href="https://bit.ly/4cPgrcX"
-                      style="display: inline-block; background-color: #1877F2; color: #FFFFFF; font-size: 13px; font-weight: 700; padding: 10px 24px; border-radius: 8px; text-decoration: none;">
-                      👍 Facebook
-                    </a>
-                  </td>
-                </tr>
-              </table>
+
+              ${linhaPlayStore}
+
+              <p style="margin: 16px 0 8px 0; font-size: 15px; color: #1F2937; line-height: 1.6;">
+                Após explorar a plataforma, conte o que achou pelo formulário de feedback:
+                <a href="https://www.otutor.com.br/feedback"
+                  style="color: #17375E; font-weight: 600;">www.otutor.com.br/feedback</a>
+              </p>
+
+              <p style="margin: 0 0 24px 0; font-size: 15px; color: #1F2937; line-height: 1.7;">
+                Quem fornecer o feedback mais completo recebe <strong>até 6 meses de plano premium grátis</strong>.
+              </p>
+
+              <!-- Divisor sutil -->
+              <hr style="border: none; border-top: 1px solid #F3F4F6; margin: 0 0 24px 0;" />
+
+              <!-- Indicação -->
+              <p style="margin: 0 0 8px 0; font-size: 15px; color: #1F2937; line-height: 1.7;">
+                Tem amigos estudando para concursos? Compartilhe seu link de indicação — cada pessoa que se cadastrar pelo seu link gera benefícios para vocês dois.
+              </p>
+
+              <p style="margin: 0 0 4px 0; font-size: 13px; color: #6B7280;">
+                Seu código de indicação:
+                <strong style="color: #17375E; font-family: monospace; letter-spacing: 1px;">${codigoIndicacao}</strong>
+              </p>
+              <p style="margin: 0 0 24px 0; font-size: 13px; color: #6B7280;">
+                Seu link:
+                <a href="${linkIndicacao}" style="color: #17375E;">${linkIndicacao}</a>
+              </p>
+
+              <!-- Divisor sutil -->
+              <hr style="border: none; border-top: 1px solid #F3F4F6; margin: 0 0 24px 0;" />
+
+              <p style="margin: 0 0 8px 0; font-size: 15px; color: #1F2937; line-height: 1.7;">
+                Acompanhe as novidades nas redes sociais:
+              </p>
+              <p style="margin: 0 0 4px 0; font-size: 14px; color: #4B5563;">
+                Instagram:
+                <a href="https://www.instagram.com/o_tutor_app/" style="color: #17375E;">@o_tutor_app</a>
+              </p>
+              <p style="margin: 0 0 28px 0; font-size: 14px; color: #4B5563;">
+                Facebook:
+                <a href="https://www.facebook.com/profile.php?id=61572357286929" style="color: #17375E;">O Tutor no Facebook</a>
+              </p>
+
+              <p style="margin: 0 0 4px 0; font-size: 15px; color: #1F2937; line-height: 1.7;">
+                Qualquer dúvida, responda este email.
+              </p>
+
+              <p style="margin: 0; font-size: 15px; color: #1F2937; line-height: 1.7;">
+                Bons estudos,<br />
+                <strong>Itamar Backer</strong><br />
+                <span style="font-size: 13px; color: #6B7280;">O Tutor — contato@otutor.com.br</span>
+              </p>
 
             </td>
           </tr>
 
-          <!-- Footer -->
+          <!-- Footer mínimo -->
           <tr>
-            <td style="background-color: #F9FAFB; border-top: 1px solid #E5E7EB; padding: 20px 32px; text-align: center;">
-              <p style="margin: 0 0 4px 0; font-size: 12px; color: #9CA3AF;">
-                Você recebeu este email por fazer parte do programa beta do <strong>O Tutor</strong>.
-              </p>
-              <p style="margin: 0; font-size: 12px; color: #9CA3AF;">
-                © 2025 O Tutor — <a href="https://otutor.com.br" style="color: #6B7280;">otutor.com.br</a>
+            <td style="padding-top: 40px; border-top: 1px solid #E5E7EB; margin-top: 40px;">
+              <p style="margin: 0; font-size: 12px; color: #9CA3AF; line-height: 1.6;">
+                Você recebeu este email por ter se cadastrado como beta tester do O Tutor.<br />
+                &copy; 2025 O Tutor &mdash;
+                <a href="https://www.otutor.com.br" style="color: #9CA3AF;">otutor.com.br</a>
               </p>
             </td>
           </tr>
 
         </table>
-        <!-- /Card principal -->
-
       </td>
     </tr>
   </table>
-
 </body>
 </html>`;
 }
@@ -352,7 +251,6 @@ async function buscarReferral(email: string): Promise<{ nome: string; referralCo
 
   if (data) return { nome: data.nome ?? email, referralCode: data.referral_code ?? null };
 
-  // Tenta na tabela profiles caso o usuário já tenha criado conta
   const { data: profile } = await supabase
     .from('profiles')
     .select('nome')
@@ -385,7 +283,7 @@ async function enviarPara(emails: string[]) {
     }
 
     // Pausa entre envios para não acionar rate limit
-    await new Promise(r => setTimeout(r, 500));
+    await new Promise(r => setTimeout(r, 2000));
   }
 
   console.log(`\nConcluído: ${ok} enviados, ${erro} erros.`);
@@ -393,7 +291,9 @@ async function enviarPara(emails: string[]) {
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 
-const modo = process.argv.includes('--modo') ? process.argv[process.argv.indexOf('--modo') + 1] : 'aprovacao';
+const modo = process.argv.includes('--modo')
+  ? process.argv[process.argv.indexOf('--modo') + 1]
+  : 'aprovacao';
 
 if (modo === 'producao') {
   console.log(`Enviando para ${PRODUCAO.length} destinatários (PRODUÇÃO)...\n`);
