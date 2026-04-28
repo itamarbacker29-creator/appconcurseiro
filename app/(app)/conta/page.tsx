@@ -365,7 +365,7 @@ export default function ContaPage() {
             </label>
           ))}
         </div>
-        <Button loading={salvandoElegibilidade} onClick={salvarElegibilidade} variant="ghost" className="self-start">
+        <Button loading={salvandoElegibilidade} onClick={salvarElegibilidade} className="self-start">
           Salvar elegibilidade
         </Button>
       </section>

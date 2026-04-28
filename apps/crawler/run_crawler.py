@@ -419,14 +419,12 @@ async def extrair_cargos_inline(edital_id: str, dados: dict):
                     break
 
     if not pdf_link:
-        print(f"    [INLINE] Sem PDF — marcando como processado.")
-        supabase.table("editais").update({"pdf_processado": True}).eq("id", edital_id).execute()
+        print(f"    [INLINE] Sem PDF — fallback tentará novamente.")
         return
 
     pdf_bytes = await baixar_pdf(pdf_link)
     if not pdf_bytes:
-        print(f"    [INLINE] Falha ao baixar PDF.")
-        supabase.table("editais").update({"pdf_processado": True}).eq("id", edital_id).execute()
+        print(f"    [INLINE] Falha ao baixar PDF — fallback tentará novamente.")
         return
 
     print(f"    [INLINE] PDF {len(pdf_bytes)/1024:.0f} KB — extraindo cargos com Claude...")
@@ -519,14 +517,12 @@ async def processar_pdfs_pendentes():
                         break
 
         if not link_pdf:
-            print("    Sem PDF.")
-            supabase.table("editais").update({"pdf_processado": True}).eq("id", eid).execute()
+            print("    Sem PDF — será retentado na próxima execução.")
             continue
 
         pdf_bytes = await baixar_pdf(link_pdf)
         if not pdf_bytes:
-            print(f"    Falha ao baixar.")
-            supabase.table("editais").update({"pdf_processado": True}).eq("id", eid).execute()
+            print(f"    Falha ao baixar — será retentado na próxima execução.")
             continue
 
         print(f"    PDF {len(pdf_bytes)/1024:.0f} KB — extraindo...")
@@ -598,12 +594,12 @@ async def buscar_e_salvar():
                     edital_row = r.data[0]
                     vagas_str = f"{dados['vagas']} vagas" if dados['vagas'] else "vagas n/d"
                     local = f"{dados['cidade']}/{dados['estado']}" if dados.get('cidade') else dados['estado']
-                    print(f"  ✓ [{dados['nivel']}] {dados['orgao']} — {dados['cargo']} | {vagas_str} | {local}")
+                    print(f"  [OK] [{dados['nivel']}] {dados['orgao']} - {dados['cargo']} | {vagas_str} | {local}")
                     # Extrai cargos do PDF se ainda não tem matérias
                     if not edital_row.get("materias"):
                         await extrair_cargos_inline(edital_row["id"], dados)
             except Exception as e:
-                print(f"  ✗ {e}")
+                print(f"  [ERR] {e}")
                 erros += 1
         print(f"\n[CRAWLER] {salvos} salvos | {ignorados} ignorados | {erros} erros")
     else:

@@ -8,6 +8,7 @@ import { useToast } from '@/components/ui/Toast';
 
 const AREAS = ['Federal', 'Estadual', 'Municipal', 'Segurança', 'Tributário', 'Saúde', 'Educação', 'Judiciário'];
 const ESTADOS = ['AC','AL','AM','AP','BA','CE','DF','ES','GO','MA','MG','MS','MT','PA','PB','PE','PI','PR','RJ','RN','RO','RR','RS','SC','SE','SP','TO','Nacional'];
+const FORMACOES = ['Ensino Médio completo', 'Graduação em andamento', 'Direito', 'Administração', 'Contabilidade', 'Engenharia', 'Psicologia', 'Nutrição', 'Enfermagem', 'Medicina', 'Outra graduação'];
 
 type Escolaridade = 'fundamental' | 'medio' | 'superior';
 
@@ -18,6 +19,7 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false);
 
   const [escolaridade, setEscolaridade] = useState<Escolaridade | ''>('');
+  const [formacao, setFormacao] = useState('');
   const [areas, setAreas] = useState<string[]>([]);
   const [estados, setEstados] = useState<string[]>([]);
   const [concurso, setConcurso] = useState('');
@@ -35,6 +37,7 @@ export default function OnboardingPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           escolaridade,
+          formacao: formacao || null,
           areas_interesse: areas,
           estados_interesse: estados,
           data_prova: dataProva || null,
@@ -98,6 +101,14 @@ export default function OnboardingPage() {
                     <p className="text-[12px] text-(--ink-3) mt-0.5">{op.desc}</p>
                   </button>
                 ))}
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[13px] font-medium text-(--ink-2)">Área de formação (opcional)</label>
+                <select value={formacao} onChange={e => setFormacao(e.target.value)}
+                  className="h-10 rounded-sm border border-(--border-strong) px-3 text-[14px] bg-(--surface) text-(--ink) outline-none focus:border-(--accent) transition-colors">
+                  <option value="">Selecione sua formação</option>
+                  {FORMACOES.map(f => <option key={f} value={f}>{f}</option>)}
+                </select>
               </div>
               <Button disabled={!escolaridade} onClick={() => setPasso(2)} className="w-full">
                 Continuar

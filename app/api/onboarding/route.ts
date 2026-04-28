@@ -7,12 +7,13 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
 
   const body = await req.json();
-  const { escolaridade, areas_interesse, estados_interesse, data_prova, concurso_alvo_nome } = body;
+  const { escolaridade, formacao, areas_interesse, estados_interesse, data_prova, concurso_alvo_nome } = body;
 
   const { error } = await supabase
     .from('profiles')
     .update({
       escolaridade,
+      formacao: formacao || null,
       areas_interesse,
       estados_interesse,
       data_prova: data_prova || null,

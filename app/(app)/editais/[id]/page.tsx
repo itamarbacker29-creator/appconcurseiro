@@ -6,6 +6,7 @@ import { CardBanca } from '@/components/editais/CardBanca';
 import { ResumoEdital } from '@/components/editais/ResumoEdital';
 import { RecomendacaoParticipacao } from '@/components/editais/RecomendacaoParticipacao';
 import { AcoesSalvarInscrito } from '@/components/editais/AcoesSalvarInscrito';
+import { ExtrairMateriasAuto } from '@/components/editais/ExtrairMateriasAuto';
 import Link from 'next/link';
 
 const CARGOS_GENERICOS = new Set(['diversos', 'vários cargos', 'varios cargos', 'vários', 'varios']);
@@ -170,8 +171,9 @@ export default async function EditalPage({ params }: { params: Promise<{ id: str
           <div className="bg-(--surface-2) border border-(--border) rounded-(--radius) p-4 flex items-center gap-3">
             <span className="material-symbols-outlined text-(--ink-3)" style={{ fontSize: 22 }}>schedule</span>
             <p className="text-[13px] text-(--ink-3)">
-              Matérias serão extraídas automaticamente do edital em breve.
+              Extraindo matérias do edital...
             </p>
+            {user && <ExtrairMateriasAuto editalId={id} />}
           </div>
         )}
       </div>
