@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
   if (error) {
     if (error.code !== '23505') {
       console.error('[leads/meta]', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: 'Falha ao registrar. Tente novamente.' }, { status: 500 });
     }
     // Email duplicado — retorna dados existentes sem erro
     const { data: existente } = await admin

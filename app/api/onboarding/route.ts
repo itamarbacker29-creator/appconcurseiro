@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
   if (error) {
     console.error('[onboarding] erro:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Falha ao salvar perfil. Tente novamente.' }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true });

@@ -3,11 +3,14 @@ import { createAdminClient } from '@/lib/supabase-server';
 import { Resend } from 'resend';
 
 const OFFSET_INICIAL = 47;
-const ADMIN_SECRET = process.env.ADMIN_SECRET ?? 'otutor-admin-2026';
+const ADMIN_SECRET = process.env.ADMIN_SECRET;
+if (!ADMIN_SECRET) {
+  console.error('[boas-vindas] ADMIN_SECRET não configurada — endpoint desativado');
+}
 
 export async function POST(req: NextRequest) {
   const secret = req.headers.get('x-admin-secret');
-  if (secret !== ADMIN_SECRET) {
+  if (!ADMIN_SECRET || secret !== ADMIN_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

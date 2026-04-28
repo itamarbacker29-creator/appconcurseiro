@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase-server';
+import { createServerClient, createAdminClient } from '@/lib/supabase-server';
 import Anthropic from '@anthropic-ai/sdk';
 
 export async function POST(
@@ -7,6 +7,11 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+
+  const serverClient = await createServerClient();
+  const { data: { user } } = await serverClient.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+
   const supabase = createAdminClient();
 
   const { data: edital } = await supabase

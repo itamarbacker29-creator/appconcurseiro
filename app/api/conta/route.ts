@@ -26,7 +26,10 @@ export async function POST(req: NextRequest) {
   }
 
   const { error } = await supabase.from('profiles').update(update).eq('id', user.id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error('[conta] erro ao atualizar perfil:', error);
+    return NextResponse.json({ error: 'Falha ao atualizar perfil. Tente novamente.' }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }
