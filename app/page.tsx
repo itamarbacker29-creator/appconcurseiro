@@ -1,2 +1,5 @@
-export { default } from '@/app/(public)/page';
-export { metadata } from '@/app/(public)/page';
+import { redirect } from 'next/navigation';
+
+export default function RootPage() {
+  redirect('/home');
+}
