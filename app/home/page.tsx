@@ -376,8 +376,8 @@ export default async function HomePage() {
           <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-[#FF8400]/15 rounded-full translate-y-1/2" />
         </div>
         <div className="relative max-w-3xl mx-auto px-4 md:px-8 text-center">
-          <h2 className="text-[36px] md:text-[48px] font-black text-white leading-tight mb-6"
-            style={{ fontFamily: 'var(--font-montserrat, Montserrat, sans-serif)' }}>
+          <h2 className="text-[36px] md:text-[48px] font-black leading-tight mb-6"
+            style={{ fontFamily: 'var(--font-montserrat, Montserrat, sans-serif)', color: '#ffffff' }}>
             Sua aprovação começa hoje.
           </h2>
           <p className="text-[18px] text-white/70 mb-10 max-w-xl mx-auto">
