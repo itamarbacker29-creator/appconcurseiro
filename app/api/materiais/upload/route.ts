@@ -16,10 +16,10 @@ export async function POST(req: NextRequest) {
   const plano = profile?.plano ?? 'free';
 
   if (plano === 'free') {
-    const { permitido } = await verificarLimite(limitadores.uploadFree, user.id);
+    const { permitido } = await verificarLimite(limitadores.uploadFree, user.id, { falharFechado: true });
     if (!permitido) return NextResponse.json({ error: 'Limite de 1 PDF/mês no plano gratuito. Faça upgrade para Premium.' }, { status: 429 });
   } else if (plano === 'premium') {
-    const { permitido } = await verificarLimite(limitadores.uploadPremium, user.id);
+    const { permitido } = await verificarLimite(limitadores.uploadPremium, user.id, { falharFechado: true });
     if (!permitido) return NextResponse.json({ error: 'Limite de 5 PDFs/mês no plano Premium atingido. Faça upgrade para Elite.' }, { status: 429 });
   }
   // elite: sem limite
@@ -41,6 +41,12 @@ export async function POST(req: NextRequest) {
   if (file.size > MAX_BYTES) return NextResponse.json({ error: 'Arquivo muito grande. Máximo: 20 MB.' }, { status: 400 });
 
   const buffer = new Uint8Array(await file.arrayBuffer());
+
+  // Valida magic bytes — PDF real começa com %PDF (0x25 0x50 0x44 0x46)
+  if (buffer[0] !== 0x25 || buffer[1] !== 0x50 || buffer[2] !== 0x44 || buffer[3] !== 0x46) {
+    return NextResponse.json({ error: 'Arquivo inválido. Apenas PDFs reais são aceitos.' }, { status: 400 });
+  }
+
   const fileName = `${user.id}/${crypto.randomUUID()}.pdf`;
 
   const adminClient = createAdminClient();

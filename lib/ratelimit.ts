@@ -34,6 +34,9 @@ export const limitadores = {
   // Raio-X: free = 1/mês
   raioxFree:     criarLimitador(Ratelimit.slidingWindow(1,   '30 d'), 'rl:raiox:free'),
 
+  // Auth: máx 10 tentativas de login por minuto por IP
+  loginIp:       criarLimitador(Ratelimit.slidingWindow(10,  '1 m'),  'rl:login:ip'),
+
   gerarPlano:    criarLimitador(Ratelimit.slidingWindow(5,   '24 h'), 'rl:plano'),
   buscarEditais: criarLimitador(Ratelimit.slidingWindow(30,  '1 m'),  'rl:editais'),
   global:        criarLimitador(Ratelimit.slidingWindow(60,  '1 m'),  'rl:global'),
@@ -41,14 +44,23 @@ export const limitadores = {
 
 export async function verificarLimite(
   limitador: Ratelimit | null,
-  userId: string
+  userId: string,
+  { falharFechado = false }: { falharFechado?: boolean } = {}
 ): Promise<{ permitido: boolean; restante: number }> {
-  if (!limitador) return { permitido: true, restante: 999 }; // sem Redis = sem limite
+  if (!limitador) {
+    // Se Redis não está configurado e o chamador pediu falha fechada, bloqueia
+    if (falharFechado) {
+      console.warn('[ratelimit] Redis indisponível — bloqueando por segurança');
+      return { permitido: false, restante: 0 };
+    }
+    return { permitido: true, restante: 999 };
+  }
   try {
     const { success, remaining } = await limitador.limit(userId);
     return { permitido: success, restante: remaining };
   } catch (e) {
     console.error('[ratelimit] Erro ao verificar limite:', e);
-    return { permitido: true, restante: 999 }; // falha silenciosa — não bloqueia o usuário
+    if (falharFechado) return { permitido: false, restante: 0 };
+    return { permitido: true, restante: 999 };
   }
 }

@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
 
   // Rate limit por plano
   if (plano === 'free') {
-    const { permitido } = await verificarLimite(limitadores.simuladoFree, user.id);
+    const { permitido } = await verificarLimite(limitadores.simuladoFree, user.id, { falharFechado: true });
     if (!permitido) {
       return NextResponse.json(
         { error: 'Você atingiu o limite de 5 simulados por mês no plano gratuito. Faça upgrade para Premium para simulados ilimitados.', restante: 0 },
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
     }
   }
   // Anti-abuse geral para todos os planos
-  const { permitido: permitidoGeral } = await verificarLimite(limitadores.gerarQuestao, user.id);
+  const { permitido: permitidoGeral } = await verificarLimite(limitadores.gerarQuestao, user.id, { falharFechado: true });
   if (!permitidoGeral) {
     return NextResponse.json(
       { error: 'Muitas requisições. Aguarde alguns minutos.', restante: 0 },

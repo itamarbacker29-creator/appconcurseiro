@@ -47,7 +47,7 @@ export default async function RaioXPage({
   if (user) {
     const { data: profile } = await supabase.from('profiles').select('plano').eq('id', user.id).single();
     if ((profile?.plano ?? 'free') === 'free') {
-      const { permitido } = await verificarLimite(limitadores.raioxFree, user.id);
+      const { permitido } = await verificarLimite(limitadores.raioxFree, user.id, { falharFechado: true });
       if (!permitido) redirect(`/editais/${id}?limite=raiox`);
     }
   }

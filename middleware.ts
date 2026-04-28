@@ -28,12 +28,37 @@ export async function middleware(req: NextRequest) {
 
   // Rate limiting via Upstash
   const rateLimitUrl = process.env.UPSTASH_REDIS_REST_URL;
-  if (rateLimitUrl) {
+  const rateLimitToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (rateLimitUrl && rateLimitToken) {
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0] ?? req.headers.get('x-real-ip') ?? 'unknown';
+    const pathname = req.nextUrl.pathname;
+
+    // Rate limit específico para login: 10 tentativas/min por IP
+    if (pathname === '/api/auth/callback' || pathname === '/login') {
+      const loginKey = `rl:login:ip:${ip}`;
+      const loginResp = await fetch(`${rateLimitUrl}/incr/${loginKey}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${rateLimitToken}` },
+      }).catch(() => null);
+      if (loginResp?.ok) {
+        const { result: loginCount } = await loginResp.json();
+        if (loginCount === 1) {
+          await fetch(`${rateLimitUrl}/expire/${loginKey}/60`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${rateLimitToken}` },
+          }).catch(() => null);
+        }
+        if (loginCount > 10) {
+          return new NextResponse('Too Many Requests', { status: 429 });
+        }
+      }
+    }
+
+    // Rate limit global: 120 req/min por IP
     const key = `rl:global:${ip}`;
     const limitResp = await fetch(`${rateLimitUrl}/incr/${key}`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}` },
+      headers: { Authorization: `Bearer ${rateLimitToken}` },
     }).catch(() => null);
 
     if (limitResp?.ok) {
@@ -41,7 +66,7 @@ export async function middleware(req: NextRequest) {
       if (result === 1) {
         await fetch(`${rateLimitUrl}/expire/${key}/60`, {
           method: 'POST',
-          headers: { Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}` },
+          headers: { Authorization: `Bearer ${rateLimitToken}` },
         }).catch(() => null);
       }
       if (result > 120) {
@@ -61,15 +86,14 @@ export async function middleware(req: NextRequest) {
   }
 
   // Auth guard
-  const pathname = req.nextUrl.pathname;
-  const protegida = ROTAS_PROTEGIDAS.some(r => pathname.startsWith(r));
+  const protegida = ROTAS_PROTEGIDAS.some(r => req.nextUrl.pathname.startsWith(r));
 
   if (protegida && !session) {
     return NextResponse.redirect(new URL('/login', req.url));
   }
 
   // Onboarding guard — redireciona para /onboarding se não completou
-  if (session && protegida && pathname !== '/onboarding') {
+  if (session && protegida && req.nextUrl.pathname !== '/onboarding') {
     const { data: profile } = await supabase
       .from('profiles')
       .select('onboarding_completo')
