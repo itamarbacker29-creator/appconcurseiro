@@ -50,7 +50,10 @@ export default function LoginPage() {
         const { error } = await supabase.auth.signUp({
           email: form.email,
           password: form.senha,
-          options: { data: { full_name: form.nome } },
+          options: {
+            data: { full_name: form.nome },
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+          },
         });
         if (error) throw error;
         toast('Conta criada! Verifique seu e-mail para confirmar.', 'success');
