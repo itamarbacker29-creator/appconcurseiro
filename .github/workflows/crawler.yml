@@ -2,7 +2,7 @@ name: Crawler de Editais
 
 on:
   schedule:
-    - cron: '0 6 * * *'   # uma vez por dia às 6h UTC (3h Brasília)
+    - cron: '0 6 */3 * *'  # a cada 3 dias às 6h UTC (3h Brasília)
   workflow_dispatch:          # permite rodar manualmente
 
 jobs:
