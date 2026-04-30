@@ -67,6 +67,17 @@ export default function LoginPage() {
     }
   }
 
+  async function esqueceuSenha() {
+    if (!form.email) { setErrors({ email: 'Digite o e-mail para redefinir a senha' }); return; }
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(form.email, {
+      redirectTo: `${window.location.origin}/auth/callback?next=/redefinir-senha`,
+    });
+    setLoading(false);
+    if (error) toast(error.message, 'error');
+    else toast('Email de redefinição enviado! Verifique sua caixa de entrada.', 'success');
+  }
+
   async function magicLink() {
     if (!form.email) { setErrors({ email: 'Digite o e-mail para receber o link' }); return; }
     setLoading(true);
@@ -152,13 +163,22 @@ export default function LoginPage() {
                 error={errors.senha}
               />
               {aba === 'entrar' && (
-                <button
-                  type="button"
-                  onClick={magicLink}
-                  className="text-[12px] text-(--accent) text-right hover:underline"
-                >
-                  Receber link por e-mail
-                </button>
+                <div className="flex justify-between">
+                  <button
+                    type="button"
+                    onClick={esqueceuSenha}
+                    className="text-[12px] text-(--ink-3) hover:text-(--accent) hover:underline"
+                  >
+                    Esqueci minha senha
+                  </button>
+                  <button
+                    type="button"
+                    onClick={magicLink}
+                    className="text-[12px] text-(--accent) hover:underline"
+                  >
+                    Receber link por e-mail
+                  </button>
+                </div>
               )}
             </div>
 
