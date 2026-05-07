@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { anthropic, MODELO_PRINCIPAL } from '@/lib/anthropic';
+import { verificarLimite, limitadores } from '@/lib/ratelimit';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -109,6 +110,19 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { editalId, cargoId } = await req.json();
+
+  // Rate limit: free users têm 1 análise de recomendação por mês
+  const { data: profilePlano } = await supabase.from('profiles').select('plano').eq('id', user.id).single();
+  const plano = profilePlano?.plano ?? 'free';
+  if (plano === 'free') {
+    const { permitido } = await verificarLimite(limitadores.raioxFree, user.id, { falharFechado: false });
+    if (!permitido) {
+      return NextResponse.json(
+        { error: 'Você atingiu o limite de 1 análise por mês no plano gratuito. Faça upgrade para Premium.' },
+        { status: 429 }
+      );
+    }
+  }
   if (!editalId) return NextResponse.json({ error: 'editalId obrigatório' }, { status: 400 });
 
   const [{ data: edital }, { data: cargo }, { data: profile }, { data: habilidades }] = await Promise.all([

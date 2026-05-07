@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient, createAdminClient } from '@/lib/supabase-server';
+import { verificarLimite, limitadores } from '@/lib/ratelimit';
 import type { DocumentBlockParam, TextBlockParam } from '@anthropic-ai/sdk/resources/messages/messages';
 
 export const maxDuration = 60;
@@ -31,6 +32,17 @@ export async function POST(
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+
+  // Gate por plano: free = 1 PDF/mês, premium = 5/mês, elite = ilimitado
+  const { data: profilePlano } = await supabase.from('profiles').select('plano').eq('id', user.id).single();
+  const plano = profilePlano?.plano ?? 'free';
+  if (plano === 'free') {
+    const { permitido } = await verificarLimite(limitadores.uploadFree, user.id, { falharFechado: false });
+    if (!permitido) return NextResponse.json({ error: 'Limite de 1 geração de flashcards por mês no plano gratuito. Faça upgrade para Premium.' }, { status: 429 });
+  } else if (plano === 'premium') {
+    const { permitido } = await verificarLimite(limitadores.uploadPremium, user.id, { falharFechado: false });
+    if (!permitido) return NextResponse.json({ error: 'Limite de 5 gerações por mês no plano Premium atingido. Faça upgrade para Elite.' }, { status: 429 });
+  }
 
   const { data: material } = await supabase
     .from('materiais')

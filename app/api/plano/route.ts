@@ -71,6 +71,14 @@ export async function POST(req: NextRequest) {
 
   if (!limitResult.permitido) return NextResponse.json({ error: 'Limite de geração de planos atingido.' }, { status: 429 });
 
+  // Plano de estudo baseado em edital específico é exclusivo do Elite
+  if (editalId && profile?.plano !== 'elite') {
+    return NextResponse.json(
+      { error: 'Plano de estudo por edital específico é exclusivo do plano Elite.' },
+      { status: 403 }
+    );
+  }
+
   let edital: { orgao: string; cargo: string; materias: string[] | null; banca: string | null; data_prova: string | null } | null = null;
   if (editalId) {
     const { data } = await supabase.from('editais').select('orgao, cargo, materias, banca, data_prova').eq('id', editalId).single();
