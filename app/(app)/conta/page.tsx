@@ -436,6 +436,18 @@ export default function ContaPage() {
         </Button>
       </section>
 
+      {/* Feedback */}
+      <section className="bg-(--surface) border border-(--border) rounded-(--radius) p-5 flex flex-col gap-3">
+        <h2 className="text-[15px] font-bold text-(--ink)">Feedback</h2>
+        <p className="text-[13px] text-(--ink-3)">Sua opinião ajuda a melhorar a plataforma.</p>
+        <a href="/feedback">
+          <Button variant="ghost" className="self-start">
+            <span className="material-symbols-outlined text-[16px] mr-1">rate_review</span>
+            Deixar feedback
+          </Button>
+        </a>
+      </section>
+
       {/* Logout */}
       <section className="bg-(--surface) border border-(--border) rounded-(--radius) p-5 flex flex-col gap-3">
         <h2 className="text-[15px] font-bold text-(--ink)">Sessão</h2>
