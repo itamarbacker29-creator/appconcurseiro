@@ -16,10 +16,10 @@ export async function POST(req: NextRequest) {
   const plano = profile?.plano ?? 'free';
 
   if (plano === 'free') {
-    const { permitido } = await verificarLimite(limitadores.uploadFree, user.id, { falharFechado: true });
+    const { permitido } = await verificarLimite(limitadores.uploadFree, user.id, { falharFechado: false });
     if (!permitido) return NextResponse.json({ error: 'Limite de 1 PDF/mês no plano gratuito. Faça upgrade para Premium.' }, { status: 429 });
   } else if (plano === 'premium') {
-    const { permitido } = await verificarLimite(limitadores.uploadPremium, user.id, { falharFechado: true });
+    const { permitido } = await verificarLimite(limitadores.uploadPremium, user.id, { falharFechado: false });
     if (!permitido) return NextResponse.json({ error: 'Limite de 5 PDFs/mês no plano Premium atingido. Faça upgrade para Elite.' }, { status: 429 });
   }
   // elite: sem limite
