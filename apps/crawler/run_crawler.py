@@ -22,7 +22,7 @@ claude   = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 HOJE = date.today().isoformat()
 MAX_PDFS_POR_EXECUCAO = 10
-MAX_PDF_BYTES = 3_000_000   # 3 MB
+MAX_PDF_BYTES = 10_000_000  # 10 MB
 
 
 # ─────────────────────────────────────────────
@@ -257,9 +257,6 @@ async def baixar_pdf(url: str) -> bytes | None:
             async with client.stream("GET", url) as resp:
                 if resp.status_code != 200:
                     return None
-                content_type = resp.headers.get("content-type", "")
-                if "pdf" not in content_type and not url.lower().endswith(".pdf"):
-                    return None
                 chunks = []
                 total = 0
                 async for chunk in resp.aiter_bytes(chunk_size=65536):
@@ -267,7 +264,18 @@ async def baixar_pdf(url: str) -> bytes | None:
                     total += len(chunk)
                     if total >= MAX_PDF_BYTES:
                         break
-                return b"".join(chunks)
+                data = b"".join(chunks)
+                # Aceita se for PDF por magic bytes, content-type ou extensão na URL
+                content_type = resp.headers.get("content-type", "")
+                is_pdf = (
+                    data[:4] == b"%PDF"
+                    or "pdf" in content_type
+                    or url.lower().endswith(".pdf")
+                )
+                if not is_pdf:
+                    print(f"  [PDF-DL] Não é PDF (content-type={content_type!r})")
+                    return None
+                return data
     except Exception as e:
         print(f"  [PDF-DL] Erro: {e}")
         return None
@@ -303,12 +311,14 @@ PROMPT_CARGOS = """Analise este edital de concurso público e retorne APENAS est
   "link_inscricao": "URL oficial de inscrição (portal do órgão, não blog) ou null",
   "data_inscricao_inicio": "YYYY-MM-DD ou null",
   "data_inscricao_fim": "YYYY-MM-DD ou null",
+  "taxa_inscricao": 0.00,
   "cargos": [
     {
       "nome": "nome exato do cargo conforme o edital",
       "cidade": "cidade da vaga ou null se nacional/estadual",
       "materias": ["Matéria 1", "Matéria 2"],
       "salario": 0000.00,
+      "taxa_inscricao": 0.00,
       "vagas": 0,
       "formacao_exigida": ["Direito", "Medicina"],
       "registro_conselho_exigido": ["OAB", "CRM"],
@@ -321,7 +331,7 @@ PROMPT_CARGOS = """Analise este edital de concurso público e retorne APENAS est
     }
   ]
 }
-IMPORTANTE: Liste TODOS os cargos individualmente. Cada cargo tem suas próprias matérias. Use null para campos ausentes, [] para listas vazias."""
+IMPORTANTE: Liste TODOS os cargos individualmente. Cada cargo tem suas próprias matérias. taxa_inscricao é o valor em reais (número, sem R$). Use null para campos ausentes, [] para listas vazias."""
 
 
 def extrair_campos_pdf_claude(pdf_bytes: bytes) -> dict:
@@ -358,6 +368,7 @@ def extrair_campos_pdf_claude(pdf_bytes: bytes) -> dict:
                 "cidade":                    str(c["cidade"]).strip()[:100] if c.get("cidade") else None,
                 "materias":                  [str(m).strip() for m in (c.get("materias") or []) if m][:40],
                 "salario":                   float(c["salario"]) if isinstance(c.get("salario"), (int, float)) else None,
+                "taxa_inscricao":            float(c["taxa_inscricao"]) if isinstance(c.get("taxa_inscricao"), (int, float)) else None,
                 "vagas":                     int(c["vagas"]) if isinstance(c.get("vagas"), (int, float)) else None,
                 "formacao_exigida":          c.get("formacao_exigida") if isinstance(c.get("formacao_exigida"), list) else [],
                 "registro_conselho_exigido": c.get("registro_conselho_exigido") if isinstance(c.get("registro_conselho_exigido"), list) else [],
@@ -385,6 +396,7 @@ def _campos_cargo(c: dict) -> dict:
         "cidade":                     str(c["cidade"]).strip()[:100] if c.get("cidade") else None,
         "materias":                   c.get("materias") or [],
         "salario":                    float(c["salario"]) if isinstance(c.get("salario"), (int, float)) else None,
+        "taxa_inscricao":             float(c["taxa_inscricao"]) if isinstance(c.get("taxa_inscricao"), (int, float)) else None,
         "vagas":                      int(c["vagas"]) if isinstance(c.get("vagas"), (int, float)) else None,
         "escolaridade":               escol,
         "area":                       area,
@@ -450,6 +462,10 @@ async def extrair_cargos_inline(edital_id: str, dados: dict):
         val = campos.get(campo)
         if val:
             meta_global[campo] = val
+    # taxa_inscricao pode vir a nível de edital (quando igual para todos os cargos)
+    taxa_edital = campos.get("taxa_inscricao")
+    if isinstance(taxa_edital, (int, float)):
+        meta_global["taxa_inscricao"] = float(taxa_edital)
 
     # Atualiza o row existente com dados do cargo[0] + metadados
     supabase.table("editais").update({**meta_global, **_campos_cargo(cargos[0])}).eq("id", edital_id).execute()
