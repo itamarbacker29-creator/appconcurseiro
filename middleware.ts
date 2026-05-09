@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
-const ROTAS_PROTEGIDAS = ['/dashboard', '/simulado', '/editais', '/desempenho', '/plano', '/conta', '/tutor', '/flashcards', '/onboarding'];
+const ROTAS_PROTEGIDAS = ['/dashboard', '/simulado', '/editais', '/desempenho', '/plano', '/conta', '/upgrade', '/tutor', '/flashcards', '/onboarding'];
 
 export async function middleware(req: NextRequest) {
   let res = NextResponse.next({ request: req });

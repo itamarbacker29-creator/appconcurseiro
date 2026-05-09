@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient, createServerClient } from '@/lib/supabase-server';
+import { createAdminClient } from '@/lib/supabase-server';
 
 const ASAAS_BASE_URL = 'https://api.asaas.com/v3';
 const DIAS_ARREPENDIMENTO = 7;
@@ -9,11 +9,14 @@ export async function POST(req: NextRequest) {
     const apiKey = process.env.ASAAS_API_KEY;
     if (!apiKey) return NextResponse.json({ error: 'Serviço indisponível' }, { status: 503 });
 
-    const supabase = await createServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    const authHeader = req.headers.get('Authorization');
+    const token = authHeader?.replace('Bearer ', '').trim();
+    if (!token) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
 
     const admin = createAdminClient();
+    const { data: { user }, error: authError } = await admin.auth.getUser(token);
+    if (authError || !user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+
     const { data: profile } = await admin
       .from('profiles')
       .select('asaas_subscription_id, plano, plano_iniciado_em, plano_expira_em')

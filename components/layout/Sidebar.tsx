@@ -24,7 +24,8 @@ const NAV: NavItem[] = [
   { href: '/apostilas',   label: 'Apostilas',        icon: 'menu_book' },
   { href: '/flashcards',  label: 'Flashcards',       icon: 'style' },
   { href: '/estimativa',  label: 'Estimativas',      icon: 'emoji_events' },
-  { href: '/conta',       label: 'Conta',            icon: 'manage_accounts' },
+  { href: '/upgrade',     label: 'Upgrade',          icon: 'workspace_premium' },
+  { href: '/conta',       label: 'Preferências',     icon: 'manage_accounts' },
 ];
 
 // Items shown directly in the bottom bar
@@ -72,20 +73,22 @@ export function Sidebar({ user }: SidebarProps) {
                 data-tour={`nav-${item.href.slice(1)}`}
                 className={[
                   'flex items-center gap-3 px-3 py-2 rounded-(--radius-sm) text-[13px] font-medium transition-all',
-                  active
+                  item.href === '/upgrade' && !active
+                    ? 'text-amber-700 bg-amber-50 hover:bg-amber-100'
+                    : active
                     ? 'bg-(--accent-light) text-(--accent-text)'
                     : 'text-(--ink-2) hover:bg-(--surface-2) hover:text-(--ink)',
                 ].join(' ')}
               >
-                <span className={`material-symbols-outlined text-[20px] w-5 text-center ${active ? 'filled' : ''}`} style={{ fontSize: '20px' }}>
+                <span className={`material-symbols-outlined text-[20px] w-5 text-center ${active || item.href === '/upgrade' ? 'filled' : ''}`} style={{ fontSize: '20px' }}>
                   {item.icon}
                 </span>
                 {item.label}
-                {item.href === '/conta' && user?.plano === 'premium' && (
-                  <Badge variant="accent" className="ml-auto text-[9px]">PRO</Badge>
-                )}
-                {item.href === '/conta' && user?.plano === 'free' && (
+                {item.href === '/upgrade' && user?.plano === 'free' && (
                   <Badge variant="default" className="ml-auto text-[9px]">FREE</Badge>
+                )}
+                {item.href === '/upgrade' && user?.plano !== 'free' && (
+                  <Badge variant="accent" className="ml-auto text-[9px]">{user?.plano?.toUpperCase()}</Badge>
                 )}
               </Link>
             );
@@ -203,8 +206,11 @@ export function Sidebar({ user }: SidebarProps) {
                       {item.icon}
                     </span>
                     {item.label}
-                    {item.href === '/conta' && user?.plano === 'premium' && (
-                      <Badge variant="accent" className="ml-auto text-[9px]">PRO</Badge>
+                    {item.href === '/upgrade' && user?.plano === 'free' && (
+                      <Badge variant="default" className="ml-auto text-[9px]">FREE</Badge>
+                    )}
+                    {item.href === '/upgrade' && user?.plano !== 'free' && (
+                      <Badge variant="accent" className="ml-auto text-[9px]">{user?.plano?.toUpperCase()}</Badge>
                     )}
                   </Link>
                 );

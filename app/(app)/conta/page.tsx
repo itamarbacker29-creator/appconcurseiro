@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { PLANOS as PRICING } from '@/lib/pricing';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
@@ -28,68 +27,16 @@ const ESTILOS = [
   { id: 'aulas_ao_vivo', label: '◎ Aulas ao vivo' },
 ];
 
-const PLANOS = [
-  {
-    id: 'free',
-    nome: 'Free',
-    preco: 'Grátis',
-    cor: 'text-(--ink-3)',
-    destaques: [
-      'Todos os editais, sem limite',
-      '5 simulados completos por mês',
-      '1 pergunta ao Tutor IA por dia',
-      'Diagnóstico de desempenho por matéria',
-      '1 Raio-X de edital por mês',
-      '1 PDF → até 5 flashcards por mês',
-    ],
-  },
-  {
-    id: 'premium',
-    nome: 'Premium',
-    preco: 'R$ 19,90/mês',
-    cor: 'text-(--accent)',
-    destaques: [
-      'Todos os editais, sem limite',
-      'Simulados ilimitados',
-      'Tutor IA 24/7 — 30 mensagens/mês',
-      'Plano de estudo personalizado',
-      'Raio-X do edital ilimitado',
-      'Upload de 5 PDFs/mês → flashcards',
-      'Marca-texto em apostilas',
-    ],
-  },
-  {
-    id: 'elite',
-    nome: 'Elite',
-    preco: 'R$ 29,90/mês',
-    cor: 'text-(--teal)',
-    destaques: [
-      'Tudo do Premium',
-      'Tutor IA 24/7 ilimitado',
-      'Plano de estudo por edital específico',
-      'Recomendação personalizada de concursos',
-      'Upload ilimitado de PDFs → flashcards',
-      'Análise de chance de aprovação em tempo real',
-      'Alertas prioritários de editais',
-    ],
-  },
-];
-
-function mascararCPF(valor: string) {
-  return valor.replace(/\D/g, '').slice(0, 11)
-    .replace(/(\d{3})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-}
-
-type StatusCheckout = 'idle' | 'loading' | 'aguardando' | 'success' | 'error';
+const NOMES_PLANO: Record<string, string> = {
+  free: 'Free',
+  premium: 'Premium',
+  elite: 'Elite',
+};
 
 interface Perfil {
   nome: string;
   email: string;
   plano: string;
-  plano_expira_em: string | null;
-  plano_iniciado_em: string | null;
   data_prova: string | null;
   concurso_alvo_nome: string | null;
   estilos_aprendizado: string[] | null;
@@ -114,7 +61,6 @@ export default function ContaPage() {
   const [concursoNome, setConcursoNome] = useState('');
   const [dataProva, setDataProva] = useState('');
   const [estilos, setEstilos] = useState<string[]>([]);
-  // Elegibilidade
   const [formacao, setFormacao] = useState('');
   const [conselhos, setConselhos] = useState<string[]>([]);
   const [pcd, setPcd] = useState(false);
@@ -124,15 +70,6 @@ export default function ContaPage() {
   const [isencao, setIsencao] = useState(false);
   const [salvandoElegibilidade, setSalvandoElegibilidade] = useState(false);
 
-  // Checkout Asaas
-  const [modalPlano, setModalPlano] = useState<'premium' | 'elite' | null>(null);
-  const [periodo, setPeriodo] = useState<'mensal' | 'anual'>('mensal');
-  const [cpf, setCpf] = useState('');
-  const [statusCheckout, setStatusCheckout] = useState<StatusCheckout>('idle');
-  const [erroCheckout, setErroCheckout] = useState('');
-  const checkoutUrlRef = useRef('');
-  const [cancelando, setCancelando] = useState(false);
-
   useEffect(() => {
     async function carregar() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -140,7 +77,7 @@ export default function ContaPage() {
 
       const { data } = await supabase
         .from('profiles')
-        .select('nome, plano, plano_expira_em, plano_iniciado_em, data_prova, concurso_alvo_nome, estilos_aprendizado, formacao, registros_conselho, pcd, elegivel_cota_racial, elegivel_cota_indigena, elegivel_cota_quilombola, elegivel_isencao_taxa')
+        .select('nome, plano, data_prova, concurso_alvo_nome, estilos_aprendizado, formacao, registros_conselho, pcd, elegivel_cota_racial, elegivel_cota_indigena, elegivel_cota_quilombola, elegivel_isencao_taxa')
         .eq('id', user.id)
         .single();
 
@@ -148,8 +85,6 @@ export default function ContaPage() {
         nome: data?.nome ?? '',
         email: user.email ?? '',
         plano: data?.plano ?? 'free',
-        plano_expira_em: data?.plano_expira_em ?? null,
-        plano_iniciado_em: data?.plano_iniciado_em ?? null,
         data_prova: data?.data_prova ?? null,
         concurso_alvo_nome: data?.concurso_alvo_nome ?? null,
         estilos_aprendizado: data?.estilos_aprendizado ?? null,
@@ -252,86 +187,6 @@ export default function ContaPage() {
     setSalvandoEstilos(false);
   }
 
-  async function handleCheckout() {
-    if (!modalPlano) return;
-    const cpfDigitos = cpf.replace(/\D/g, '');
-    if (cpfDigitos.length !== 11) {
-      setErroCheckout('CPF inválido. Digite os 11 dígitos.');
-      return;
-    }
-    setStatusCheckout('loading');
-    setErroCheckout('');
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch('/api/checkout/asaas', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token ?? ''}`,
-        },
-        body: JSON.stringify({ plano: modalPlano, periodo, cpf: cpfDigitos }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.checkoutUrl) {
-        setErroCheckout(data.error ?? 'Erro ao gerar link de pagamento.');
-        setStatusCheckout('error');
-        return;
-      }
-      checkoutUrlRef.current = data.checkoutUrl;
-      window.open(data.checkoutUrl, '_blank', 'noopener,noreferrer');
-      setStatusCheckout('aguardando');
-    } catch {
-      setErroCheckout('Falha de conexão. Tente novamente.');
-      setStatusCheckout('error');
-    }
-  }
-
-  async function handleVerificarAtivacao() {
-    setStatusCheckout('loading');
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { data } = await supabase.from('profiles').select('plano').eq('id', user.id).single();
-    if (data?.plano !== 'free' && data?.plano) {
-      setPerfil(prev => prev ? { ...prev, plano: data.plano } : prev);
-      setStatusCheckout('success');
-      toast('Plano ativado com sucesso!', 'success');
-      setTimeout(() => { setModalPlano(null); setStatusCheckout('idle'); setCpf(''); }, 1500);
-    } else {
-      setErroCheckout('Pagamento ainda não confirmado. Aguarde e tente novamente.');
-      setStatusCheckout('aguardando');
-    }
-  }
-
-  async function handleCancelar() {
-    if (!perfil || perfil.plano === 'free') return;
-    const dentroDoArrependimento = perfil.plano_iniciado_em
-      ? (Date.now() - new Date(perfil.plano_iniciado_em).getTime()) < 7 * 24 * 60 * 60 * 1000
-      : false;
-    const msg = dentroDoArrependimento
-      ? 'Você está dentro dos 7 dias. Cancelar gerará reembolso total. Confirmar?'
-      : 'Confirmar cancelamento? O acesso continua até o fim do período pago.';
-    if (!window.confirm(msg)) return;
-    setCancelando(true);
-    try {
-      const res = await fetch('/api/checkout/cancelar', { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok) { toast(data.error ?? 'Erro ao cancelar.', 'error'); return; }
-      setPerfil(prev => prev ? { ...prev, plano: data.reembolsado ? 'free' : prev.plano } : prev);
-      if (data.reembolsado) {
-        toast('Assinatura cancelada. Reembolso solicitado.', 'success');
-      } else if (data.acesso_ate) {
-        const ate = new Date(data.acesso_ate).toLocaleDateString('pt-BR');
-        toast(`Renovação cancelada. Acesso até ${ate}.`, 'success');
-      } else {
-        toast('Assinatura cancelada.', 'success');
-      }
-    } catch {
-      toast('Falha de conexão.', 'error');
-    } finally {
-      setCancelando(false);
-    }
-  }
-
   async function sair() {
     if (!confirmandoSair) { setConfirmandoSair(true); return; }
     await supabase.auth.signOut();
@@ -348,12 +203,10 @@ export default function ContaPage() {
 
   if (!perfil) return null;
 
-  const planoAtual = PLANOS.find(p => p.id === perfil.plano) ?? PLANOS[0];
-
   return (
     <div className="p-4 md:p-6 max-w-[700px] mx-auto flex flex-col gap-6">
       <div>
-        <h1 className="text-[22px] font-bold text-(--ink)">Conta e Preferências</h1>
+        <h1 className="text-[22px] font-bold text-(--ink)">Preferências</h1>
         <p className="text-[13px] text-(--ink-3) mt-1">Personalize sua experiência de estudo.</p>
       </div>
 
@@ -367,7 +220,7 @@ export default function ContaPage() {
           <p className="text-[12px] text-(--ink-3) truncate">{perfil.email}</p>
         </div>
         <Badge variant={perfil.plano === 'free' ? 'default' : 'accent'}>
-          {planoAtual.nome.toUpperCase()}
+          {(NOMES_PLANO[perfil.plano] ?? perfil.plano).toUpperCase()}
         </Badge>
       </div>
 
@@ -472,179 +325,6 @@ export default function ContaPage() {
           Salvar elegibilidade
         </Button>
       </section>
-
-      {/* Plano atual e upgrade */}
-      <section id="plano" className="bg-(--surface) border border-(--border) rounded-(--radius) p-5 flex flex-col gap-4">
-        <h2 className="text-[15px] font-bold text-(--ink)">Seu plano</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {PLANOS.map(p => {
-            const atual = p.id === perfil.plano;
-            const podeUpgrade = perfil.plano === 'free' || (perfil.plano === 'premium' && p.id === 'elite');
-            return (
-              <div
-                key={p.id}
-                className={[
-                  'rounded-(--radius) border-2 p-4 flex flex-col gap-3 transition-all',
-                  atual ? 'border-(--accent) bg-(--accent-light)' : 'border-(--border)',
-                ].join(' ')}
-              >
-                <div className="flex items-center justify-between">
-                  <span className={`text-[15px] font-bold ${p.cor}`}>{p.nome}</span>
-                  {atual && <Badge variant="accent" className="text-[9px]">Atual</Badge>}
-                </div>
-                <p className="text-[13px] font-semibold text-(--ink)">{p.preco}</p>
-                <ul className="flex flex-col gap-1.5">
-                  {p.destaques.map(d => (
-                    <li key={d} className="text-[12px] text-(--ink-2) flex items-start gap-1.5">
-                      <span className="text-(--teal) shrink-0 mt-0.5">✓</span> {d}
-                    </li>
-                  ))}
-                </ul>
-                {podeUpgrade && p.id !== 'free' && (
-                  <Button
-                    size="sm"
-                    variant={p.id === 'elite' ? 'primary' : 'ghost'}
-                    className="mt-auto"
-                    onClick={() => { setCpf(''); setStatusCheckout('idle'); setErroCheckout(''); setModalPlano(p.id as 'premium' | 'elite'); }}
-                  >
-                    Fazer upgrade
-                  </Button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-        {perfil.plano !== 'free' && (
-          <div className="text-center">
-            {perfil.plano_expira_em && (
-              <p className="text-[12px] text-(--ink-3) mb-2">
-                Acesso ativo até {new Date(perfil.plano_expira_em).toLocaleDateString('pt-BR')}
-              </p>
-            )}
-            <button
-              onClick={handleCancelar}
-              disabled={cancelando}
-              className="text-[12px] text-(--ink-3) hover:text-red-500 transition-colors disabled:opacity-50"
-            >
-              {cancelando ? 'Cancelando...' : 'Cancelar assinatura'}
-            </button>
-          </div>
-        )}
-      </section>
-
-      {/* Modal de checkout Asaas */}
-      {modalPlano && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md bg-(--surface) rounded-(--radius) p-6 flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-[16px] font-bold text-(--ink)">
-                Assinar plano {PLANOS.find(p => p.id === modalPlano)?.nome}
-              </h3>
-              <button
-                onClick={() => setModalPlano(null)}
-                className="w-8 h-8 rounded-full bg-(--surface-2) flex items-center justify-center text-(--ink-3) hover:bg-(--border)"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Toggle mensal / anual */}
-            <div className="flex items-center justify-center gap-3">
-              <span className={`text-[13px] font-semibold ${periodo === 'mensal' ? 'text-(--ink)' : 'text-(--ink-3)'}`}>Mensal</span>
-              <button
-                onClick={() => setPeriodo(p => p === 'mensal' ? 'anual' : 'mensal')}
-                className={`relative w-10 h-5 rounded-full transition-colors ${periodo === 'anual' ? 'bg-(--accent)' : 'bg-(--border-strong)'}`}
-              >
-                <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${periodo === 'anual' ? 'translate-x-5' : 'translate-x-0.5'}`} />
-              </button>
-              <span className={`text-[13px] font-semibold ${periodo === 'anual' ? 'text-(--ink)' : 'text-(--ink-3)'}`}>
-                Anual
-                {periodo === 'anual' && <span className="ml-1 text-[10px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">25% off</span>}
-              </span>
-            </div>
-
-            <div className="bg-(--accent-light) border border-(--accent) rounded-(--radius-sm) p-3 text-center">
-              <p className="text-[13px] font-semibold text-(--ink)">
-                {PLANOS.find(p => p.id === modalPlano)?.nome} · {periodo === 'anual' ? 'Anual' : 'Mensal'}
-              </p>
-              {modalPlano && (
-                <>
-                  {periodo === 'anual' && (
-                    <p className="text-[12px] text-(--ink-3) line-through">
-                      R$ {PRICING[modalPlano].preco_mensal.toFixed(2).replace('.', ',')}/mês
-                    </p>
-                  )}
-                  <p className="text-[22px] font-bold text-(--accent)">
-                    R$ {periodo === 'anual'
-                      ? PRICING[modalPlano].preco_anual_mensal.toFixed(2).replace('.', ',')
-                      : PRICING[modalPlano].preco_mensal.toFixed(2).replace('.', ',')}
-                    <span className="text-[13px] font-normal text-(--ink-3)">/mês</span>
-                  </p>
-                  {periodo === 'anual' && (
-                    <p className="text-[11px] text-green-600 font-semibold mt-0.5">
-                      Cobrado R$ {PRICING[modalPlano].preco_anual_total.toFixed(2).replace('.', ',')} por ano
-                    </p>
-                  )}
-                </>
-              )}
-              <p className="text-[11px] text-(--ink-3) mt-0.5">PIX, cartão ou boleto</p>
-            </div>
-
-            {statusCheckout === 'success' && (
-              <div className="bg-green-50 border border-green-200 rounded-(--radius-sm) p-3 text-center text-[14px] font-bold text-green-700">
-                ✓ Plano ativado com sucesso!
-              </div>
-            )}
-
-            {(statusCheckout === 'idle' || statusCheckout === 'error') && (
-              <div className="flex flex-col gap-3">
-                <div>
-                  <label className="text-[12px] font-medium text-(--ink-3) block mb-1.5">CPF para cobrança</label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="000.000.000-00"
-                    value={cpf}
-                    onChange={e => setCpf(mascararCPF(e.target.value))}
-                    className="w-full h-11 border-2 border-(--border-strong) rounded-(--radius-sm) px-4 text-[16px] font-bold tracking-widest text-center focus:border-(--accent) outline-none bg-(--surface)"
-                    autoFocus
-                  />
-                  <p className="text-[11px] text-(--ink-3) mt-1 text-center">Exigido pelo processador de pagamentos</p>
-                </div>
-                <Button
-                  onClick={handleCheckout}
-                  disabled={cpf.replace(/\D/g, '').length !== 11}
-                >
-                  Continuar para o pagamento ↗
-                </Button>
-              </div>
-            )}
-
-            {statusCheckout === 'loading' && (
-              <Button disabled loading>Gerando link...</Button>
-            )}
-
-            {statusCheckout === 'aguardando' && (
-              <div className="flex flex-col gap-3">
-                <div className="bg-amber-50 border border-amber-200 rounded-(--radius-sm) p-3 text-[13px] text-amber-800">
-                  Checkout aberto em nova aba. Após pagar, clique em verificar.
-                </div>
-                <Button onClick={handleVerificarAtivacao}>Verificar ativação</Button>
-                <button
-                  onClick={() => window.open(checkoutUrlRef.current, '_blank', 'noopener,noreferrer')}
-                  className="text-[13px] text-(--ink-3) hover:text-(--accent) transition-colors flex items-center justify-center gap-1"
-                >
-                  ↗ Reabrir checkout
-                </button>
-              </div>
-            )}
-
-            {erroCheckout && (
-              <p className="text-[12px] text-red-500 text-center">{erroCheckout}</p>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Notificações push */}
       <section className="bg-(--surface) border border-(--border) rounded-(--radius) p-5 flex flex-col gap-3">
