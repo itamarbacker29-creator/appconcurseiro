@@ -31,29 +31,17 @@ export async function POST(req: NextRequest) {
     const { data: { user }, error: authError } = await admin.auth.getUser(token);
     if (authError || !user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
 
-    // Busca nome (coluna que sempre existe)
-    const { data: profile, error: profileError } = await admin
+    // maybeSingle evita erro "Cannot coerce" quando linha não existe
+    const { data: profile } = await admin
       .from('profiles')
-      .select('nome')
+      .select('nome, asaas_customer_id')
       .eq('id', user.id)
-      .single();
-
-    if (profileError || !profile) {
-      console.error('[checkout/asaas] perfil:', profileError);
-      return NextResponse.json({ error: profileError?.message ?? 'Perfil não encontrado' }, { status: 404 });
-    }
-
-    // Busca asaas_customer_id separadamente (pode não existir se a migration não foi aplicada)
-    const { data: extra } = await admin
-      .from('profiles')
-      .select('asaas_customer_id')
-      .eq('id', user.id)
-      .single();
+      .maybeSingle();
 
     const headers = { 'access_token': apiKey, 'Content-Type': 'application/json' };
 
     // Cria ou reutiliza cliente no Asaas
-    let customerId: string = (extra as any)?.asaas_customer_id ?? '';
+    let customerId: string = (profile as any)?.asaas_customer_id ?? '';
 
     if (!customerId) {
       const searchResp = await fetch(`${ASAAS_BASE_URL}/customers?externalReference=${user.id}`, { headers });
@@ -66,7 +54,7 @@ export async function POST(req: NextRequest) {
           method: 'POST',
           headers,
           body: JSON.stringify({
-            name: profile.nome || user.email!.split('@')[0],
+            name: (profile as any)?.nome || user.email!.split('@')[0],
             email: user.email,
             cpfCnpj: cpfDigitos,
             externalReference: user.id,
