@@ -89,10 +89,13 @@ export default function EditaisPage() {
         .range(off, off + POR_PAGINA - 1);
     }
 
+    const hoje = new Date().toISOString().split('T')[0];
+
     let q = supabase
       .from('editais')
       .select('id,orgao,cargo,escolaridade,vagas,salario,estado,area,nivel,data_inscricao_fim,link_inscricao,link_fonte,banca,coletado_em')
-      .eq('status', 'ativo');
+      .eq('status', 'ativo')
+      .or(`data_inscricao_fim.is.null,data_inscricao_fim.gte.${hoje}`);
 
     if (area !== 'Todos') {
       if (FILTROS_NIVEL.has(area)) q = q.eq('nivel', area.toLowerCase());
@@ -101,7 +104,7 @@ export default function EditaisPage() {
     if (estado !== 'Todos') q = q.eq('estado', estado);
     if (banca !== 'Todos') q = q.ilike('banca', `%${banca}%`);
     if (escolaridade !== 'Todos') q = q.eq('escolaridade', escolaridade);
-    if (apenasAbertas) q = q.gte('data_inscricao_fim', new Date().toISOString().split('T')[0]);
+    if (apenasAbertas) q = q.gte('data_inscricao_fim', hoje);
     if (buscaDeferida) q = q.or(`orgao.ilike.%${buscaDeferida}%,cargo.ilike.%${buscaDeferida}%`);
 
     if (ordem === 'salario') q = q.order('salario', { ascending: false, nullsFirst: false });
