@@ -31,21 +31,29 @@ export async function POST(req: NextRequest) {
     const { data: { user }, error: authError } = await admin.auth.getUser(token);
     if (authError || !user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
 
+    // Busca nome (coluna que sempre existe)
     const { data: profile, error: profileError } = await admin
       .from('profiles')
-      .select('nome, asaas_customer_id')
+      .select('nome')
       .eq('id', user.id)
       .single();
 
     if (profileError || !profile) {
       console.error('[checkout/asaas] perfil:', profileError);
-      return NextResponse.json({ error: 'Perfil não encontrado' }, { status: 404 });
+      return NextResponse.json({ error: profileError?.message ?? 'Perfil não encontrado' }, { status: 404 });
     }
+
+    // Busca asaas_customer_id separadamente (pode não existir se a migration não foi aplicada)
+    const { data: extra } = await admin
+      .from('profiles')
+      .select('asaas_customer_id')
+      .eq('id', user.id)
+      .single();
 
     const headers = { 'access_token': apiKey, 'Content-Type': 'application/json' };
 
     // Cria ou reutiliza cliente no Asaas
-    let customerId: string = profile.asaas_customer_id ?? '';
+    let customerId: string = (extra as any)?.asaas_customer_id ?? '';
 
     if (!customerId) {
       const searchResp = await fetch(`${ASAAS_BASE_URL}/customers?externalReference=${user.id}`, { headers });
