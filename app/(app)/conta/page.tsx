@@ -126,6 +126,7 @@ export default function ContaPage() {
 
   // Checkout Asaas
   const [modalPlano, setModalPlano] = useState<'premium' | 'elite' | null>(null);
+  const [periodo, setPeriodo] = useState<'mensal' | 'anual'>('mensal');
   const [cpf, setCpf] = useState('');
   const [statusCheckout, setStatusCheckout] = useState<StatusCheckout>('idle');
   const [erroCheckout, setErroCheckout] = useState('');
@@ -261,10 +262,14 @@ export default function ContaPage() {
     setStatusCheckout('loading');
     setErroCheckout('');
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch('/api/checkout/asaas', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plano: modalPlano, cpf: cpfDigitos }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
+        body: JSON.stringify({ plano: modalPlano, periodo, cpf: cpfDigitos }),
       });
       const data = await res.json();
       if (!res.ok || !data.checkoutUrl) {
@@ -543,14 +548,45 @@ export default function ContaPage() {
               </button>
             </div>
 
+            {/* Toggle mensal / anual */}
+            <div className="flex items-center justify-center gap-3">
+              <span className={`text-[13px] font-semibold ${periodo === 'mensal' ? 'text-(--ink)' : 'text-(--ink-3)'}`}>Mensal</span>
+              <button
+                onClick={() => setPeriodo(p => p === 'mensal' ? 'anual' : 'mensal')}
+                className={`relative w-10 h-5 rounded-full transition-colors ${periodo === 'anual' ? 'bg-(--accent)' : 'bg-(--border-strong)'}`}
+              >
+                <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${periodo === 'anual' ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              </button>
+              <span className={`text-[13px] font-semibold ${periodo === 'anual' ? 'text-(--ink)' : 'text-(--ink-3)'}`}>
+                Anual
+                {periodo === 'anual' && <span className="ml-1 text-[10px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">25% off</span>}
+              </span>
+            </div>
+
             <div className="bg-(--accent-light) border border-(--accent) rounded-(--radius-sm) p-3 text-center">
               <p className="text-[13px] font-semibold text-(--ink)">
-                {PLANOS.find(p => p.id === modalPlano)?.nome}
+                {PLANOS.find(p => p.id === modalPlano)?.nome} · {periodo === 'anual' ? 'Anual' : 'Mensal'}
               </p>
-              <p className="text-[22px] font-bold text-(--accent)">
-                R$ {modalPlano ? PRICING[modalPlano].preco_mensal.toFixed(2).replace('.', ',') : ''}
-                <span className="text-[13px] font-normal text-(--ink-3)">/mês</span>
-              </p>
+              {modalPlano && (
+                <>
+                  {periodo === 'anual' && (
+                    <p className="text-[12px] text-(--ink-3) line-through">
+                      R$ {PRICING[modalPlano].preco_mensal.toFixed(2).replace('.', ',')}/mês
+                    </p>
+                  )}
+                  <p className="text-[22px] font-bold text-(--accent)">
+                    R$ {periodo === 'anual'
+                      ? PRICING[modalPlano].preco_anual_mensal.toFixed(2).replace('.', ',')
+                      : PRICING[modalPlano].preco_mensal.toFixed(2).replace('.', ',')}
+                    <span className="text-[13px] font-normal text-(--ink-3)">/mês</span>
+                  </p>
+                  {periodo === 'anual' && (
+                    <p className="text-[11px] text-green-600 font-semibold mt-0.5">
+                      Cobrado R$ {PRICING[modalPlano].preco_anual_total.toFixed(2).replace('.', ',')} por ano
+                    </p>
+                  )}
+                </>
+              )}
               <p className="text-[11px] text-(--ink-3) mt-0.5">PIX, cartão ou boleto</p>
             </div>
 

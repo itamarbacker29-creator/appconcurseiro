@@ -167,11 +167,6 @@ export default async function HomePage() {
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-[#FF8400]/8 rounded-full translate-y-1/2 -translate-x-1/3 pointer-events-none" />
 
         <div className="relative max-w-6xl mx-auto px-4 md:px-8">
-          <div className="inline-flex items-center gap-2 bg-[#17375E]/8 text-[#17375E] text-[12px] font-bold px-3 py-1.5 rounded-full mb-6 tracking-wide uppercase">
-            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            Plataforma em operação · Beta aberto
-          </div>
-
           <div className="max-w-3xl">
             <h1 className="text-[40px] md:text-[56px] font-black leading-[1.1] text-[#17375E] mb-6"
               style={{ fontFamily: 'var(--font-montserrat, Montserrat, sans-serif)' }}>

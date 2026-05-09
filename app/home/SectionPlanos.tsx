@@ -208,7 +208,7 @@ export function SectionPlanos() {
 
               {/* CTA */}
               <Link
-                href="/login"
+                href={plano.id === 'free' ? '/login' : '/conta#plano'}
                 className={`block w-full py-3 rounded-xl text-[14px] font-bold text-center transition-all ${
                   plano.destaque
                     ? 'bg-[#17375E] hover:bg-[#0F2540]'

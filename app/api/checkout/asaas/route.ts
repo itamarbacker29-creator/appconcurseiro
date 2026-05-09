@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase-server';
+import { createAdminClient } from '@/lib/supabase-server';
 import { PLANOS } from '@/lib/pricing';
 
 const ASAAS_BASE_URL = 'https://api.asaas.com/v3';
 
 export async function POST(req: NextRequest) {
   try {
-    const { plano, cpf } = await req.json();
+    const { plano, periodo = 'mensal', cpf } = await req.json();
 
     if (!plano || !['premium', 'elite'].includes(plano)) {
       return NextResponse.json({ error: 'Plano inválido' }, { status: 400 });
+    }
+    if (!['mensal', 'anual'].includes(periodo)) {
+      return NextResponse.json({ error: 'Período inválido' }, { status: 400 });
     }
     const cpfDigitos = (cpf ?? '').replace(/\D/g, '');
     if (cpfDigitos.length !== 11) {
@@ -19,14 +22,18 @@ export async function POST(req: NextRequest) {
     const apiKey = process.env.ASAAS_API_KEY;
     if (!apiKey) return NextResponse.json({ error: 'Pagamento indisponível' }, { status: 503 });
 
-    // Usa o cliente SSR com a sessão do usuário logado (sem precisar de service role)
-    const supabase = await createServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    // Autentica via Bearer token enviado pelo cliente (mais confiável que cookies em API routes)
+    const authHeader = req.headers.get('Authorization');
+    const token = authHeader?.replace('Bearer ', '').trim();
+    if (!token) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
 
-    const { data: profile, error: profileError } = await supabase
+    const admin = createAdminClient();
+    const { data: { user }, error: authError } = await admin.auth.getUser(token);
+    if (authError || !user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+
+    const { data: profile, error: profileError } = await admin
       .from('profiles')
-      .select('nome, asaas_customer_id, plano')
+      .select('nome, asaas_customer_id')
       .eq('id', user.id)
       .single();
 
@@ -64,7 +71,7 @@ export async function POST(req: NextRequest) {
         }
         customerId = customer.id;
       }
-      await supabase.from('profiles').update({ asaas_customer_id: customerId }).eq('id', user.id);
+      await admin.from('profiles').update({ asaas_customer_id: customerId }).eq('id', user.id);
     } else {
       await fetch(`${ASAAS_BASE_URL}/customers/${customerId}`, {
         method: 'POST',
@@ -73,7 +80,9 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const valor = PLANOS[plano as 'premium' | 'elite'].preco_mensal;
+    const planoData = PLANOS[plano as 'premium' | 'elite'];
+    const valor = periodo === 'anual' ? planoData.preco_anual_total : planoData.preco_mensal;
+    const cycle = periodo === 'anual' ? 'YEARLY' : 'MONTHLY';
     const today = new Date().toISOString().split('T')[0];
 
     const subResp = await fetch(`${ASAAS_BASE_URL}/subscriptions`, {
@@ -84,8 +93,8 @@ export async function POST(req: NextRequest) {
         billingType: 'UNDEFINED',
         value: valor,
         nextDueDate: today,
-        cycle: 'MONTHLY',
-        description: `O Tutor ${PLANOS[plano as 'premium' | 'elite'].nome} — Plano Mensal`,
+        cycle,
+        description: `O Tutor ${planoData.nome} — Plano ${periodo === 'anual' ? 'Anual' : 'Mensal'}`,
         externalReference: `${user.id}|${plano}`,
       }),
     });
@@ -96,7 +105,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Erro ao criar assinatura' }, { status: 500 });
     }
 
-    await supabase.from('profiles').update({ asaas_subscription_id: subscription.id }).eq('id', user.id);
+    await admin.from('profiles').update({ asaas_subscription_id: subscription.id }).eq('id', user.id);
 
     const paymentsResp = await fetch(`${ASAAS_BASE_URL}/subscriptions/${subscription.id}/payments`, { headers });
     const paymentsData = await paymentsResp.json();
