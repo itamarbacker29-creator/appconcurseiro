@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { PLANOS as PRICING } from '@/lib/pricing';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
@@ -547,7 +548,7 @@ export default function ContaPage() {
                 {PLANOS.find(p => p.id === modalPlano)?.nome}
               </p>
               <p className="text-[22px] font-bold text-(--accent)">
-                R$ {PLANOS.find(p => p.id === modalPlano)?.preco_mensal.toFixed(2).replace('.', ',')}
+                R$ {modalPlano ? PRICING[modalPlano].preco_mensal.toFixed(2).replace('.', ',') : ''}
                 <span className="text-[13px] font-normal text-(--ink-3)">/mês</span>
               </p>
               <p className="text-[11px] text-(--ink-3) mt-0.5">PIX, cartão ou boleto</p>
