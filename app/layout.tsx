@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Montserrat } from 'next/font/google';
+import Script from 'next/script';
 import './globals.css';
 import { IDENTIDADE } from '@/config/identidade';
 import { ToastProvider } from '@/components/ui/Toast';
@@ -71,6 +72,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </ToastProvider>
         <Analytics />
+        {/* Google Ads */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=AW-18107138269"
+          strategy="afterInteractive"
+        />
+        <Script id="gtag-init" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'AW-18107138269');
+          `}
+        </Script>
       </body>
     </html>
   );
