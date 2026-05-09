@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient, createServerClient } from '@/lib/supabase-server';
+import { createServerClient } from '@/lib/supabase-server';
 import { PLANOS } from '@/lib/pricing';
 
 const ASAAS_BASE_URL = 'https://api.asaas.com/v3';
@@ -19,18 +19,21 @@ export async function POST(req: NextRequest) {
     const apiKey = process.env.ASAAS_API_KEY;
     if (!apiKey) return NextResponse.json({ error: 'Pagamento indisponível' }, { status: 503 });
 
+    // Usa o cliente SSR com a sessão do usuário logado (sem precisar de service role)
     const supabase = await createServerClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
 
-    const admin = createAdminClient();
-    const { data: profile } = await admin
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('nome, asaas_customer_id, plano')
       .eq('id', user.id)
       .single();
 
-    if (!profile) return NextResponse.json({ error: 'Perfil não encontrado' }, { status: 404 });
+    if (profileError || !profile) {
+      console.error('[checkout/asaas] perfil:', profileError);
+      return NextResponse.json({ error: 'Perfil não encontrado' }, { status: 404 });
+    }
 
     const headers = { 'access_token': apiKey, 'Content-Type': 'application/json' };
 
@@ -61,9 +64,8 @@ export async function POST(req: NextRequest) {
         }
         customerId = customer.id;
       }
-      await admin.from('profiles').update({ asaas_customer_id: customerId }).eq('id', user.id);
+      await supabase.from('profiles').update({ asaas_customer_id: customerId }).eq('id', user.id);
     } else {
-      // Atualiza CPF caso ainda não tenha
       await fetch(`${ASAAS_BASE_URL}/customers/${customerId}`, {
         method: 'POST',
         headers,
@@ -84,7 +86,6 @@ export async function POST(req: NextRequest) {
         nextDueDate: today,
         cycle: 'MONTHLY',
         description: `O Tutor ${PLANOS[plano as 'premium' | 'elite'].nome} — Plano Mensal`,
-        // Codifica userId|plano para o webhook identificar qual plano ativar
         externalReference: `${user.id}|${plano}`,
       }),
     });
@@ -95,7 +96,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Erro ao criar assinatura' }, { status: 500 });
     }
 
-    await admin.from('profiles').update({ asaas_subscription_id: subscription.id }).eq('id', user.id);
+    await supabase.from('profiles').update({ asaas_subscription_id: subscription.id }).eq('id', user.id);
 
     const paymentsResp = await fetch(`${ASAAS_BASE_URL}/subscriptions/${subscription.id}/payments`, { headers });
     const paymentsData = await paymentsResp.json();
