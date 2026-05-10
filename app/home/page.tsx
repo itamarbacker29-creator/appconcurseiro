@@ -6,7 +6,7 @@ import { SectionPlanos } from './SectionPlanos';
 export const metadata: Metadata = {
   title: 'O Tutor — Estude para concursos com inteligência artificial',
   description: 'O Tutor organiza editais, monta simulados adaptativos, cria seu plano de estudos personalizado e tira suas dúvidas com o Tutor IA 24/7.',
-  robots: 'noindex',
+  robots: { index: true, follow: true },
 };
 
 // ── Dados estáticos ───────────────────────────────────────────────────
