@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
 interface Beneficio {
@@ -91,6 +91,8 @@ function fmt(valor: number) {
 
 export function SectionPlanos() {
   const [periodo, setPeriodo] = useState<'mensal' | 'anual'>('mensal');
+  const [montado, setMontado] = useState(false);
+  useEffect(() => setMontado(true), []);
 
   return (
     <section id="planos" className="py-20 md:py-28 bg-white">
@@ -169,7 +171,7 @@ export function SectionPlanos() {
               </div>
 
               {/* Preço */}
-              <div>
+              <div suppressHydrationWarning>
                 {plano.preco_mensal === null ? (
                   <>
                     <span className="text-[40px] font-black text-[#17375E]"
@@ -180,20 +182,20 @@ export function SectionPlanos() {
                   </>
                 ) : (
                   <>
-                    {periodo === 'anual' && (
+                    {montado && periodo === 'anual' && (
                       <p className="text-[13px] text-gray-400 line-through mb-0.5">
                         R${fmt(plano.preco_mensal)}/mês
                       </p>
                     )}
                     <div className="flex items-baseline gap-1">
                       <span className="text-[14px] text-gray-500">R$</span>
-                      <span className="text-[40px] font-black text-[#17375E]"
+                      <span suppressHydrationWarning className="text-[40px] font-black text-[#17375E]"
                         style={{ fontFamily: 'var(--font-montserrat, Montserrat, sans-serif)' }}>
-                        {fmt(periodo === 'anual' ? plano.preco_anual! : plano.preco_mensal)}
+                        {montado ? fmt(periodo === 'anual' ? plano.preco_anual! : plano.preco_mensal) : fmt(plano.preco_mensal)}
                       </span>
                       <span className="text-[14px] text-gray-500">/mês</span>
                     </div>
-                    {periodo === 'anual' ? (
+                    {montado && periodo === 'anual' ? (
                       <p className="text-[12px] text-[#FF8400] font-semibold mt-1">
                         Cobrado anualmente · você economiza R${
                           ((plano.preco_mensal - plano.preco_anual!) * 12).toFixed(0)
