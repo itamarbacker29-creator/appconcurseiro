@@ -23,6 +23,10 @@ export const metadata: Metadata = {
   keywords: ['concursos públicos', 'simulado', 'editais', 'plano de estudo', 'IA', 'concurseiro'],
   authors: [{ name: IDENTIDADE.nomeApp, url: `https://${IDENTIDADE.dominioPrincipal}` }],
   creator: IDENTIDADE.nomeApp,
+  robots: { index: true, follow: true },
+  alternates: {
+    canonical: `https://${IDENTIDADE.dominioApp}`,
+  },
   openGraph: {
     type: 'website',
     locale: 'pt_BR',

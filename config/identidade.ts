@@ -4,7 +4,7 @@ export const IDENTIDADE = {
   nomeApp:            'O Tutor',
   nomeCurto:          'O Tutor',
   dominioPrincipal:   'otutor.com.br',
-  dominioApp:         'appconcurseiro.vercel.app',
+  dominioApp:         'www.otutor.com.br',
   emailContato:       'contato@otutor.com.br',
   emailSuporte:       'suporte@otutor.com.br',
   emailNoreply:       'noreply@otutor.com.br',
