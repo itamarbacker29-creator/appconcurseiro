@@ -89,6 +89,7 @@ const PRODUCAO = [
   'terezaadv1957@gmail.com',
   'vanessa.clg22@gmail.com',
   'velhopereiraaugustaluzia@gmail.com',
+  'uredaj@gmail.com',
   // sem Play Store
   'analuciadavo@hotmail.com',
   'churchsagui@yahoo.com',
@@ -158,6 +159,10 @@ function gerarHtml(opts: {
                 O Tutor é uma plataforma de preparação para concursos públicos com simulados adaptativos, tutor de dúvidas por IA disponível 24h, plano de estudo personalizado e análise detalhada de editais por cargo.
               </p>
 
+              <p style="margin: 0 0 16px 0; font-size: 15px; color: #1F2937; line-height: 1.7;">
+                Durante as próximas <strong>2 semanas</strong>, você terá acesso completo ao plano <strong>Elite</strong> — o mais completo da plataforma — para explorar todos os recursos e nos enviar seu feedback. Após esse período, o plano <strong>Premium será disponibilizado gratuitamente por até 6 meses</strong> para quem participar dos testes.
+              </p>
+
               <p style="margin: 0 0 8px 0; font-size: 15px; color: #1F2937; line-height: 1.6;">
                 Acesse pelo navegador:
                 <a href="https://www.otutor.com.br/login"
@@ -214,8 +219,8 @@ function gerarHtml(opts: {
 
               <p style="margin: 0; font-size: 15px; color: #1F2937; line-height: 1.7;">
                 Bons estudos,<br />
-                <strong>Itamar Backer</strong><br />
-                <span style="font-size: 13px; color: #6B7280;">O Tutor — contato@otutor.com.br</span>
+                <strong>O Tutor</strong><br />
+                <span style="font-size: 13px; color: #6B7280;">contato@otutor.com.br</span>
               </p>
 
             </td>
