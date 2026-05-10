@@ -1,8 +1,0 @@
-{
-  "experimentalServices": {
-    "crawler": {
-      "entrypoint": "apps/crawler",
-      "routePrefix": "/"
-    }
-  }
-}
