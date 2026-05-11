@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: 'O Tutor — Estude para concursos com inteligência artificial',
   description: 'O Tutor organiza editais, monta simulados adaptativos, cria seu plano de estudos personalizado e tira suas dúvidas com o Tutor IA 24/7.',
   robots: { index: true, follow: true },
+  alternates: { canonical: 'https://www.otutor.com.br/home' },
 };
 
 // ── Dados estáticos ───────────────────────────────────────────────────
