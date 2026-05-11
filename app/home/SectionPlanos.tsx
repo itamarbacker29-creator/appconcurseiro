@@ -54,7 +54,7 @@ const PLANOS: PlanoCard[] = [
     beneficios: [
       { texto: 'Todos os editais, sem limite', incluso: true },
       { texto: 'Simulados ilimitados', incluso: true },
-      { texto: 'Tutor IA 24/7 — 30 mensagens/mês', incluso: true },
+      { texto: 'Tutor IA 24/7 — 150 mensagens/mês', incluso: true },
       { texto: 'Plano de estudo personalizado', incluso: true },
       { texto: 'Raio-X do edital ilimitado', incluso: true },
       { texto: 'Upload de 5 PDFs/mês → flashcards', incluso: true },

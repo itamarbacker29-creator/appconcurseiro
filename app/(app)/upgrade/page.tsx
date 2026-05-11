@@ -37,7 +37,7 @@ const PLANOS = [
     cor: 'text-(--accent)',
     beneficios: [
       'Simulados ilimitados',
-      'Tutor IA 24/7 — 30 mensagens/mês',
+      'Tutor IA 24/7 — 150 mensagens/mês',
       'Plano de estudo personalizado',
       'Raio-X do edital ilimitado',
       'Upload de 5 PDFs/mês → flashcards',
@@ -75,6 +75,7 @@ export default function UpgradePage() {
   const [erroCheckout, setErroCheckout] = useState('');
   const checkoutUrlRef = useRef('');
   const [cancelando, setCancelando] = useState(false);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     async function carregar() {
@@ -126,25 +127,28 @@ export default function UpgradePage() {
       checkoutUrlRef.current = data.checkoutUrl;
       window.open(data.checkoutUrl, '_blank', 'noopener,noreferrer');
       setStatusCheckout('aguardando');
+
+      // Polling automático: verifica ativação a cada 4s por até 10min
+      const inicio = Date.now();
+      pollingRef.current = setInterval(async () => {
+        if (Date.now() - inicio > 10 * 60 * 1000) {
+          clearInterval(pollingRef.current!);
+          return;
+        }
+        const { data: { user: u } } = await supabase.auth.getUser();
+        if (!u) return;
+        const { data: p } = await supabase.from('profiles').select('plano').eq('id', u.id).single();
+        if (p?.plano && p.plano !== 'free') {
+          clearInterval(pollingRef.current!);
+          setPlanoAtual(p.plano as PlanoId);
+          setStatusCheckout('success');
+          toast('Plano ativado!', 'success');
+          setTimeout(() => { setModalPlano(null); setStatusCheckout('idle'); }, 2000);
+        }
+      }, 4000);
     } catch {
       setErroCheckout('Falha de conexão. Tente novamente.');
       setStatusCheckout('error');
-    }
-  }
-
-  async function handleVerificar() {
-    setStatusCheckout('loading');
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { data } = await supabase.from('profiles').select('plano').eq('id', user.id).single();
-    if (data?.plano && data.plano !== 'free') {
-      setPlanoAtual(data.plano as PlanoId);
-      setStatusCheckout('success');
-      toast('Plano ativado!', 'success');
-      setTimeout(() => { setModalPlano(null); setStatusCheckout('idle'); }, 1500);
-    } else {
-      setErroCheckout('Pagamento ainda não confirmado. Aguarde e tente novamente.');
-      setStatusCheckout('aguardando');
     }
   }
 
@@ -282,7 +286,7 @@ export default function UpgradePage() {
               <h3 className="text-[16px] font-bold text-(--ink)">
                 Assinar {PLANOS.find(p => p.id === modalPlano)?.nome}
               </h3>
-              <button onClick={() => setModalPlano(null)} className="w-8 h-8 rounded-full bg-(--surface-2) flex items-center justify-center text-(--ink-3)">✕</button>
+              <button onClick={() => { if (pollingRef.current) clearInterval(pollingRef.current); setModalPlano(null); }} className="w-8 h-8 rounded-full bg-(--surface-2) flex items-center justify-center text-(--ink-3)">✕</button>
             </div>
 
             {/* Toggle mensal/anual */}
@@ -353,13 +357,15 @@ export default function UpgradePage() {
 
             {statusCheckout === 'aguardando' && (
               <div className="flex flex-col gap-3">
-                <div className="bg-amber-50 border border-amber-200 rounded-(--radius-sm) p-3 text-[13px] text-amber-800">
-                  Checkout aberto em nova aba. Após pagar, clique em verificar.
+                <div className="bg-amber-50 border border-amber-200 rounded-(--radius-sm) p-4 flex items-center gap-3">
+                  <div className="w-5 h-5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin shrink-0" />
+                  <p className="text-[13px] text-amber-800 leading-snug">
+                    Checkout aberto em nova aba. Assim que o pagamento for confirmado, seu plano ativa automaticamente.
+                  </p>
                 </div>
-                <Button onClick={handleVerificar}>Verificar ativação</Button>
                 <button
                   onClick={() => window.open(checkoutUrlRef.current, '_blank', 'noopener,noreferrer')}
-                  className="text-[13px] text-(--ink-3) hover:text-(--accent) transition-colors"
+                  className="text-[13px] text-(--ink-3) hover:text-(--accent) transition-colors text-center"
                 >
                   ↗ Reabrir checkout
                 </button>

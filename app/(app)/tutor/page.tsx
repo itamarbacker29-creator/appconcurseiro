@@ -31,7 +31,7 @@ function TelaBloqueada() {
             'IA de alta tecnologia — respostas com base em lei e jurisprudência',
             'Referências em lei, artigos e jurisprudência',
             'Contexto do seu edital e banca',
-            '50 perguntas/mês no Premium · ilimitado no Elite',
+            '150 perguntas/mês no Premium · ilimitado no Elite',
           ].map(b => (
             <li key={b} className="flex items-start gap-2">
               <span className="material-symbols-outlined filled text-(--teal)" style={{ fontSize: '16px', marginTop: '1px' }}>check_circle</span>
@@ -180,7 +180,7 @@ function ChatTutor({ plano }: { plano: string }) {
     }
   }
 
-  const limiteLabel = plano === 'premium' ? '50 perguntas/mês' : 'ilimitado';
+  const limiteLabel = plano === 'premium' ? '150 perguntas/mês' : 'ilimitado';
 
   return (
     <div className="flex flex-col h-[calc(100dvh-4rem)] md:h-[calc(100vh-2rem)] max-w-[720px] mx-auto">

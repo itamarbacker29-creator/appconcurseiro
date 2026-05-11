@@ -85,6 +85,27 @@ export default async function DashboardPage() {
   return (
     <div className="p-4 md:p-6 max-w-[900px] mx-auto space-y-5">
 
+      {/* Boas-vindas — aparece apenas para usuários sem nenhuma questão respondida */}
+      {totalQuestoes === 0 && (
+        <div className="rounded-(--radius) bg-(--accent) text-white p-5 flex flex-col md:flex-row md:items-center gap-4">
+          <div className="flex-1">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-white/60 mb-1">Começando sua jornada</p>
+            <h2 className="text-[18px] font-bold leading-snug">
+              Bem-vindo, {nome.split(' ')[0]}! Vamos descobrir onde você está.
+            </h2>
+            <p className="text-[13px] text-white/70 mt-1.5">
+              Faça um simulado diagnóstico agora — leva 10 min e monta seu plano de estudos personalizado.
+            </p>
+          </div>
+          <Link
+            href="/simulado"
+            className="shrink-0 px-5 py-3 bg-white text-[#17375E] text-[14px] font-bold rounded-(--radius-sm) hover:bg-white/90 transition-colors text-center"
+          >
+            Iniciar simulado →
+          </Link>
+        </div>
+      )}
+
       {/* Hero — saudação + countdown */}
       <div className="rounded-(--radius) overflow-hidden bg-(--accent) text-white p-5 flex items-center justify-between gap-4">
         <div>

@@ -21,10 +21,10 @@ export const limitadores = {
   simuladoFree:  criarLimitador(Ratelimit.slidingWindow(5,   '30 d'), 'rl:simulado:free'),
   gerarQuestao:  criarLimitador(Ratelimit.slidingWindow(200, '1 h'),  'rl:questao'),
 
-  // Tutor IA: free = 1/dia, premium = 30/mês, elite = ilimitado
+  // Tutor IA: free = 1/dia, premium = 150/mês, elite = ilimitado
   tutorFree:     criarLimitador(Ratelimit.slidingWindow(1,   '24 h'), 'rl:tutor:free'),
-  tutorPremium:  criarLimitador(Ratelimit.slidingWindow(30,  '30 d'), 'rl:tutor:premium'),
-  tutorMensagem: criarLimitador(Ratelimit.slidingWindow(30,  '30 d'), 'rl:tutor'),
+  tutorPremium:  criarLimitador(Ratelimit.slidingWindow(150, '30 d'), 'rl:tutor:premium'),
+  tutorMensagem: criarLimitador(Ratelimit.slidingWindow(150, '30 d'), 'rl:tutor'),
 
   // Upload PDF: free = 1/mês, premium = 5/mês
   uploadFree:    criarLimitador(Ratelimit.slidingWindow(1,   '30 d'), 'rl:pdf:free'),

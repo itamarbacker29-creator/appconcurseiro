@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     const { permitido } = await verificarLimite(limitadores.tutorFree, user.id, { falharFechado: false });
     if (!permitido) {
       return NextResponse.json(
-        { error: 'Você atingiu o limite de 1 pergunta por dia no plano gratuito. Faça upgrade para Premium para 30 perguntas/mês.' },
+        { error: 'Você atingiu o limite de 1 pergunta por dia no plano gratuito. Faça upgrade para Premium para 150 perguntas/mês.' },
         { status: 429 }
       );
     }
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     const { permitido } = await verificarLimite(limitadores.tutorPremium, user.id, { falharFechado: false });
     if (!permitido) {
       return NextResponse.json(
-        { error: 'Limite de 30 mensagens/mês atingido. Faça upgrade para Elite para acesso ilimitado.' },
+        { error: 'Limite de 150 mensagens/mês atingido. Faça upgrade para Elite para acesso ilimitado.' },
         { status: 429 }
       );
     }

@@ -270,6 +270,88 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* ── Tutor IA em ação ───────────────────────────────────── */}
+      <section className="py-20 md:py-28 bg-white">
+        <div className="max-w-6xl mx-auto px-4 md:px-8">
+          <div className="text-center mb-14">
+            <p className="text-[#FF8400] text-[13px] font-bold uppercase tracking-widest mb-3">Tutor IA em ação</p>
+            <h2 className="text-[32px] md:text-[40px] font-black text-[#17375E] leading-tight"
+              style={{ fontFamily: 'var(--font-montserrat, Montserrat, sans-serif)' }}>
+              Tire dúvidas como se tivesse um professor particular
+            </h2>
+            <p className="text-[17px] text-gray-500 mt-4 max-w-xl mx-auto">
+              O Tutor responde com base em lei, artigos e jurisprudência — com o contexto do seu edital e banca.
+            </p>
+          </div>
+
+          <div className="max-w-2xl mx-auto rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
+            {/* Header do chat */}
+            <div className="bg-[#17375E] px-5 py-4 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-[#FF8400] flex items-center justify-center">
+                <span className="text-white text-[16px]">✦</span>
+              </div>
+              <div>
+                <p className="text-white text-[14px] font-bold">Tutor IA</p>
+                <p className="text-white/60 text-[11px]">IA de alta tecnologia · responde 24/7</p>
+              </div>
+            </div>
+
+            {/* Mensagens */}
+            <div className="bg-gray-50 px-5 py-6 flex flex-col gap-5">
+
+              {/* Usuário */}
+              <div className="flex justify-end">
+                <div className="max-w-[80%] bg-[#17375E] text-white px-4 py-3 rounded-2xl rounded-br-sm text-[14px] leading-relaxed">
+                  Qual a diferença entre cargo em comissão e função de confiança?
+                </div>
+              </div>
+
+              {/* Tutor */}
+              <div className="flex gap-3 items-start">
+                <div className="w-8 h-8 rounded-full bg-[#17375E] flex items-center justify-center shrink-0">
+                  <span className="text-white text-[13px]">✦</span>
+                </div>
+                <div className="max-w-[82%] bg-white border border-gray-200 px-4 py-3 rounded-2xl rounded-bl-sm text-[14px] leading-relaxed text-gray-700">
+                  <p className="mb-2">São dois institutos distintos previstos no <strong className="text-[#17375E]">art. 37, V da CF/88</strong>:</p>
+                  <p className="mb-2"><strong>Cargo em comissão</strong> — criado por lei, de livre nomeação e exoneração, podendo ser ocupado por qualquer pessoa, inclusive sem vínculo com a Administração. Reservado a atribuições de direção, chefia e assessoramento.</p>
+                  <p><strong>Função de confiança</strong> — exercida exclusivamente por servidores de carreira (concursados). Atribui responsabilidades adicionais sem criar um novo cargo.</p>
+                  <p className="mt-2 text-[12px] text-gray-400">Súmula Vinculante 43 do STF reforça que cargos em comissão não podem ser criados para atividades meramente burocráticas.</p>
+                </div>
+              </div>
+
+              {/* Usuário */}
+              <div className="flex justify-end">
+                <div className="max-w-[80%] bg-[#17375E] text-white px-4 py-3 rounded-2xl rounded-br-sm text-[14px] leading-relaxed">
+                  Esse tema cai muito na CESPE?
+                </div>
+              </div>
+
+              {/* Tutor */}
+              <div className="flex gap-3 items-start">
+                <div className="w-8 h-8 rounded-full bg-[#17375E] flex items-center justify-center shrink-0">
+                  <span className="text-white text-[13px]">✦</span>
+                </div>
+                <div className="max-w-[82%] bg-white border border-gray-200 px-4 py-3 rounded-2xl rounded-bl-sm text-[14px] leading-relaxed text-gray-700">
+                  Sim — é um dos temas recorrentes da CESPE/CEBRASPE em provas de Direito Constitucional e Administrativo. Costuma aparecer em assertivas que confundem propositalmente os dois conceitos, especialmente quanto ao requisito de ser servidor de carreira na função de confiança.
+                </div>
+              </div>
+
+            </div>
+
+            {/* Rodapé do chat */}
+            <div className="bg-white border-t border-gray-100 px-5 py-4 flex items-center justify-between">
+              <p className="text-[12px] text-gray-400">Experimente gratuitamente — sem cartão</p>
+              <Link
+                href="/login"
+                className="px-4 py-2 bg-[#17375E] text-white text-[13px] font-bold rounded-xl hover:bg-[#0F2540] transition-colors"
+              >
+                Conversar com o Tutor →
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── Maiores salários ───────────────────────────────────── */}
       {topEditais.length > 0 && (
         <section className="py-16 md:py-20 bg-white">
