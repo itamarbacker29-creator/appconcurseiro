@@ -75,14 +75,12 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  // Subdomínio app.otutor.com.br → redireciona para /login ou /dashboard
+  // Redireciona app.otutor.com.br → www.otutor.com.br
   const hostname = req.headers.get('host') ?? '';
   if (hostname.startsWith('app.')) {
-    const pathname2 = req.nextUrl.pathname;
-    if (pathname2 === '/') {
-      const destino = session ? '/dashboard' : '/login';
-      return NextResponse.redirect(new URL(destino, req.url));
-    }
+    const wwwUrl = new URL(req.url);
+    wwwUrl.hostname = 'www.otutor.com.br';
+    return NextResponse.redirect(wwwUrl, { status: 301 });
   }
 
   // Auth guard
