@@ -343,7 +343,8 @@ export default async function HomePage() {
               <p className="text-[12px] text-gray-400">Experimente gratuitamente — sem cartão</p>
               <Link
                 href="/login"
-                className="px-4 py-2 bg-[#17375E] text-white text-[13px] font-bold rounded-xl hover:bg-[#0F2540] transition-colors"
+                className="px-4 py-2 bg-[#17375E] text-[13px] font-bold rounded-xl hover:bg-[#0F2540] transition-colors"
+                style={{ color: '#ffffff' }}
               >
                 Conversar com o Tutor →
               </Link>
