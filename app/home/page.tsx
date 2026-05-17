@@ -191,7 +191,7 @@ export default async function HomePage() {
               </Link>
               <a href="#planos"
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-[#17375E] text-[16px] font-bold rounded-2xl border-2 border-[#17375E]/20 hover:border-[#17375E]/40 transition-colors">
-                Ver planos a partir de R$19,90
+                Ver planos a partir de R$14,90/mês
               </a>
             </div>
           </div>
