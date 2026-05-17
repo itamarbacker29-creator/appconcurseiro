@@ -10,42 +10,20 @@ interface Mensagem {
   content: string;
 }
 
-// ─── Tela de upgrade para plano free ─────────────────────────────────────────
-function TelaBloqueada() {
+// ─── Banner para plano free (não bloqueia, só avisa o limite) ────────────────
+function BannerFree() {
   return (
-    <div className="p-4 md:p-8 max-w-[600px] mx-auto flex flex-col items-center justify-center min-h-[60vh] gap-6 text-center">
-      <div className="w-16 h-16 rounded-2xl bg-(--accent-light) flex items-center justify-center">
-        <span className="material-symbols-outlined filled text-(--accent)" style={{ fontSize: '32px' }}>auto_awesome</span>
-      </div>
-      <div>
-        <h1 className="text-[22px] font-bold text-(--ink)">Tutor IA 24/7</h1>
-        <p className="text-[14px] text-(--ink-3) mt-2 max-w-[360px]">
-          Tire dúvidas sobre qualquer matéria do seu concurso, com explicações baseadas em lei e jurisprudência.
-        </p>
-      </div>
-
-      <div className="bg-(--surface) border border-(--border-strong) rounded-(--radius) p-5 w-full max-w-[360px] flex flex-col gap-4">
-        <p className="text-[12px] font-semibold text-(--accent) uppercase tracking-wide">Disponível no plano Premium</p>
-        <ul className="flex flex-col gap-2 text-[13px] text-(--ink-2) text-left">
-          {[
-            'IA de alta tecnologia — respostas com base em lei e jurisprudência',
-            'Referências em lei, artigos e jurisprudência',
-            'Contexto do seu edital e banca',
-            '150 perguntas/mês no Premium · ilimitado no Elite',
-          ].map(b => (
-            <li key={b} className="flex items-start gap-2">
-              <span className="material-symbols-outlined filled text-(--teal)" style={{ fontSize: '16px', marginTop: '1px' }}>check_circle</span>
-              {b}
-            </li>
-          ))}
-        </ul>
-        <Link
-          href="/conta#plano"
-          className="w-full py-2.5 rounded-(--radius-sm) bg-(--accent) text-white text-[14px] font-semibold text-center block transition-opacity hover:opacity-90"
-        >
-          Ver planos e fazer upgrade
-        </Link>
-      </div>
+    <div className="mx-4 mt-3 mb-0 flex items-center justify-between gap-3 bg-amber-50 border border-amber-200 rounded-(--radius-sm) px-4 py-2.5">
+      <p className="text-[12px] text-amber-800 font-medium">
+        Plano gratuito · <strong>1 pergunta por dia</strong>
+      </p>
+      <Link
+        href="/upgrade"
+        style={{ color: '#ffffff' }}
+        className="shrink-0 px-3 py-1.5 rounded-lg bg-(--accent) text-[11px] font-bold hover:opacity-90 transition-opacity"
+      >
+        Fazer upgrade
+      </Link>
     </div>
   );
 }
@@ -180,10 +158,11 @@ function ChatTutor({ plano }: { plano: string }) {
     }
   }
 
-  const limiteLabel = plano === 'premium' ? '150 perguntas/mês' : 'ilimitado';
+  const limiteLabel = plano === 'free' ? '1 pergunta por dia' : plano === 'premium' ? '150 perguntas/mês' : 'ilimitado';
 
   return (
     <div className="flex flex-col h-[calc(100dvh-4rem)] md:h-[calc(100vh-2rem)] max-w-[720px] mx-auto">
+      {plano === 'free' && <BannerFree />}
       {/* Header */}
       <div className="px-4 py-3 border-b border-(--border) flex items-center gap-3 shrink-0">
         <div className="w-9 h-9 rounded-xl bg-(--accent) flex items-center justify-center">
@@ -289,8 +268,6 @@ export default function TutorPage() {
       </div>
     );
   }
-
-  if (plano === 'free') return <TelaBloqueada />;
 
   return <ChatTutor plano={plano} />;
 }

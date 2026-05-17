@@ -292,7 +292,7 @@ export default async function DashboardPage() {
           { href: '/simulado',   icon: 'quiz',          label: 'Simulado',   bloqueado: false },
           { href: '/estimativa', icon: 'emoji_events',  label: 'Estimativa', bloqueado: false },
           { href: '/plano',      icon: 'calendar_month',label: 'Plano',      bloqueado: false },
-          { href: profile?.plano === 'free' ? '/conta#plano' : '/tutor', icon: 'auto_awesome', label: 'Tutor IA', bloqueado: profile?.plano === 'free' },
+          { href: '/tutor', icon: 'auto_awesome', label: 'Tutor IA', bloqueado: false },
         ].map(a => (
           <Link key={a.href} href={a.href}>
             <Card padding="md" className="relative flex flex-col items-center gap-2 text-center hover:border-(--accent)/40 hover:bg-(--accent-light) transition-all cursor-pointer">
