@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase-server';
 import { enviarPush } from '@/lib/push';
 
+export const dynamic = 'force-dynamic';
+
 // Endpoint chamado pelo GitHub Actions todo dia às 8h (horário de Brasília)
 // Protegido por CRON_SECRET para evitar chamadas não autorizadas
 export async function POST(req: NextRequest) {

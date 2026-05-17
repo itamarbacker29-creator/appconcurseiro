@@ -1,16 +1,15 @@
 import webpush from 'web-push';
 import { IDENTIDADE } from '@/config/identidade';
 
-webpush.setVapidDetails(
-  `mailto:${IDENTIDADE.emailContato}`,
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-);
-
 export async function enviarPush(
   subscription: webpush.PushSubscription,
   payload: { titulo: string; corpo: string; url?: string; icone?: string }
 ) {
+  webpush.setVapidDetails(
+    `mailto:${IDENTIDADE.emailContato}`,
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+    process.env.VAPID_PRIVATE_KEY!
+  );
   try {
     await webpush.sendNotification(
       subscription,
