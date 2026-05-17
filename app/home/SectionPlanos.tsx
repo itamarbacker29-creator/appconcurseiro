@@ -90,7 +90,7 @@ function fmt(valor: number) {
 }
 
 export function SectionPlanos() {
-  const [periodo, setPeriodo] = useState<'mensal' | 'anual'>('mensal');
+  const [periodo, setPeriodo] = useState<'mensal' | 'anual'>('anual');
   const [montado, setMontado] = useState(false);
   useEffect(() => setMontado(true), []);
 
